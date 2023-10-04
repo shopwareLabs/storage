@@ -1,0 +1,17 @@
+{
+  "name": "shopware/storage",
+  "type": "library",
+  "description": "Shopware storage library for read optimized access to the database",
+  "keywords": ["shopware", "storage", "database", "mysql"],
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Shopware\\Storage\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Shopware\\StorageTests\\": "src/tests/"
+    }
+  }
+}
