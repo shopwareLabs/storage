@@ -8,6 +8,8 @@
   services.mongodb.enable = lib.mkDefault true;
   services.opensearch.enable = true;
   services.redis.enable = lib.mkDefault true;
+  services.adminer.enable = lib.mkDefault true;
+  services.adminer.listen = lib.mkDefault "127.0.0.1:9080";
 
   languages.php = {
     enable = lib.mkDefault true;
