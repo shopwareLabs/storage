@@ -61,8 +61,6 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ])
         ];
-
-//
     }
 
     /**
