@@ -6,5 +6,4 @@ use Shopware\Storage\Common\Document\Collection;
 
 class Aggregations extends Collection
 {
-
 }

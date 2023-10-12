@@ -186,6 +186,7 @@ class MySQLFilterStorage implements FilterStorage
                 case $type === 'nand':
                     $nested = $this->addFilters($query, $filter['queries'], $context);
                     $where[] = 'NOT (' . implode(' AND ', $nested) . ')';
+                    // no break
                 case $type === 'nor':
                     $nested = $this->addFilters($query, $filter['queries'], $context);
                     $where[] = 'NOT (' . implode(' OR ', $nested) . ')';
@@ -380,9 +381,13 @@ SQL;
             unset($row['key']);
 
             foreach ($row as $k => $v) {
-                if ($v === null) continue;
+                if ($v === null) {
+                    continue;
+                }
 
-                if (!in_array($k, $jsons, true)) continue;
+                if (!in_array($k, $jsons, true)) {
+                    continue;
+                }
 
                 $row[$k] = json_decode($v, true);
             }

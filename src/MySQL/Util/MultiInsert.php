@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Shopware\Storage\MySQL\Util;
 
@@ -50,7 +52,7 @@ class MultiInsert
 
             if ($value === null) {
                 $value = 'NULL';
-            } else if (is_array($value)) {
+            } elseif (is_array($value)) {
                 $value = $this->connection->quote(json_encode($value, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_IGNORE), $type);
             } else {
                 $value = $this->connection->quote($value, $type);

@@ -1,0 +1,165 @@
+name: PHPUnit Tests
+
+on:
+  pull_request:
+
+jobs:
+  array-storage:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Run PHPUnit Tests
+        run: ./vendor/bin/phpunit --testsuite=array
+
+  opensearch-storage:
+    runs-on: ubuntu-latest
+    services:
+      opensearch:
+          image: opensearchproject/opensearch:1.0.0
+          options: >-
+            --health-cmd "curl -s http://localhost:9200/ -o /dev/null"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+          ports:
+            - "9200:9200"
+            - "9300:9300"
+          env:
+            discovery.type: single-node
+            plugins.security.disabled: true
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Run PHPUnit Tests
+        run: ./vendor/bin/phpunit --testsuite=opensearch
+
+  dynamodb-storage:
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+          image: amazon/dynamodb-local:latest
+          options: >-
+            --health-cmd "curl -s http://localhost:8000/shell/ -o /dev/null"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+          ports:
+            - "6000:8000"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Run PHPUnit Tests
+        run: ./vendor/bin/phpunit --testsuite=dynamodb
+
+  mongodb-storage:
+    runs-on: ubuntu-latest
+    services:
+        mongodb:
+            image: mongo:4.4
+            options: >-
+              --health-cmd "mongo --eval \"printjson(db.serverStatus())\""
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+            ports:
+              - "27017:27017"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Run PHPUnit Tests
+        run: ./vendor/bin/phpunit --testsuite=mongodb
+
+  redis-storage:
+    runs-on: ubuntu-latest
+    services:
+        redis:
+            image: redis:6.2
+            options: >-
+              --health-cmd "redis-cli ping"
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+            ports:
+              - "6379:6379"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Run PHPUnit Tests
+        run: ./vendor/bin/phpunit --testsuite=redis
+
+  mysql-storage:
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: mysql:8.0
+        env:
+          MYSQL_USER: shopware
+          MYSQL_PASSWORD: shopware
+          MYSQL_ROOT_PASSWORD: shopware
+          MYSQL_DATABASE: shopware
+        options: '--mount="type=tmpfs,destination=/var/lib/mysql" --health-cmd="mysqladmin ping -h 127.0.0.1" --health-interval=5s --health-timeout=2s --health-retries=3'
+        ports:
+          - "3306:3306"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer Dependencies
+        run: composer install
+
+      - name: Run PHPUnit Tests
+        run: ./vendor/bin/phpunit --testsuite=mysql
+

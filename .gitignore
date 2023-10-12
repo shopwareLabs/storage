@@ -20,6 +20,7 @@ Thumbs.db
 /*.http
 /.run/
 danger.phar
+composer.lock
 
 # devops
 .php-cs-fixer.cache

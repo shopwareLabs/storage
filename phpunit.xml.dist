@@ -15,23 +15,23 @@
             <directory>tests/Array</directory>
         </testsuite>
 
-        <testsuite name="Dynamodb">
-            <directory>tests/Dynamodb</directory>
+        <testsuite name="dynamodb">
+            <directory>tests/DynamoDB</directory>
         </testsuite>
 
-        <testsuite name="Mongodb">
-            <directory>tests/Mongodb</directory>
+        <testsuite name="mongodb">
+            <directory>tests/MongoDB</directory>
         </testsuite>
 
-        <testsuite name="Mysql">
-            <directory>tests/Mysql</directory>
+        <testsuite name="mysql">
+            <directory>tests/MySQL</directory>
         </testsuite>
 
-        <testsuite name="Opensearch">
+        <testsuite name="opensearch">
             <directory>tests/Opensearch</directory>
         </testsuite>
 
-        <testsuite name="Redis">
+        <testsuite name="redis">
             <directory>tests/Redis</directory>
         </testsuite>
     </testsuites>

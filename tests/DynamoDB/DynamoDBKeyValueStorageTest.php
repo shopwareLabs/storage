@@ -56,8 +56,8 @@ class DynamoDBKeyValueStorageTest extends KeyValueStorageTestBase
     {
         return new DynamoDbClient([
             'endpoint' => 'http://localhost:6000',
-            'accessKeyId' => 'fakeMyKeyId',
-            'accessKeySecret' => 'fakeSecretAccessKey',
+            'accessKeyId' => 'DUMMYIDEXAMPLE',
+            'accessKeySecret' => 'DUMMYEXAMPLEKEY',
             'region' => 'eu-central-1',
         ]);
     }

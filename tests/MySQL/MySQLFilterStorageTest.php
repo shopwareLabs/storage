@@ -30,8 +30,8 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
     {
         parent::tearDown();
 
-//        $this->getConnection()
-//            ->executeStatement('DROP TABLE IF EXISTS `test_storage`');
+        //        $this->getConnection()
+        //            ->executeStatement('DROP TABLE IF EXISTS `test_storage`');
     }
 
     public function getStorage(): FilterStorage
