@@ -23,8 +23,7 @@ abstract class FilterStorageTestBase extends TestCase
         Documents $input,
         FilterCriteria $criteria,
         FilterResult $expected
-    ): void
-    {
+    ): void {
         $storage = $this->getStorage();
 
         $storage->store($input);
@@ -37,11 +36,11 @@ abstract class FilterStorageTestBase extends TestCase
     final public static function debugProvider(): \Generator
     {
         // can be used for debugging purposes
-//        yield 'Smoke test' => [
-//            'input' => new Documents(),
-//            'criteria' => new FilterCriteria(),
-//            'expected' => new FilterResult([])
-//        ];
+        //        yield 'Smoke test' => [
+        //            'input' => new Documents(),
+        //            'criteria' => new FilterCriteria(),
+        //            'expected' => new FilterResult([])
+        //        ];
 
         yield 'Test translated bool field with equals filter' => [
             'input' => new Documents([
@@ -3442,8 +3441,7 @@ abstract class FilterStorageTestBase extends TestCase
         ?array $translatedFloat = null,
         ?array $translatedBool = null,
         ?array $translatedDate = null,
-    ): Document
-    {
+    ): Document {
         return new Document(
             key: $key,
             data: [

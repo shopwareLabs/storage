@@ -247,12 +247,12 @@ class OpenSearchFilterStorage implements FilterStorage
 
         // create an inline function which generates me a BuilderInterface, based on the given filter
 
-        $factory = function(\Closure $factory) use ($filter) {
+        $factory = function (\Closure $factory) use ($filter) {
             return $factory($filter);
         };
 
         if ($translated) {
-            $factory = function(\Closure $generator) use ($filter, $context) {
+            $factory = function (\Closure $generator) use ($filter, $context) {
                 return $this->translatedQuery($generator, $filter, $context);
             };
         }
@@ -260,26 +260,26 @@ class OpenSearchFilterStorage implements FilterStorage
         switch (true) {
             // field === null
             case $value === null && $type === 'equals':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new BoolQuery([
                         BoolQuery::MUST_NOT => new ExistsQuery(field: $filter['field'])
                     ]);
                 });
 
-            // field !== null
+                // field !== null
             case $value === null && $type === 'not':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new ExistsQuery(field: $filter['field']);
                 });
             case $type === 'equals':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new TermQuery(
                         field: $filter['field'],
                         value: $filter['value']
                     );
                 });
             case $type === 'not':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new BoolQuery([
                         BoolQuery::MUST_NOT => new TermsQuery(
                             field: $filter['field'],
@@ -289,7 +289,7 @@ class OpenSearchFilterStorage implements FilterStorage
                 });
 
             case $type === 'equals-any':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new TermsQuery(
                         field: $filter['field'],
                         terms: $filter['value']
@@ -297,7 +297,7 @@ class OpenSearchFilterStorage implements FilterStorage
                 });
 
             case $type ===  'not-any':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new BoolQuery([
                         BoolQuery::MUST_NOT => new TermsQuery(
                             field: $filter['field'],
@@ -306,28 +306,28 @@ class OpenSearchFilterStorage implements FilterStorage
                     ]);
                 });
             case $type ===  'contains':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new WildcardQuery(
                         field: $filter['field'],
                         value: '*' . $filter['value'] . '*'
                     );
                 });
             case $type ===  'starts-with':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new WildcardQuery(
                         field: $filter['field'],
                         value: $filter['value'] . '*'
                     );
                 });
             case $type ===  'ends-with':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new WildcardQuery(
                         field: $filter['field'],
                         value: '*' . $filter['value']
                     );
                 });
             case $type ===  'gte':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new RangeQuery(
                         field: $filter['field'],
                         parameters: ['gte' => $filter['value']]
@@ -335,7 +335,7 @@ class OpenSearchFilterStorage implements FilterStorage
                 });
 
             case $type ===  'lte':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new RangeQuery(
                         field: $filter['field'],
                         parameters: ['lte' => $filter['value']]
@@ -343,14 +343,14 @@ class OpenSearchFilterStorage implements FilterStorage
                 });
 
             case $type ===  'gt':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new RangeQuery(
                         field: $filter['field'],
                         parameters: ['gt' => $filter['value']]
                     );
                 });
             case $type ===  'lt':
-                return $factory(function(array $filter) {
+                return $factory(function (array $filter) {
                     return new RangeQuery(
                         field: $filter['field'],
                         parameters: ['lt' => $filter['value']]

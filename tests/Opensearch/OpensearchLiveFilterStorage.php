@@ -16,7 +16,8 @@ class OpensearchLiveFilterStorage implements FilterStorage
         private readonly Client $client,
         private readonly FilterStorage $decorated,
         private readonly Schema $schema
-    ) {}
+    ) {
+    }
 
     public function remove(array $keys): void
     {
