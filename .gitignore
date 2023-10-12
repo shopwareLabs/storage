@@ -1,2 +1,38 @@
 .idea
 vendor/
+!**/.gitkeep
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+./Icon?
+ehthumbs.db
+Thumbs.db
+# SASS/SCSS cache
+.sass-cache/
+
+# PhpStorm-Project
+/.idea/
+/.fleet/
+/*.http
+/.run/
+
+
+# devops
+.php-cs-fixer.cache
+.phpunit
+.phpunit.result.cache
+/phpunit.xml
+.env
+phpstan.neon
+vendor-bin/**/vendor
+vendor-bin/**/composer.lock
+.direnv/
+.devenv*
+devenv.local.nix
+
+
+

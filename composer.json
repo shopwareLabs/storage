@@ -11,7 +11,24 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Shopware\\StorageTests\\": "src/tests/"
+      "Shopware\\StorageTests\\": "tests/"
     }
+  },
+  "require": {
+    "php": "~8.1.0 || ~8.2.0",
+    "ext-mbstring": "*",
+    "ext-mongodb": "*",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "doctrine/dbal": "^3.6",
+    "ramsey/uuid": "^4.7",
+    "opensearch-project/opensearch-php": "^2.0",
+    "shyim/opensearch-php-dsl": "^1.0.1",
+    "async-aws/dynamo-db": "^2.0",
+    "mongodb/mongodb": "^1.16"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "symfony/var-dumper": "^6.3"
   }
 }
