@@ -35,29 +35,38 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function debugProvider(): \Generator
     {
-        // can be used for debugging purposes
-        //        yield 'Smoke test' => [
-        //            'input' => new Documents(),
-        //            'criteria' => new FilterCriteria(),
-        //            'expected' => new FilterResult([])
-        //        ];
-
-        yield 'Test translated bool field with equals filter' => [
+        yield 'Test translated float field with gte filter' => [
             'input' => new Documents([
-                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
-                self::document(key: 'key2', translatedBool: ['en' => false]),
-                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
-                self::document(key: 'key4', translatedBool: ['de' => false]),
+                self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
+                self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
+                self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
+                self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'equals', 'value' => false]
+                    ['field' => 'translatedFloat', 'type' => 'gte', 'value' => 2.2]
                 ]
             ),
             'expected' => new FilterResult([
-                self::document(key: 'key2', translatedBool: ['en' => false]),
-                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
-                self::document(key: 'key4', translatedBool: ['de' => false]),
+                self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
+                self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
+            ])
+        ];
+
+        yield 'Test object field with gte filter and float values' => [
+            'input' => new Documents([
+                self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
+                self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
+                self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
+            ]),
+            'criteria' => new FilterCriteria(
+                filters: [
+                    ['field' => 'objectField.fooFloat', 'type' => 'gte', 'value' => 2.2]
+                ]
+            ),
+            'expected' => new FilterResult([
+                self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
+                self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
     }
