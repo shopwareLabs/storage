@@ -19,7 +19,7 @@ Thumbs.db
 /.fleet/
 /*.http
 /.run/
-
+danger.phar
 
 # devops
 .php-cs-fixer.cache
