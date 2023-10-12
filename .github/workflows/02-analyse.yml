@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  ecs:
+  php-cs-fixer:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,8 +19,8 @@ jobs:
       - name: Install Composer Dependencies
         run: composer install
 
-      - name: Run ecs
-        run: ./vendor/bin/ecs check src tests
+      - name: Run fixer
+        run: ./vendor/bin/php-cs-fixer check
 
   phpstan:
     runs-on: ubuntu-latest
