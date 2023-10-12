@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  phpunit:
+  array-storage:
     runs-on: ubuntu-latest
     
     steps:
@@ -22,13 +22,13 @@ jobs:
       - name: Run PHPUnit Tests
         run: ./vendor/bin/phpunit --testsuite=array
 
-  mysql:
+  mysql-storage:
     runs-on: ubuntu-latest
     services:
       database:
         image: mysql:8.0
         env:
-          MYSQL_USERNAME: shopware
+          MYSQL_USER: shopware
           MYSQL_PASSWORD: shopware
           MYSQL_ROOT_PASSWORD: shopware
           MYSQL_DATABASE: shopware

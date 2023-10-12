@@ -16,15 +16,15 @@
         </testsuite>
 
         <testsuite name="dynamodb">
-            <directory>tests/Dynamodb</directory>
+            <directory>tests/DynamoDB</directory>
         </testsuite>
 
         <testsuite name="mongodb">
-            <directory>tests/Mongodb</directory>
+            <directory>tests/MongoDB</directory>
         </testsuite>
 
         <testsuite name="mysql">
-            <directory>tests/Mysql</directory>
+            <directory>tests/MySQL</directory>
         </testsuite>
 
         <testsuite name="opensearch">
