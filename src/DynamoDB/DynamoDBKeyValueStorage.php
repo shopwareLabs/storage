@@ -81,11 +81,7 @@ class DynamoDBKeyValueStorage implements KeyValueStorage
 
         /** @var array{value: AttributeValue, key: AttributeValue} $row */
         foreach ($data->getResponses()[$this->source] as $row) {
-            $key = $row['key']->getS();
-
-            $value = $row['value']->getS();
-
-            $documents[] = new Document($key, json_decode($value, true, 512, \JSON_THROW_ON_ERROR));
+            $documents[] = $this->hydrate($row);
         }
 
         return new Documents($documents);
@@ -100,13 +96,33 @@ class DynamoDBKeyValueStorage implements KeyValueStorage
 
         /** @var array{key: AttributeValue, value: AttributeValue} $item */
         $item = $data->getItem();
-        if (empty($item)) {
-            return null;
-        }
 
-        return new Document($item['key']->getS(), json_decode($item['value']->getS(), true, 512, \JSON_THROW_ON_ERROR));
+        return $this->hydrate($item);
     }
 
+    /**
+     * @param array{key: AttributeValue, value: AttributeValue} $item
+     */
+    private function hydrate(array $item): Document
+    {
+        if ($item['value']->getS() === null) {
+            throw new \LogicException('Value is null');
+        }
+        if ($item['key']->getS() === null) {
+            throw new \LogicException('Key is null');
+        }
+
+        $data = json_decode($item['value']->getS(), true, 512, \JSON_THROW_ON_ERROR);
+        if (!is_array($data)) {
+            throw new \RuntimeException('Invalid data type');
+        }
+
+        return new Document($item['key']->getS(), $data);
+    }
+
+    /**
+     * @return array{"key": array{"S": string}}
+     */
     private static function key(string $key): array
     {
         return ['key' => ['S' => $key]];

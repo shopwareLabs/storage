@@ -26,6 +26,10 @@ use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\StorageContext;
 
+/**
+ * @phpstan-import-type Sorting from FilterCriteria
+ * @phpstan-import-type Filter from FilterCriteria
+ */
 class OpenSearchFilterStorage implements FilterStorage
 {
     public function __construct(private readonly Client $client, private readonly Schema $schema)
@@ -143,7 +147,10 @@ class OpenSearchFilterStorage implements FilterStorage
         );
     }
 
-
+    /**
+     * @param Filter[] $filters
+     * @return array<BuilderInterface>
+     */
     private function parseRootFilter(array $filters, StorageContext $context): array
     {
         $queries = [];
@@ -177,6 +184,9 @@ class OpenSearchFilterStorage implements FilterStorage
         return $queries;
     }
 
+    /**
+     * @param Filter $filter
+     */
     private function translatedQuery(\Closure $factory, array $filter, StorageContext $context): BuilderInterface
     {
         $queries = [];
@@ -231,6 +241,9 @@ class OpenSearchFilterStorage implements FilterStorage
         return $source;
     }
 
+    /**
+     * @param Filter $filter
+     */
     private function parseFilter(array $filter, StorageContext $context): BuilderInterface
     {
         $type = $filter['type'];
@@ -358,9 +371,14 @@ class OpenSearchFilterStorage implements FilterStorage
                 });
 
             case $type ===  'and':
-                $nested = array_map(function ($filter) use ($context) {
+                if (!isset($filter['queries'])) {
+                    throw new \LogicException('Missing queries in and query');
+                }
+
+                $nested = array_map(function ($query) use ($context) {
+                    /** @var Filter $query */
                     return $this->parseFilter(
-                        filter: $filter,
+                        filter: $query,
                         context: $context
                     );
                 }, $filter['queries']);
@@ -370,9 +388,14 @@ class OpenSearchFilterStorage implements FilterStorage
                 ]);
 
             case $type ===  'or':
-                $nested = array_map(function ($filter) use ($context) {
+                if (!isset($filter['queries'])) {
+                    throw new \LogicException('Missing queries in and query');
+                }
+
+                $nested = array_map(function ($query) use ($context) {
+                    /** @var Filter $query */
                     return $this->parseFilter(
-                        filter: $filter,
+                        filter: $query,
                         context: $context
                     );
                 }, $filter['queries']);
@@ -386,10 +409,13 @@ class OpenSearchFilterStorage implements FilterStorage
                 return $bool;
 
             case $type ===  'nand':
-
-                $nested = array_map(function ($filter) use ($context) {
+                if (!isset($filter['queries'])) {
+                    throw new \LogicException('Missing queries in and query');
+                }
+                $nested = array_map(function ($query) use ($context) {
+                    /** @var Filter $query */
                     return $this->parseFilter(
-                        filter: $filter,
+                        filter: $query,
                         context: $context
                     );
                 }, $filter['queries']);
@@ -399,10 +425,13 @@ class OpenSearchFilterStorage implements FilterStorage
                 ]);
 
             case $type ===  'nor':
-
-                $nested = array_map(function ($filter) use ($context) {
+                if (!isset($filter['queries'])) {
+                    throw new \LogicException('Missing queries in and query');
+                }
+                $nested = array_map(function ($query) use ($context) {
+                    /** @var Filter $query */
                     return $this->parseFilter(
-                        filter: $filter,
+                        filter: $query,
                         context: $context
                     );
                 }, $filter['queries']);
@@ -420,13 +449,28 @@ class OpenSearchFilterStorage implements FilterStorage
         }
     }
 
-    private function getTotal(FilterCriteria $criteria, callable|array $result)
+    /**
+     * @param array<string, mixed> $result
+     */
+    private function getTotal(FilterCriteria $criteria, array $result): int|null
     {
-        if ($criteria->total) {
-            return $result['hits']['total']['value'];
+        if (!$criteria->total) {
+            return null;
         }
 
-        return null;
+        if (!array_key_exists('hits', $result) || !is_array($result['hits'])) {
+            throw new \LogicException('Missing hits key in opensearch result set');
+        }
+
+        if (!array_key_exists('total', $result['hits']) || !is_array($result['hits']['total'])) {
+            throw new \LogicException('Missing hits.total key in opensearch result set');
+        }
+
+        if (!array_key_exists('value', $result['hits']['total'])) {
+            throw new \LogicException('Missing hits.total.value key in opensearch result set');
+        }
+
+        return (int) $result['hits']['total']['value'];
     }
 
 }

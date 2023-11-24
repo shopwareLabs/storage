@@ -14,6 +14,10 @@ use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\StorageContext;
 
+/**
+ * @phpstan-import-type Sorting from FilterCriteria
+ * @phpstan-import-type Filter from FilterCriteria
+ */
 class MongoDBFilterStorage implements FilterStorage
 {
     public function __construct(
@@ -93,6 +97,14 @@ class MongoDBFilterStorage implements FilterStorage
         foreach ($cursor as $item) {
             $data = $item;
 
+            if (!is_array($data)) {
+                throw new \RuntimeException('Mongodb returned invalid data type');
+            }
+
+            if (!isset($data['_key'])) {
+                throw new \RuntimeException('Missing _key property in mongodb result');
+            }
+
             $key = $data['_key'];
             unset($data['_key'], $data['_id']);
 
@@ -112,6 +124,10 @@ class MongoDBFilterStorage implements FilterStorage
             ->selectCollection($this->schema->source);
     }
 
+    /**
+     * @param Filter[] $filters
+     * @return array<string|int, array<mixed>>
+     */
     private function parseFilters(array $filters): array
     {
         $queries = [];
@@ -153,31 +169,56 @@ class MongoDBFilterStorage implements FilterStorage
                     $queries[$field]['$lte'] = $value;
                     break;
                 case $type === 'starts-with':
-                    $queries[$field]['$regex'] = '^' . (string) $value;
+                    if (!is_string($value)) {
+                        throw new \RuntimeException('Contains filter only supports string values');
+                    }
+                    $queries[$field]['$regex'] = '^' . $value;
                     break;
                 case $type === 'ends-with':
-                    $queries[$field]['$regex'] = (string) $value . '$';
+                    if (!is_string($value)) {
+                        throw new \RuntimeException('Contains filter only supports string values');
+                    }
+                    $queries[$field]['$regex'] = $value . '$';
                     break;
                 case $type === 'contains':
-                    $queries[$field]['$regex'] = (string) $value;
+                    if (!is_string($value)) {
+                        throw new \RuntimeException('Contains filter only supports string values');
+                    }
+                    $queries[$field]['$regex'] = $value;
                     break;
                 case $type === 'and':
-                    $queries[] = $this->parseFilters($value);
+                    $queries[] = $this->parseFilters($this->queries($filter));
                     break;
                 case $type === 'or':
-                    $queries[] = ['$or' => $this->parseFilters($value)];
+                    $queries[] = ['$or' => $this->parseFilters($this->queries($filter))];
                     break;
                 case $type === 'nor':
-                    $queries[] = ['$nor' => $this->parseFilters($value)];
+                    $queries[] = ['$nor' => $this->parseFilters($this->queries($filter))];
                     break;
                 case $type === 'nand':
-                    $queries[] = ['$not' => $this->parseFilters($value)];
+                    $queries[] = ['$not' => $this->parseFilters($this->queries($filter))];
                     break;
                 default:
                     throw new \RuntimeException(sprintf('Unsupported filter type %s', $type));
             }
         }
 
+        return $queries;
+    }
+
+    /**
+     * @param Filter $filter
+     * @return Filter[]
+     */
+    private function queries(array $filter): array
+    {
+        if (!isset($filter['queries'])) {
+            throw new \LogicException('Missing queries in and query');
+        }
+
+        $queries = $filter['queries'];
+
+        /** @var Filter[] $queries */
         return $queries;
     }
 }

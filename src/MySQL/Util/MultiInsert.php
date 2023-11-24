@@ -7,10 +7,13 @@ namespace Shopware\Storage\MySQL\Util;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 
+/**
+ * @phpstan-type Row=array{data: array<string, mixed>, columns: list<string>, }
+ */
 class MultiInsert
 {
     /**
-     * @var array<string, array{data: array<string, mixed>, columns: list<string>, }>
+     * @var array<string, Row[]>
      */
     private array $inserts = [];
 
@@ -83,6 +86,9 @@ class MultiInsert
         $this->inserts = [];
     }
 
+    /**
+     * @return array<string>
+     */
     private function prepare(): array
     {
         $queries = [];
@@ -116,6 +122,10 @@ class MultiInsert
         return $queries;
     }
 
+    /**
+     * @param array<Row> $rows
+     * @return array<string>
+     */
     private function prepareColumns(array $rows): array
     {
         $columns = [];
@@ -128,6 +138,11 @@ class MultiInsert
         return array_keys($columns);
     }
 
+    /**
+     * @param array<string> $columns
+     * @param array<Row> $rows
+     * @return array<string>
+     */
     private function prepareValues(array $columns, array $rows): array
     {
         $stackedValues = [];

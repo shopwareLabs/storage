@@ -47,7 +47,8 @@ class SchemaUtil
     }
 
     /**
-     * @return Field
+     * @param array{"field": string} $filter
+     * @return Field&array{"name": string}
      */
     public static function resolveRootFieldSchema(Schema $schema, array $filter): array
     {
@@ -65,6 +66,7 @@ class SchemaUtil
     }
 
     /**
+     * @param array{"field": string} $filter
      * @return Field
      */
     public static function resolveFieldSchema(Schema $schema, array $filter): array

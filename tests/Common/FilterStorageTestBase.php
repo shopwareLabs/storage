@@ -73,6 +73,8 @@ abstract class FilterStorageTestBase extends TestCase
 
     /**
      * @dataProvider removeProvider
+     * @param string[] $remove
+     * @param array<Document> $expected
      */
     final public function testRemove(Documents $input, array $remove, array $expected): void
     {
@@ -3435,6 +3437,16 @@ abstract class FilterStorageTestBase extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, mixed>|null $objectField
+     * @param array<mixed>|null $listField
+     * @param array<array<string, mixed>>|null $objectListField
+     * @param array<string, string|null>|null $translatedString
+     * @param array<string, int|null>|null $translatedInt
+     * @param array<string, float|null>|null $translatedFloat
+     * @param array<string, bool|null>|null $translatedBool
+     * @param array<string, string|null>|null $translatedDate
+     */
     protected static function document(
         string $key,
         ?string $stringField = null,

@@ -2,6 +2,10 @@
 
 namespace Shopware\Storage\Common\Filter;
 
+/**
+ * @phpstan-type Sorting=array{"field": string, "direction": string}
+ * @phpstan-type Filter=array{"type": string, "field": string, "value": mixed, "queries"?: array<mixed>}
+ */
 class FilterCriteria
 {
     public function __construct(
@@ -10,11 +14,11 @@ class FilterCriteria
         public ?array $keys = null,
         public bool $total = false,
         /**
-         * @var array<array{field: string, direction: string}>
+         * @var Sorting[]
          */
         public array $sorting = [],
         /**
-         * @var array<array{type: string, field: string, value: mixed}>
+         * @var Filter[]
          */
         public array $filters = []
     ) {

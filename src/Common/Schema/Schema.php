@@ -3,14 +3,13 @@
 namespace Shopware\Storage\Common\Schema;
 
 /**
- * @phpstan-type Fields=array<string, Field>
- * @phpstan-type Field=array{"type": FieldType, "fields"?: Fields}
+ * @phpstan-type Field=array{type: string, translated?: bool, fields?: array<string, mixed>}
  */
 class Schema
 {
     /**
      * @param string $source
-     * @param Fields $fields
+     * @param array<string, Field> $fields
      */
     public function __construct(
         public string $source,
