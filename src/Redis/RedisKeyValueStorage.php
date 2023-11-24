@@ -47,7 +47,12 @@ class RedisKeyValueStorage implements KeyValueStorage
             }
             $key = $keys[$index];
 
-            $documents[] = new Document($key, json_decode($value, true, 512, \JSON_THROW_ON_ERROR));
+            $data = json_decode($value, true, 512, \JSON_THROW_ON_ERROR);
+            if (!is_array($data)) {
+                throw new \RuntimeException(sprintf('Invalid data type for key %s', $key));
+            }
+
+            $documents[] = new Document($key, $data);
         }
 
         return new Documents($documents);
@@ -61,6 +66,11 @@ class RedisKeyValueStorage implements KeyValueStorage
             return null;
         }
 
-        return new Document($key, json_decode($value, true, 512, \JSON_THROW_ON_ERROR));
+        $data = json_decode($value, true, 512, \JSON_THROW_ON_ERROR);
+        if (!is_array($data)) {
+            throw new \RuntimeException(sprintf('Invalid data type for key %s', $key));
+        }
+
+        return new Document($key, $data);
     }
 }

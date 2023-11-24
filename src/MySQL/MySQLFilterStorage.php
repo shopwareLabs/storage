@@ -17,12 +17,18 @@ use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Util\Uuid;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
+/**
+ * @phpstan-import-type Sorting from FilterCriteria
+ * @phpstan-import-type Filter from FilterCriteria
+ * @phpstan-import-type Field from Schema
+ */
 class MySQLFilterStorage implements FilterStorage
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly Schema $schema
-    ) {
+        private readonly Schema     $schema
+    )
+    {
     }
 
 
@@ -89,24 +95,24 @@ class MySQLFilterStorage implements FilterStorage
                 $query->andWhere($filter);
             }
         }
-//
-//        // SELECT root.* FROM test_storage root WHERE COALESCE((IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.en")) != "NULL", JSON_EXTRACT(translatedFloat, "$.en"), NULL)), (IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.de")) != "NULL", JSON_EXTRACT(translatedFloat, "$.de"), NULL))) >= :p018b2405643b727989df22687412f413
-//        // SELECT root.* FROM test_storage root WHERE JSON_UNQUOTE(JSON_EXTRACT(`objectField`, "$.fooFloat")) >= :p018b240564747156af729a9b65a50df8
+        //
+        //        // SELECT root.* FROM test_storage root WHERE COALESCE((IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.en")) != "NULL", JSON_EXTRACT(translatedFloat, "$.en"), NULL)), (IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.de")) != "NULL", JSON_EXTRACT(translatedFloat, "$.de"), NULL))) >= :p018b2405643b727989df22687412f413
+        //        // SELECT root.* FROM test_storage root WHERE JSON_UNQUOTE(JSON_EXTRACT(`objectField`, "$.fooFloat")) >= :p018b240564747156af729a9b65a50df8
 
         dump($query->getSQL());
-//        dump($query->getParameters());
-//        dump($query->getParameterTypes());
-//
-//        dump(
-//            $this->connection->fetchAllKeyValue(
-//                'SELECT `key`, COALESCE((IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.en")) != "NULL", JSON_EXTRACT(translatedFloat, "$.en"), NULL)), (IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.de")) != "NULL", JSON_EXTRACT(translatedFloat, "$.de"), NULL))) + 0.0 as resolved FROM test_storage root'
-//            )
-//        );
-//        dump(
-//            $this->connection->fetchAllKeyValue(
-//                'SELECT `key`, JSON_UNQUOTE(JSON_EXTRACT(`objectField`, "$.fooFloat")) as resolved FROM test_storage root '
-//            )
-//        );
+        //        dump($query->getParameters());
+        //        dump($query->getParameterTypes());
+        //
+        //        dump(
+        //            $this->connection->fetchAllKeyValue(
+        //                'SELECT `key`, COALESCE((IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.en")) != "NULL", JSON_EXTRACT(translatedFloat, "$.en"), NULL)), (IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.de")) != "NULL", JSON_EXTRACT(translatedFloat, "$.de"), NULL))) + 0.0 as resolved FROM test_storage root'
+        //            )
+        //        );
+        //        dump(
+        //            $this->connection->fetchAllKeyValue(
+        //                'SELECT `key`, JSON_UNQUOTE(JSON_EXTRACT(`objectField`, "$.fooFloat")) as resolved FROM test_storage root '
+        //            )
+        //        );
 
         $data = $query->executeQuery()->fetchAllAssociative();
 
@@ -118,6 +124,10 @@ class MySQLFilterStorage implements FilterStorage
         );
     }
 
+    /**
+     * @param Filter[] $filters
+     * @return array<string>
+     */
     private function addFilters(QueryBuilder $query, array $filters, StorageContext $context): array
     {
         $where = [];
@@ -152,6 +162,9 @@ class MySQLFilterStorage implements FilterStorage
                     $query->setParameter($key, $value);
                     break;
                 case $type === 'equals-any':
+                    if (!is_array($filter['value'])) {
+                        throw new \RuntimeException('Equals any filter value has to be an array');
+                    }
                     $where[] = $accessor . ' IN (:' . $key . ')';
                     $query->setParameter($key, $value, $this->getType($filter['value']));
                     break;
@@ -160,6 +173,9 @@ class MySQLFilterStorage implements FilterStorage
                     $query->setParameter($key, $value);
                     break;
                 case $type === 'not-any':
+                    if (!is_array($value)) {
+                        throw new \RuntimeException('Not any filter value has to be an array');
+                    }
                     $where[] = $accessor . ' NOT IN (:' . $key . ')';
                     $query->setParameter($key, $value, $this->getType($value));
                     break;
@@ -192,19 +208,19 @@ class MySQLFilterStorage implements FilterStorage
                     $query->setParameter($key, $value);
                     break;
                 case $type === 'and':
-                    $nested = $this->addFilters($query, $filter['queries'], $context);
+                    $nested = $this->addFilters($query, $this->queries($filter), $context);
                     $where[] = '(' . implode(' AND ', $nested) . ')';
                     break;
                 case $type === 'or':
-                    $nested = $this->addFilters($query, $filter['queries'], $context);
+                    $nested = $this->addFilters($query, $this->queries($filter), $context);
                     $where[] = '(' . implode(' OR ', $nested) . ')';
                     break;
                 case $type === 'nand':
-                    $nested = $this->addFilters($query, $filter['queries'], $context);
+                    $nested = $this->addFilters($query, $this->queries($filter), $context);
                     $where[] = 'NOT (' . implode(' AND ', $nested) . ')';
-                    // no break
+                // no break
                 case $type === 'nor':
-                    $nested = $this->addFilters($query, $filter['queries'], $context);
+                    $nested = $this->addFilters($query, $this->queries($filter), $context);
                     $where[] = 'NOT (' . implode(' OR ', $nested) . ')';
                     break;
             }
@@ -213,9 +229,29 @@ class MySQLFilterStorage implements FilterStorage
         return $where;
     }
 
+    /**
+     * @param Filter $filter
+     * @return Filter[]
+     */
+    private function queries(array $filter): array
+    {
+        if (!isset($filter['queries'])) {
+            throw new \LogicException('Missing queries in and query');
+        }
+
+        $queries = $filter['queries'];
+
+        /** @var Filter[] $queries */
+        return $queries;
+    }
+
     private function isJson(string $field): bool
     {
         $schema = $this->schema->fields[$field] ?? null;
+
+        if (!$schema) {
+            throw new \LogicException('Unknown field: ' . $field);
+        }
 
         $translated = $schema['translated'] ?? false;
 
@@ -232,9 +268,22 @@ class MySQLFilterStorage implements FilterStorage
 
         $query->select('COUNT(*)');
 
-        return (int) $query->executeQuery()->fetchOne();
+        $total = $query->executeQuery()->fetchOne();
+
+        if ($total === false) {
+            throw new \RuntimeException('Could not fetch total');
+        }
+
+        if (!is_string($total) && !is_int($total)) {
+            throw new \RuntimeException('Invalid total type');
+        }
+
+        return (int) $total;
     }
 
+    /**
+     * @param array<mixed> $value
+     */
     private function getType(array $value): int
     {
         $first = reset($value);
@@ -246,6 +295,9 @@ class MySQLFilterStorage implements FilterStorage
         return ArrayParameterType::STRING;
     }
 
+    /**
+     * @param array{"field": string} $filter
+     */
     private function getAccessor(QueryBuilder $query, array $filter, StorageContext $context): string
     {
         $parts = explode('.', $filter['field']);
@@ -294,6 +346,9 @@ class MySQLFilterStorage implements FilterStorage
         return '`' . $filter['field'] . '`';
     }
 
+    /**
+     * @param Filter $filter
+     */
     private function handleListField(QueryBuilder $query, array $filter): string
     {
         $type = $filter['type'];
@@ -320,6 +375,11 @@ class MySQLFilterStorage implements FilterStorage
                 return 'NOT JSON_CONTAINS(`' . $filter['field'] . '`, ' . $keyValue . ')';
 
             case ($type === 'equals-any'):
+
+                if (!is_array($filter['value'])) {
+                    throw new \RuntimeException(sprintf('Filter value has to be an array for equals-any filter types. Miss match for field filter %s', $filter['field']));
+                }
+
                 $where = [];
                 foreach ($filter['value'] as $value) {
                     $key = 'key' . Uuid::randomHex();
@@ -334,6 +394,10 @@ class MySQLFilterStorage implements FilterStorage
 
             case ($type === 'not-any'):
                 $where = [];
+
+                if (!is_array($filter['value'])) {
+                    throw new \RuntimeException(sprintf('Filter value has to be an array for not-any filter types. Miss match for field filter %s', $filter['field']));
+                }
 
                 foreach ($filter['value'] as $value) {
                     $key = 'key' . Uuid::randomHex();
@@ -360,6 +424,9 @@ class MySQLFilterStorage implements FilterStorage
         throw new \RuntimeException('Unknown filter type: ' . $type);
     }
 
+    /**
+     * @param array{"field": string} $filter
+     */
     private function buildObjectListTable(QueryBuilder $query, array $filter): string
     {
         $parts = explode('.', $filter['field']);
@@ -388,6 +455,10 @@ SQL;
         return $alias;
     }
 
+    /**
+     * @param array<array<string, mixed>> $data
+     * @return array<Document>
+     */
     private function hydrate(array $data): array
     {
         $jsons = [];
@@ -399,6 +470,10 @@ SQL;
 
         $documents = [];
         foreach ($data as $row) {
+            if (!is_string($row['key'])) {
+                throw new \LogicException('Invalid data, missing key for document');
+            }
+
             $key = $row['key'];
             unset($row['key']);
 
@@ -409,6 +484,9 @@ SQL;
 
                 if (!in_array($k, $jsons, true)) {
                     continue;
+                }
+                if (!is_string($v)) {
+                    throw new \RuntimeException('Invalid data type for key "' . $key . '"');
                 }
 
                 $row[$k] = json_decode($v, true);
@@ -430,10 +508,16 @@ SQL;
 
         $parts = explode('.', $property);
         foreach ($parts as $part) {
-            $schema = $schema['fields'][$part] ?? null;
+            if (!isset($schema['fields'])) {
+                throw new \RuntimeException(sprintf('Missing nested fields for, accessor part %s in field accessor %s', $part, $field));
+            }
+            $nested = $schema['fields'];
+
+            /** @var array<string, Field> $nested */
+            $schema = $nested[$part] ?? null;
 
             if (!$schema) {
-                return 'VARCHAR(255)';
+                throw new \RuntimeException(sprintf('Can not resolve accessor part %s in field accessor %s', $part, $field));
             }
         }
 

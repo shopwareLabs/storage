@@ -39,7 +39,7 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
         );
     }
 
-    private static function getConnection()
+    private static function getConnection(): Connection
     {
         if (self::$connection) {
             return self::$connection;

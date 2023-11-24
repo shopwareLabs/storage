@@ -2,16 +2,23 @@
 
 namespace Shopware\Storage\Common\Aggregation;
 
+use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Search\SearchTerm;
 
+/**
+ * @phpstan-import-type Filter from FilterCriteria
+ */
 class AggregationCriteria
 {
     public function __construct(
         public ?SearchTerm $term = null,
         /**
-         * @var array<array{type: string, field: string, value: mixed}>
+         * @var Filter[]
          */
         public array $filters = [],
+        /**
+         * @var string[]
+         */
         public array $keys = []
     ) {
     }

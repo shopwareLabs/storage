@@ -12,8 +12,15 @@ use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\StorageContext;
 
+/**
+ * @phpstan-import-type Sorting from FilterCriteria
+ * @phpstan-import-type Filter from FilterCriteria
+ */
 class ArrayFilterStorage implements FilterStorage
 {
+    /**
+     * @var array<string, Document>
+     */
     private array $storage = [];
 
     public function __construct(private readonly Schema $schema)
@@ -70,6 +77,9 @@ class ArrayFilterStorage implements FilterStorage
         return new FilterResult(elements: $filtered, total: $total);
     }
 
+    /**
+     * @param Filter[] $filters
+     */
     private function match(Document $document, array $filters, StorageContext $context): bool
     {
         foreach ($filters as $filter) {
@@ -90,6 +100,9 @@ class ArrayFilterStorage implements FilterStorage
                     }
                     break;
                 case $type === 'equals-any':
+                    if (!is_array($value)) {
+                        throw new \LogicException('Value must be an array');
+                    }
                     if (!$this->equalsAny($docValue, $value)) {
                         return false;
                     }
@@ -100,21 +113,43 @@ class ArrayFilterStorage implements FilterStorage
                     }
                     break;
                 case $type === 'not-any':
+                    if (!is_array($value)) {
+                        throw new \LogicException('Value must be an array');
+                    }
                     if ($this->equalsAny($docValue, $value)) {
                         return false;
                     }
                     break;
                 case $type === 'contains':
+                    if (!is_array($docValue) && !is_string($docValue)) {
+                        throw new \LogicException('Doc value must be an array or string');
+                    }
+                    if (!is_string($value)) {
+                        throw new \LogicException('Value must be a string');
+                    }
+
                     if (!$this->contains($docValue, $value)) {
                         return false;
                     }
                     break;
                 case $type === 'starts-with':
+                    if (!is_array($docValue) && !is_string($docValue)) {
+                        throw new \LogicException('Doc value must be an array or string');
+                    }
+                    if (!is_string($value)) {
+                        throw new \LogicException('Value must be a string');
+                    }
                     if (!$this->startsWith($docValue, $value)) {
                         return false;
                     }
                     break;
                 case $type === 'ends-with':
+                    if (!is_array($docValue) && !is_string($docValue)) {
+                        throw new \LogicException('Doc value must be an array or string');
+                    }
+                    if (!is_string($value)) {
+                        throw new \LogicException('Value must be a string');
+                    }
                     if (!$this->endsWith($docValue, $value)) {
                         return false;
                     }
@@ -140,29 +175,46 @@ class ArrayFilterStorage implements FilterStorage
                     }
                     break;
                 case $type === 'and':
+                    if (!isset($filter['queries'])) {
+                        throw new \LogicException('Missing queries in and query');
+                    }
+
+                    /** @var Filter $query */
                     foreach ($filter['queries'] as $query) {
-                        if (!$this->match($document, $query, $context)) {
+                        if (!$this->match($document, [$query], $context)) {
                             return false;
                         }
                     }
                     break;
                 case $type === 'or':
+                    if (!isset($filter['queries'])) {
+                        throw new \LogicException('Missing queries');
+                    }
+                    /** @var Filter $query */
                     foreach ($filter['queries'] as $query) {
-                        if ($this->match($document, $query, $context)) {
+                        if ($this->match($document, [$query], $context)) {
                             return true;
                         }
                     }
                     break;
                 case $type === 'nand':
+                    if (!isset($filter['queries'])) {
+                        throw new \LogicException('Missing queries');
+                    }
+                    /** @var Filter $query */
                     foreach ($filter['queries'] as $query) {
-                        if ($this->match($document, $query, $context)) {
+                        if ($this->match($document, [$query], $context)) {
                             return false;
                         }
                     }
                     break;
                 case $type === 'nor':
+                    if (!isset($filter['queries'])) {
+                        throw new \LogicException('Missing queries');
+                    }
+                    /** @var Filter $query */
                     foreach ($filter['queries'] as $query) {
-                        if (!$this->match($document, $query, $context)) {
+                        if (!$this->match($document, [$query], $context)) {
                             return true;
                         }
                     }
@@ -173,7 +225,10 @@ class ArrayFilterStorage implements FilterStorage
         return true;
     }
 
-    private function getDocValue(Document $document, array $filter, StorageContext $context)
+    /**
+     * @param array{"field": string} $filter
+     */
+    private function getDocValue(Document $document, array $filter, StorageContext $context): mixed
     {
         $root = SchemaUtil::resolveRootFieldSchema($this->schema, $filter);
 
@@ -206,6 +261,9 @@ class ArrayFilterStorage implements FilterStorage
         return $value;
     }
 
+    /**
+     * @param array{"field": string} $filter
+     */
     private function resolveAccessor(array $filter, mixed $value): mixed
     {
         $parts = explode('.', $filter['field']);
@@ -219,6 +277,9 @@ class ArrayFilterStorage implements FilterStorage
         if ($value === null) {
             throw new \LogicException('Null accessor accessor');
         }
+        if (!is_array($value)) {
+            throw new \LogicException('Accessor is not an array');
+        }
 
         foreach ($parts as $part) {
             $value = $value[$part];
@@ -231,12 +292,17 @@ class ArrayFilterStorage implements FilterStorage
         return SchemaUtil::castValue($this->schema, $filter, $value);
     }
 
+    /**
+     * @param Document[] $filtered
+     * @return Document[]
+     */
     private function sort(array $filtered, FilterCriteria $criteria, StorageContext $context): array
     {
         $filtered = array_values($filtered);
 
         usort($filtered, function (Document $a, Document $b) use ($criteria, $context) {
             foreach ($criteria->sorting as $sorting) {
+                /** @var Sorting $sorting */
                 $direction = $sorting['direction'];
 
                 try {
@@ -274,7 +340,10 @@ class ArrayFilterStorage implements FilterStorage
         };
     }
 
-    private function equalsAny(mixed $docValue, mixed $value): bool
+    /**
+     * @param array<mixed> $value
+     */
+    private function equalsAny(mixed $docValue, array $value): bool
     {
         return match(true) {
             is_array($docValue) => !empty(array_filter($docValue, fn ($item) => in_array($item, $value, true))),
@@ -282,7 +351,10 @@ class ArrayFilterStorage implements FilterStorage
         };
     }
 
-    private function contains(mixed $docValue, mixed $value): bool
+    /**
+     * @param string[]|string $docValue
+     */
+    private function contains(array|string $docValue, string $value): bool
     {
         return match (true) {
             is_array($docValue) => !empty(array_filter($docValue, fn ($item) => str_contains($item, $value))),
@@ -290,19 +362,25 @@ class ArrayFilterStorage implements FilterStorage
         };
     }
 
-    private function startsWith(mixed $docValue, mixed $value): bool
+    /**
+     * @param string[]|string $docValue
+     */
+    private function startsWith(array|string $docValue, string $value): bool
     {
         return match(true) {
             is_array($docValue) => !empty(array_filter($docValue, fn ($item) => str_starts_with($item, $value))),
-            default => str_starts_with($docValue, $value),
+            default => str_starts_with((string) $docValue, $value),
         };
     }
 
-    private function endsWith(mixed $docValue, mixed $value): bool
+    /**
+     * @param string[]|string $docValue
+     */
+    private function endsWith(array|string $docValue, string $value): bool
     {
         return match(true) {
             is_array($docValue) => !empty(array_filter($docValue, fn ($item) => str_ends_with($item, $value))),
-            default => str_ends_with($docValue, $value),
+            default => str_ends_with((string) $docValue, $value),
         };
     }
 

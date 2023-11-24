@@ -34,6 +34,14 @@ class MongoDBKeyValueStorage implements KeyValueStorage
         foreach ($cursor as $item) {
             $data = $item;
 
+            if (!is_array($data)) {
+                throw new \RuntimeException('Mongodb returned invalid data type');
+            }
+
+            if (!isset($data['_key'])) {
+                throw new \RuntimeException('Missing _key property in mongodb result');
+            }
+
             $key = $data['_key'];
             unset($data['_key'], $data['_id']);
 
@@ -60,6 +68,10 @@ class MongoDBKeyValueStorage implements KeyValueStorage
 
         if ($cursor === null) {
             return null;
+        }
+
+        if (!is_array($cursor)) {
+            throw new \RuntimeException('Mongodb returned invalid data type');
         }
 
         $key = $cursor['_key'];

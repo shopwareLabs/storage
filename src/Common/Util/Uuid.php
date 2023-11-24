@@ -60,6 +60,10 @@ class Uuid
         return $uuid;
     }
 
+    /**
+     * @param array<string> $bytes
+     * @return array<string>
+     */
     public static function fromBytesToHexList(array $bytes): array
     {
         $converted = [];
@@ -70,6 +74,10 @@ class Uuid
         return $converted;
     }
 
+    /**
+     * @param array<string> $uuids
+     * @return array<string>
+     */
     public static function fromHexToBytesList(array $uuids): array
     {
         $converted = [];
