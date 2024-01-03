@@ -7,6 +7,23 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\FilterStorage;
 use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Filter\FilterResult;
+use Shopware\Storage\Common\Filter\Operator\AndOperator;
+use Shopware\Storage\Common\Filter\Operator\NandOperator;
+use Shopware\Storage\Common\Filter\Operator\NorOperator;
+use Shopware\Storage\Common\Filter\Operator\Operator;
+use Shopware\Storage\Common\Filter\Operator\OrOperator;
+use Shopware\Storage\Common\Filter\Type\Any;
+use Shopware\Storage\Common\Filter\Type\Contains;
+use Shopware\Storage\Common\Filter\Type\Equals;
+use Shopware\Storage\Common\Filter\Type\Filter;
+use Shopware\Storage\Common\Filter\Type\Gt;
+use Shopware\Storage\Common\Filter\Type\Gte;
+use Shopware\Storage\Common\Filter\Type\Lt;
+use Shopware\Storage\Common\Filter\Type\Lte;
+use Shopware\Storage\Common\Filter\Type\Neither;
+use Shopware\Storage\Common\Filter\Type\Not;
+use Shopware\Storage\Common\Filter\Type\Prefix;
+use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
@@ -14,7 +31,6 @@ use Shopware\Storage\Common\StorageContext;
 
 /**
  * @phpstan-import-type Sorting from FilterCriteria
- * @phpstan-import-type Filter from FilterCriteria
  */
 class ArrayFilterStorage implements FilterStorage
 {
@@ -78,157 +94,158 @@ class ArrayFilterStorage implements FilterStorage
     }
 
     /**
-     * @param Filter[] $filters
+     * @param array<Operator|Filter> $filters
      */
     private function match(Document $document, array $filters, StorageContext $context): bool
     {
         foreach ($filters as $filter) {
-            try {
-                $docValue = $this->getDocValue($document, $filter, $context);
-            } catch (\LogicException) {
-                return false;
+            if ($filter instanceof Operator) {
+                $match = $this->parseOperator($document, $filter, $context);
+
+                if (!$match) {
+                    return false;
+                }
+
+                continue;
             }
 
-            $value = SchemaUtil::castValue($this->schema, $filter, $filter['value']);
+            $match = $this->parseFilter($document, $filter, $context);
 
-            $type = $filter['type'];
-
-            switch(true) {
-                case $type === 'equals':
-                    if (!$this->equals($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'equals-any':
-                    if (!is_array($value)) {
-                        throw new \LogicException('Value must be an array');
-                    }
-                    if (!$this->equalsAny($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'not':
-                    if ($this->equals($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'not-any':
-                    if (!is_array($value)) {
-                        throw new \LogicException('Value must be an array');
-                    }
-                    if ($this->equalsAny($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'contains':
-                    if (!is_array($docValue) && !is_string($docValue)) {
-                        throw new \LogicException('Doc value must be an array or string');
-                    }
-                    if (!is_string($value)) {
-                        throw new \LogicException('Value must be a string');
-                    }
-
-                    if (!$this->contains($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'starts-with':
-                    if (!is_array($docValue) && !is_string($docValue)) {
-                        throw new \LogicException('Doc value must be an array or string');
-                    }
-                    if (!is_string($value)) {
-                        throw new \LogicException('Value must be a string');
-                    }
-                    if (!$this->startsWith($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'ends-with':
-                    if (!is_array($docValue) && !is_string($docValue)) {
-                        throw new \LogicException('Doc value must be an array or string');
-                    }
-                    if (!is_string($value)) {
-                        throw new \LogicException('Value must be a string');
-                    }
-                    if (!$this->endsWith($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'gte':
-                    if (!$this->gte($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'lte':
-                    if (!$this->lte($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'gt':
-                    if (!$this->gt($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'lt':
-                    if (!$this->lt($docValue, $value)) {
-                        return false;
-                    }
-                    break;
-                case $type === 'and':
-                    if (!isset($filter['queries'])) {
-                        throw new \LogicException('Missing queries in and query');
-                    }
-
-                    /** @var Filter $query */
-                    foreach ($filter['queries'] as $query) {
-                        if (!$this->match($document, [$query], $context)) {
-                            return false;
-                        }
-                    }
-                    break;
-                case $type === 'or':
-                    if (!isset($filter['queries'])) {
-                        throw new \LogicException('Missing queries');
-                    }
-                    /** @var Filter $query */
-                    foreach ($filter['queries'] as $query) {
-                        if ($this->match($document, [$query], $context)) {
-                            return true;
-                        }
-                    }
-                    break;
-                case $type === 'nand':
-                    if (!isset($filter['queries'])) {
-                        throw new \LogicException('Missing queries');
-                    }
-                    /** @var Filter $query */
-                    foreach ($filter['queries'] as $query) {
-                        if ($this->match($document, [$query], $context)) {
-                            return false;
-                        }
-                    }
-                    break;
-                case $type === 'nor':
-                    if (!isset($filter['queries'])) {
-                        throw new \LogicException('Missing queries');
-                    }
-                    /** @var Filter $query */
-                    foreach ($filter['queries'] as $query) {
-                        if (!$this->match($document, [$query], $context)) {
-                            return true;
-                        }
-                    }
-                    break;
+            if (!$match) {
+                return false;
             }
         }
 
         return true;
     }
 
+    private function parseFilter(Document $document, Filter $filter, StorageContext $context): bool
+    {
+        try {
+            $docValue = $this->getDocValue($document, $filter, $context);
+        } catch (\LogicException) {
+            return false;
+        }
+
+        $value = SchemaUtil::castValue($this->schema, $filter, $filter->value);
+
+        if ($filter instanceof Equals) {
+            return $this->equals($docValue, $value);
+        }
+
+        if ($filter instanceof Any) {
+            if (!is_array($value)) {
+                throw new \LogicException('Value must be an array');
+            }
+
+            return $this->equalsAny($docValue, $value);
+        }
+
+        if ($filter instanceof Not) {
+            return !$this->equals($docValue, $value);
+        }
+
+        if ($filter instanceof Neither) {
+            if (!is_array($value)) {
+                throw new \LogicException('Value must be an array');
+            }
+
+            return !$this->equalsAny($docValue, $value);
+        }
+
+        if ($filter instanceof Contains) {
+            if (!is_array($docValue) && !is_string($docValue)) {
+                throw new \LogicException('Doc value must be an array or string');
+            }
+            if (!is_string($value)) {
+                throw new \LogicException('Value must be a string');
+            }
+
+            return $this->contains($docValue, $value);
+        }
+
+        if ($filter instanceof Prefix) {
+            if (!is_array($docValue) && !is_string($docValue)) {
+                throw new \LogicException('Doc value must be an array or string');
+            }
+            if (!is_string($value)) {
+                throw new \LogicException('Value must be a string');
+            }
+
+            return $this->startsWith($docValue, $value);
+        }
+
+        if ($filter instanceof Suffix) {
+            if (!is_array($docValue) && !is_string($docValue)) {
+                throw new \LogicException('Doc value must be an array or string');
+            }
+            if (!is_string($value)) {
+                throw new \LogicException('Value must be a string');
+            }
+
+            return $this->endsWith($docValue, $value);
+        }
+
+        if ($filter instanceof Gte) {
+            return $this->gte($docValue, $value);
+        }
+
+        if ($filter instanceof Lte) {
+            return $this->lte($docValue, $value);
+        }
+
+        if ($filter instanceof Gt) {
+            return $this->gt($docValue, $value);
+        }
+
+        if ($filter instanceof Lt) {
+            return $this->lt($docValue, $value);
+        }
+
+        throw new \LogicException('Unknown filter type');
+    }
+
+    private function parseOperator(Document $document, Operator $operator, StorageContext $context): bool
+    {
+        if ($operator instanceof AndOperator) {
+            foreach ($operator->filters as $filter) {
+                if (!$this->match($document, [$filter], $context)) {
+                    return false;
+                }
+            }
+        }
+
+        if ($operator instanceof OrOperator) {
+            foreach ($operator->filters as $filter) {
+                if ($this->match($document, [$filter], $context)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($operator instanceof NandOperator) {
+            foreach ($operator->filters as $filter) {
+                if ($this->match($document, [$filter], $context)) {
+                    return false;
+                }
+            }
+        }
+
+        if ($operator instanceof NorOperator) {
+            foreach ($operator->filters as $filter) {
+                if (!$this->match($document, [$filter], $context)) {
+                    return true;
+                }
+            }
+        }
+
+        throw new \LogicException(sprintf('Unknown operator type %s', $operator::class));
+    }
+
     /**
      * @param array{"field": string} $filter
      */
-    private function getDocValue(Document $document, array $filter, StorageContext $context): mixed
+    private function getDocValue(Document $document, Filter|Operator $filter, StorageContext $context): mixed
     {
         $root = SchemaUtil::resolveRootFieldSchema($this->schema, $filter);
 
@@ -261,12 +278,9 @@ class ArrayFilterStorage implements FilterStorage
         return $value;
     }
 
-    /**
-     * @param array{"field": string} $filter
-     */
-    private function resolveAccessor(array $filter, mixed $value): mixed
+    private function resolveAccessor(Filter $filter, mixed $value): mixed
     {
-        $parts = explode('.', $filter['field']);
+        $parts = explode('.', $filter->field);
 
         array_shift($parts);
 

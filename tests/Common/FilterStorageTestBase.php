@@ -9,6 +9,17 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Filter\FilterResult;
 use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Type\Any;
+use Shopware\Storage\Common\Filter\Type\Contains;
+use Shopware\Storage\Common\Filter\Type\Equals;
+use Shopware\Storage\Common\Filter\Type\Gt;
+use Shopware\Storage\Common\Filter\Type\Gte;
+use Shopware\Storage\Common\Filter\Type\Lt;
+use Shopware\Storage\Common\Filter\Type\Lte;
+use Shopware\Storage\Common\Filter\Type\Neither;
+use Shopware\Storage\Common\Filter\Type\Not;
+use Shopware\Storage\Common\Filter\Type\Prefix;
+use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\StorageContext;
@@ -59,7 +70,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'equals', 'value' => null]
+                     new Equals(field: 'objectField.foo', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -75,7 +86,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField', 'type' => 'equals', 'value' => null]
+                     new Equals(field: 'objectField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -260,7 +271,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'equals', 'value' => 'foo']
+                    new Equals(field: 'stringField', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -276,7 +287,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'equals-any', 'value' => ['foo', 'bar']]
+                    new Any(field: 'stringField', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -292,7 +303,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'not', 'value' => 'foo']
+                    new Not(field: 'stringField', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -308,7 +319,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'not-any', 'value' => ['foo', 'bar']]
+                    new Neither(field: 'stringField', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -323,7 +334,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'contains', 'value' => 'ba']
+                    new Contains(field: 'stringField', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -339,7 +350,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'starts-with', 'value' => 'ba']
+                    new Prefix(field: 'stringField', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -355,7 +366,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'ends-with', 'value' => 'bar']
+                    new Suffix(field: 'stringField', value: 'bar')
                 ]
             ),
             'expected' => new FilterResult([
@@ -371,7 +382,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'gte', 'value' => 'b']
+                    new Gte(field: 'stringField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -387,7 +398,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'lte', 'value' => 'b']
+                    new Lte(field: 'stringField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -403,7 +414,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'gt', 'value' => 'b']
+                    new Gt(field: 'stringField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -418,7 +429,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'lt', 'value' => 'b']
+                    new Lt(field: 'stringField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -434,8 +445,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'gte', 'value' => 'b'],
-                    ['field' => 'stringField', 'type' => 'lte', 'value' => 'c'],
+                    new Gte(field: 'stringField', value: 'b'),
+                    new Lte(field: 'stringField', value: 'c'),
                 ]
             ),
             'expected' => new FilterResult([
@@ -451,7 +462,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'equals', 'value' => null]
+                    new Equals(field: 'stringField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -466,7 +477,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'stringField', 'type' => 'not', 'value' => null]
+                    new Not(field: 'stringField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -483,7 +494,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'equals', 'value' => 'foo']
+                    new Equals(field: 'textField', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -499,7 +510,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'equals-any', 'value' => ['foo', 'bar']]
+                    new Any(field: 'textField', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -515,7 +526,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'not', 'value' => 'foo']
+                    new Not(field: 'textField', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -531,7 +542,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'not-any', 'value' => ['foo', 'bar']]
+                    new Neither(field: 'textField', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -546,7 +557,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'contains', 'value' => 'ba']
+                    new Contains(field: 'textField', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -562,7 +573,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'starts-with', 'value' => 'ba']
+                    new Prefix(field: 'textField', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -578,7 +589,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'ends-with', 'value' => 'bar']
+                    new Suffix(field: 'textField', value: 'bar')
                 ]
             ),
             'expected' => new FilterResult([
@@ -594,7 +605,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'gte', 'value' => 'b']
+                    new Gte(field: 'textField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -610,7 +621,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'lte', 'value' => 'b']
+                    new Lte(field: 'textField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -626,7 +637,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'gt', 'value' => 'b']
+                    new Gt(field: 'textField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -641,7 +652,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'lt', 'value' => 'b']
+                    new Lt(field: 'textField', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -657,8 +668,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'textField', 'type' => 'gte', 'value' => 'b'],
-                    ['field' => 'textField', 'type' => 'lte', 'value' => 'c'],
+                    new Gte(field: 'textField', value: 'b'),
+                    new Lte(field: 'textField', value: 'c'),
                 ]
             ),
             'expected' => new FilterResult([
@@ -675,7 +686,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'equals', 'value' => '2021-01-02']
+                    new Equals(field: 'dateField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -690,7 +701,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'equals-any', 'value' => ['2021-01-01', '2021-01-02']]
+                    new Any(field: 'dateField', value: ['2021-01-01', '2021-01-02'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -706,7 +717,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'not', 'value' => '2021-01-02']
+                    new Not(field: 'dateField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -722,7 +733,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'not-any', 'value' => ['2021-01-01', '2021-01-02']]
+                    new Neither(field: 'dateField', value: ['2021-01-01', '2021-01-02'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -737,7 +748,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'gte', 'value' => '2021-01-02']
+                    new Gte(field: 'dateField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -753,7 +764,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'lte', 'value' => '2021-01-02']
+                    new Lte(field: 'dateField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -769,7 +780,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'gt', 'value' => '2021-01-02']
+                    new Gt(field: 'dateField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -784,7 +795,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'lt', 'value' => '2021-01-02']
+                    new Lt(field: 'dateField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -800,8 +811,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'gte', 'value' => '2021-01-02'],
-                    ['field' => 'dateField', 'type' => 'lte', 'value' => '2021-01-03'],
+                    new Gte(field: 'dateField', value: '2021-01-02'),
+                    new Lte(field: 'dateField', value: '2021-01-03'),
                 ]
             ),
             'expected' => new FilterResult([
@@ -817,7 +828,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'equals', 'value' => null]
+                     new Equals(field: 'dateField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -832,7 +843,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'dateField', 'type' => 'not', 'value' => null]
+                     new Not(field: 'dateField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -849,7 +860,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'equals', 'value' => 2]
+                     new Equals(field: 'intField', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -864,7 +875,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'equals-any', 'value' => [1, 2]]
+                     new Any(field: 'intField', value: [1, 2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -880,7 +891,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'not', 'value' => 2]
+                     new Not(field: 'intField', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -896,7 +907,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'not-any', 'value' => [1, 2]]
+                     new Neither(field: 'intField', value: [1, 2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -911,7 +922,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'gte', 'value' => 2]
+                     new Gte(field: 'intField', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -927,7 +938,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'lte', 'value' => 2]
+                     new Lte(field: 'intField', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -943,7 +954,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'gt', 'value' => 2]
+                     new Gt(field: 'intField', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -958,7 +969,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'lt', 'value' => 2]
+                     new Lt(field: 'intField', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -974,8 +985,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'gte', 'value' => 2],
-                    ['field' => 'intField', 'type' => 'lte', 'value' => 3],
+                     new Gte(field: 'intField', value: 2),
+                     new Lte(field: 'intField', value: 3),
                 ]
             ),
             'expected' => new FilterResult([
@@ -991,7 +1002,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'equals', 'value' => null]
+                     new Equals(field: 'intField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1006,7 +1017,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'intField', 'type' => 'not', 'value' => null]
+                     new Not(field: 'intField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1023,7 +1034,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'equals', 'value' => 2.2]
+                     new Equals(field: 'floatField', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1038,7 +1049,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'equals-any', 'value' => [1.1, 2.2]]
+                     new Any(field: 'floatField', value: [1.1, 2.2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1054,7 +1065,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'not', 'value' => 2.2]
+                     new Not(field: 'floatField', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1070,7 +1081,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'not-any', 'value' => [1.1, 2.2]]
+                     new Neither(field: 'floatField', value: [1.1, 2.2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1085,7 +1096,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'gte', 'value' => 2.2]
+                     new Gte(field: 'floatField', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1101,7 +1112,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'lte', 'value' => 2.2]
+                     new Lte(field: 'floatField', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1117,7 +1128,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'gt', 'value' => 2.2]
+                     new Gt(field: 'floatField', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1132,7 +1143,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'lt', 'value' => 2.2]
+                     new Lt(field: 'floatField', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1148,8 +1159,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'gte', 'value' => 2.2],
-                    ['field' => 'floatField', 'type' => 'lte', 'value' => 3.3],
+                    new Gte(field: 'floatField', value: 2.2),
+                     new Lte(field: 'floatField', value: 3.3),
                 ]
             ),
             'expected' => new FilterResult([
@@ -1165,7 +1176,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'equals', 'value' => null]
+                     new Equals(field: 'floatField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1180,7 +1191,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'floatField', 'type' => 'not', 'value' => null]
+                     new Not(field: 'floatField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1197,7 +1208,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'equals', 'value' => 'baz']
+                     new Equals(field: 'objectField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1212,7 +1223,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'equals-any', 'value' => ['baz', 'qux']]
+                     new Any(field: 'objectField.foo', value: ['baz', 'qux'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1228,7 +1239,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'not', 'value' => 'baz']
+                     new Not(field: 'objectField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1244,7 +1255,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'not-any', 'value' => ['baz', 'qux']]
+                     new Neither(field: 'objectField.foo', value: ['baz', 'qux'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1259,7 +1270,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'contains', 'value' => 'ba']
+                     new Contains(field: 'objectField.foo', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1275,7 +1286,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'gte', 'value' => 'baz']
+                     new Gte(field: 'objectField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1291,7 +1302,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'lte', 'value' => 'baz']
+                     new Lte(field: 'objectField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1307,7 +1318,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'gt', 'value' => 'baz']
+                     new Gt(field: 'objectField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1322,7 +1333,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'lt', 'value' => 'baz']
+                     new Lt(field: 'objectField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1338,7 +1349,7 @@ abstract class FilterStorageTestBase extends TestCase
 //            ]),
 //            'criteria' => new FilterCriteria(
 //                filters: [
-//                    ['field' => 'objectField.foo', 'type' => 'equals', 'value' => null]
+//                     new Equals(field: 'objectField.foo', value: null)
 //                ]
 //            ),
 //            'expected' => new FilterResult([
@@ -1354,7 +1365,7 @@ abstract class FilterStorageTestBase extends TestCase
 //            ]),
 //            'criteria' => new FilterCriteria(
 //                filters: [
-//                    ['field' => 'objectField', 'type' => 'equals', 'value' => null]
+//                     new Equals(field: 'objectField', value: null)
 //                ]
 //            ),
 //            'expected' => new FilterResult([
@@ -1369,7 +1380,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.foo', 'type' => 'not', 'value' => null]
+                     new Not(field: 'objectField.foo', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1386,7 +1397,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'equals', 'value' => 2]
+                     new Equals(field: 'objectField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1401,7 +1412,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'equals-any', 'value' => [1, 2]]
+                     new Any(field: 'objectField.fooInt', value: [1, 2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1417,7 +1428,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'not', 'value' => 2]
+                     new Not(field: 'objectField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1433,7 +1444,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'not-any', 'value' => [1, 2]]
+                     new Neither(field: 'objectField.fooInt', value: [1, 2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1448,7 +1459,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'gte', 'value' => 2]
+                     new Gte(field: 'objectField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1464,7 +1475,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'lte', 'value' => 2]
+                     new Lte(field: 'objectField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1480,7 +1491,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'gt', 'value' => 2]
+                     new Gt(field: 'objectField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1495,7 +1506,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'lt', 'value' => 2]
+                     new Lt(field: 'objectField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1511,8 +1522,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooInt', 'type' => 'gte', 'value' => 2],
-                    ['field' => 'objectField.fooInt', 'type' => 'lte', 'value' => 3],
+                     new Gte(field: 'objectField.fooInt', value: 2),
+                     new Lte(field: 'objectField.fooInt', value: 3),
                 ]
             ),
             'expected' => new FilterResult([
@@ -1529,7 +1540,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'equals', 'value' => 2.2]
+                     new Equals(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1544,7 +1555,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'equals-any', 'value' => [1.1, 2.2]]
+                     new Any(field: 'objectField.fooFloat', value: [1.1, 2.2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1560,7 +1571,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'not', 'value' => 2.2]
+                     new Not(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1576,7 +1587,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'not-any', 'value' => [1.1, 2.2]]
+                     new Neither(field: 'objectField.fooFloat', value: [1.1, 2.2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1591,7 +1602,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'gte', 'value' => 2.2]
+                     new Gte(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1607,7 +1618,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'lte', 'value' => 2.2]
+                     new Lte(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1623,7 +1634,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'gt', 'value' => 2.2]
+                     new Gt(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1638,7 +1649,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'lt', 'value' => 2.2]
+                     new Lt(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1654,8 +1665,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'gte', 'value' => 2.2],
-                    ['field' => 'objectField.fooFloat', 'type' => 'lte', 'value' => 3.3],
+                     new Gte(field: 'objectField.fooFloat', value: 2.2),
+                     new Lte(field: 'objectField.fooFloat', value: 3.3),
                 ]
             ),
             'expected' => new FilterResult([
@@ -1672,7 +1683,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'equals', 'value' => '2021-01-02']
+                     new Equals(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1687,7 +1698,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'equals-any', 'value' => ['2021-01-02', '2021-01-03']]
+                     new Any(field: 'objectField.fooDate', value: ['2021-01-02', '2021-01-03'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1703,7 +1714,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'not', 'value' => '2021-01-02']
+                     new Not(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1719,7 +1730,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'not-any', 'value' => ['2021-01-02', '2021-01-03']]
+                     new Neither(field: 'objectField.fooDate', value: ['2021-01-02', '2021-01-03'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1734,7 +1745,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'gte', 'value' => '2021-01-02']
+                     new Gte(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1750,7 +1761,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'lte', 'value' => '2021-01-02']
+                     new Lte(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1766,7 +1777,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'gt', 'value' => '2021-01-02']
+                     new Gt(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1781,7 +1792,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'lt', 'value' => '2021-01-02']
+                     new Lt(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1797,8 +1808,8 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooDate', 'type' => 'gte', 'value' => '2021-01-02'],
-                    ['field' => 'objectField.fooDate', 'type' => 'lte', 'value' => '2021-01-03'],
+                     new Gte(field: 'objectField.fooDate', value: '2021-01-02'),
+                     new Lte(field: 'objectField.fooDate', value: '2021-01-03'),
                 ]
             ),
             'expected' => new FilterResult([
@@ -1815,7 +1826,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals', 'value' => 'baz']
+                     new Equals(field: 'listField', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1830,7 +1841,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals-any', 'value' => ['baz', 'qux']]
+                     new Any(field: 'listField', value: ['baz', 'qux'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1846,7 +1857,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not', 'value' => 'baz']
+                     new Not(field: 'listField', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1862,7 +1873,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not-any', 'value' => ['baz', 'qux']]
+                     new Neither(field: 'listField', value: ['baz', 'qux'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1877,7 +1888,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'contains', 'value' => 'ba']
+                     new Contains(field: 'listField', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -1893,7 +1904,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals', 'value' => null]
+                     new Equals(field: 'listField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1908,7 +1919,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not', 'value' => null]
+                     new Not(field: 'listField', value: null)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1925,7 +1936,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals', 'value' => 3]
+                     new Equals(field: 'listField', value: 3)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1940,7 +1951,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals-any', 'value' => [3, 4]]
+                     new Any(field: 'listField', value: [3, 4])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1956,7 +1967,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not', 'value' => 3]
+                     new Not(field: 'listField', value: 3)
                 ]
             ),
             'expected' => new FilterResult([
@@ -1972,7 +1983,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not-any', 'value' => [3, 4]]
+                     new Neither(field: 'listField', value: [3, 4])
                 ]
             ),
             'expected' => new FilterResult([
@@ -1987,7 +1998,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals', 'value' => 3.3]
+                     new Equals(field: 'listField', value: 3.3)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2002,7 +2013,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals-any', 'value' => [3.3, 4.4]]
+                     new Any(field: 'listField', value: [3.3, 4.4])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2018,7 +2029,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not', 'value' => 3.3]
+                     new Not(field: 'listField', value: 3.3)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2034,7 +2045,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not-any', 'value' => [3.3, 4.4]]
+                     new Neither(field: 'listField', value: [3.3, 4.4])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2049,7 +2060,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals', 'value' => '2021-01-03']
+                     new Equals(field: 'listField', value: '2021-01-03')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2064,7 +2075,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'equals-any', 'value' => ['2021-01-03', '2021-01-04']]
+                     new Any(field: 'listField', value: ['2021-01-03', '2021-01-04'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2080,7 +2091,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not', 'value' => '2021-01-03']
+                     new Not(field: 'listField', value: '2021-01-03')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2096,7 +2107,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'not-any', 'value' => ['2021-01-03', '2021-01-04']]
+                     new Neither(field: 'listField', value: ['2021-01-03', '2021-01-04'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2111,7 +2122,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'listField', 'type' => 'contains', 'value' => '2021-01-02']
+                     new Contains(field: 'listField', value: '2021-01-02')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2127,7 +2138,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.foo', 'type' => 'equals', 'value' => 'baz-2']
+                     new Equals(field: 'objectListField.foo', value: 'baz-2')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2143,7 +2154,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.foo', 'type' => 'equals-any', 'value' => ['bar-2', 'qux-2']]
+                     new Any(field: 'objectListField.foo', value: ['bar-2', 'qux-2'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2159,7 +2170,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.foo', 'type' => 'contains', 'value' => 'baz']
+                     new Contains(field: 'objectListField.foo', value: 'baz')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2175,7 +2186,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.foo', 'type' => 'starts-with', 'value' => 'qu']
+                     new Prefix(field: 'objectListField.foo', value: 'qu')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2190,7 +2201,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.foo', 'type' => 'ends-with', 'value' => 'z-2']
+                     new Suffix(field: 'objectListField.foo', value: 'z-2')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2207,7 +2218,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooInt', 'type' => 'equals', 'value' => 2]
+                     new Equals(field: 'objectListField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2223,7 +2234,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooInt', 'type' => 'equals-any', 'value' => [10, 22]]
+                     new Any(field: 'objectListField.fooInt', value: [10, 22])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2239,7 +2250,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooInt', 'type' => 'gte', 'value' => 22]
+                     new Gte(field: 'objectListField.fooInt', value: 22)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2254,7 +2265,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooInt', 'type' => 'lte', 'value' => 2]
+                     new Lte(field: 'objectListField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2270,7 +2281,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooInt', 'type' => 'gt', 'value' => 2]
+                     new Gt(field: 'objectListField.fooInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2286,7 +2297,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooInt', 'type' => 'lt', 'value' => 20]
+                     new Lt(field: 'objectListField.fooInt', value: 20)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2303,7 +2314,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooFloat', 'type' => 'equals', 'value' => 2.2]
+                     new Equals(field: 'objectListField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2320,7 +2331,7 @@ abstract class FilterStorageTestBase extends TestCase
 
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooFloat', 'type' => 'equals-any', 'value' => [10.1, 22.2]]
+                     new Any(field: 'objectListField.fooFloat', value: [10.1, 22.2])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2336,7 +2347,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooFloat', 'type' => 'gte', 'value' => 22.2]
+                     new Gte(field: 'objectListField.fooFloat', value: 22.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2351,7 +2362,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooFloat', 'type' => 'lte', 'value' => 2.2]
+                     new Lte(field: 'objectListField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2367,7 +2378,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooFloat', 'type' => 'gt', 'value' => 2.2]
+                     new Gt(field: 'objectListField.fooFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2383,7 +2394,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooFloat', 'type' => 'lt', 'value' => 20.1]
+                     new Lt(field: 'objectListField.fooFloat', value: 20.1)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2400,7 +2411,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooDate', 'type' => 'equals', 'value' => '2021-01-02 00:00:00.000']
+                     new Equals(field: 'objectListField.fooDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2416,7 +2427,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooDate', 'type' => 'equals-any', 'value' => ['2021-01-10 00:00:00.000', '2021-01-22 00:00:00.000']]
+                     new Any(field: 'objectListField.fooDate', value: ['2021-01-10 00:00:00.000', '2021-01-22 00:00:00.000'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2433,7 +2444,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooDate', 'type' => 'gte', 'value' => '2021-01-22 00:00:00.000']
+                     new Gte(field: 'objectListField.fooDate', value: '2021-01-22 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2448,7 +2459,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooDate', 'type' => 'lte', 'value' => '2021-01-02 00:00:00.000']
+                     new Lte(field: 'objectListField.fooDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2464,7 +2475,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooDate', 'type' => 'gt', 'value' => '2021-01-02 00:00:00.000']
+                     new Gt(field: 'objectListField.fooDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2480,7 +2491,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectListField.fooDate', 'type' => 'lt', 'value' => '2021-01-20 00:00:00.000']
+                     new Lt(field: 'objectListField.fooDate', value: '2021-01-20 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2497,7 +2508,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooObj.bar', 'type' => 'equals', 'value' => 'qux']
+                     new Equals(field: 'objectField.fooObj.bar', value: 'qux')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2514,7 +2525,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'equals', 'value' => 'foo']
+                     new Equals(field: 'translatedString', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2532,7 +2543,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'equals-any', 'value' => ['foo', 'bar']]
+                     new Any(field: 'translatedString', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2550,7 +2561,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'not', 'value' => 'foo']
+                     new Not(field: 'translatedString', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2567,7 +2578,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'not-any', 'value' => ['foo', 'bar']]
+                     new Neither(field: 'translatedString', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2583,7 +2594,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'contains', 'value' => 'oo']
+                     new Contains(field: 'translatedString', value: 'oo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2601,7 +2612,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'starts-with', 'value' => 'foo']
+                     new Prefix(field: 'translatedString', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2618,7 +2629,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'ends-with', 'value' => 'o']
+                     new Suffix(field: 'translatedString', value: 'o')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2635,7 +2646,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'gte', 'value' => 'b']
+                     new Gte(field: 'translatedString', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2653,7 +2664,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'gt', 'value' => 'b']
+                     new Gt(field: 'translatedString', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2669,7 +2680,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'lte', 'value' => 'b']
+                     new Lte(field: 'translatedString', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2687,7 +2698,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'lt', 'value' => 'b']
+                     new Lt(field: 'translatedString', value: 'b')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2703,7 +2714,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'equals', 'value' => 'foo']
+                     new Equals(field: 'translatedString', value: 'foo')
                 ]
             ),
             'expected' => new FilterResult([
@@ -2721,7 +2732,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'equals', 'value' => 2]
+                     new Equals(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2739,7 +2750,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'equals-any', 'value' => [2, 3, 4]]
+                     new Any(field: 'translatedInt', value: [2, 3, 4])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2757,7 +2768,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'not', 'value' => 2]
+                     new Not(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2773,7 +2784,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'not-any', 'value' => [1, 2]]
+                     new Neither(field: 'translatedInt', value: [1, 2])
                 ]
             ),
             'expected' => new FilterResult([])
@@ -2787,7 +2798,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'gte', 'value' => 2]
+                     new Gte(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2804,7 +2815,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'gt', 'value' => 2]
+                     new Gt(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2820,7 +2831,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'lte', 'value' => 2]
+                     new Lte(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2838,7 +2849,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'lt', 'value' => 2]
+                     new Lt(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2856,7 +2867,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'equals', 'value' => 2.2]
+                     new Equals(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2874,7 +2885,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'equals-any', 'value' => [2.2, 3.3, 4.4]]
+                     new Any(field: 'translatedFloat', value: [2.2, 3.3, 4.4])
                 ]
             ),
             'expected' => new FilterResult([
@@ -2892,7 +2903,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'not', 'value' => 2.2]
+                     new Not(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2908,7 +2919,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'not-any', 'value' => [1.1, 2.2]]
+                     new Neither(field: 'translatedFloat', value: [1.1, 2.2])
                 ]
             ),
             'expected' => new FilterResult([])
@@ -2922,7 +2933,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'gte', 'value' => 2.2]
+                     new Gte(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2939,7 +2950,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'gt', 'value' => 2.2]
+                     new Gt(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2955,7 +2966,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'lte', 'value' => 2.2]
+                     new Lte(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2973,7 +2984,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'lt', 'value' => 2.2]
+                     new Lt(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -2991,7 +3002,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'equals', 'value' => false]
+                     new Equals(field: 'translatedBool', value: false)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3009,7 +3020,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'not', 'value' => false]
+                     new Not(field: 'translatedBool', value: false)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3026,7 +3037,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'equals', 'value' => '2021-01-02 00:00:00.000']
+                     new Equals(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3044,7 +3055,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'equals-any', 'value' => ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']]
+                     new Any(field: 'translatedDate', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -3062,7 +3073,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'not', 'value' => '2021-01-02 00:00:00.000']
+                     new Not(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3078,7 +3089,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'not-any', 'value' => ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']]
+                     new Neither(field: 'translatedDate', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000'])
                 ]
             ),
             'expected' => new FilterResult([])
@@ -3092,7 +3103,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'gte', 'value' => '2021-01-02 00:00:00.000']
+                     new Gte(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3109,7 +3120,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'gt', 'value' => '2021-01-02 00:00:00.000']
+                     new Gt(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3125,7 +3136,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'lte', 'value' => '2021-01-02 00:00:00.000']
+                     new Lte(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3143,7 +3154,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedDate', 'type' => 'lt', 'value' => '2021-01-02 00:00:00.000']
+                     new Lt(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3161,7 +3172,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'equals', 'value' => 'bar']
+                     new Equals(field: 'translatedString', value: 'bar')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3179,7 +3190,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'equals-any', 'value' => ['bar', 'baz']]
+                     new Any(field: 'translatedString', value: ['bar', 'baz'])
                 ]
             ),
             'expected' => new FilterResult([
@@ -3197,7 +3208,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'not', 'value' => 'bar']
+                     new Not(field: 'translatedString', value: 'bar')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3213,7 +3224,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'not-any', 'value' => ['foo', 'bar']]
+                     new Neither(field: 'translatedString', value: ['foo', 'bar'])
                 ]
             ),
             'expected' => new FilterResult([])
@@ -3227,7 +3238,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedString', 'type' => 'contains', 'value' => 'ba']
+                     new Contains(field: 'translatedString', value: 'ba')
                 ]
             ),
             'expected' => new FilterResult([
@@ -3246,7 +3257,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'equals', 'value' => 2]
+                     new Equals(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3264,7 +3275,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'equals-any', 'value' => [2, 3]]
+                     new Any(field: 'translatedInt', value: [2, 3])
                 ]
             ),
             'expected' => new FilterResult([
@@ -3282,7 +3293,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'not', 'value' => 2]
+                     new Not(field: 'translatedInt', value: 2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3298,7 +3309,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedInt', 'type' => 'not-any', 'value' => [1, 2]]
+                     new Neither(field: 'translatedInt', value: [1, 2])
                 ]
             ),
             'expected' => new FilterResult([])
@@ -3313,7 +3324,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'equals', 'value' => 2.2]
+                     new Equals(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3331,7 +3342,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'equals-any', 'value' => [2.2, 3.3]]
+                     new Any(field: 'translatedFloat', value: [2.2, 3.3])
                 ]
             ),
             'expected' => new FilterResult([
@@ -3349,7 +3360,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'not', 'value' => 2.2]
+                     new Not(field: 'translatedFloat', value: 2.2)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3365,7 +3376,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'not-any', 'value' => [1.1, 2.2]]
+                     new Neither(field: 'translatedFloat', value: [1.1, 2.2])
                 ]
             ),
             'expected' => new FilterResult([])
@@ -3380,7 +3391,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'equals', 'value' => false]
+                     new Equals(field: 'translatedBool', value: false)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3398,7 +3409,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'equals-any', 'value' => [false, true]]
+                     new Any(field: 'translatedBool', value: [false, true])
                 ]
             ),
             'expected' => new FilterResult([
@@ -3417,7 +3428,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'not', 'value' => false]
+                     new Not(field: 'translatedBool', value: false)
                 ]
             ),
             'expected' => new FilterResult([
@@ -3433,7 +3444,7 @@ abstract class FilterStorageTestBase extends TestCase
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'not-any', 'value' => [true, false]]
+                     new Neither(field: 'translatedBool', value: [true, false])
                 ]
             ),
             'expected' => new FilterResult([])

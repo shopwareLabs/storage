@@ -2,9 +2,11 @@
 
 namespace Shopware\Storage\Common\Filter;
 
+use Shopware\Storage\Common\Filter\Operator\Operator;
+use Shopware\Storage\Common\Filter\Type\Filter;
+
 /**
  * @phpstan-type Sorting=array{"field": string, "direction": string}
- * @phpstan-type Filter=array{"type": string, "field": string, "value": mixed, "queries"?: array<mixed>}
  */
 class FilterCriteria
 {
@@ -18,7 +20,7 @@ class FilterCriteria
          */
         public array $sorting = [],
         /**
-         * @var Filter[]
+         * @var Operator|Filter[]
          */
         public array $filters = []
     ) {
