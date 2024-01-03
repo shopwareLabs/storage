@@ -255,11 +255,9 @@ class OpenSearchFilterStorage implements FilterStorage
             $schema = [];
         }
 
-        // nested support?
         $translated = $schema['translated'] ?? false;
 
         // create an inline function which generates me a BuilderInterface, based on the given filter
-
         $factory = function (\Closure $factory) use ($filter) {
             return $factory($filter);
         };

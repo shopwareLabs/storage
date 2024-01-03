@@ -95,24 +95,6 @@ class MySQLFilterStorage implements FilterStorage
                 $query->andWhere($filter);
             }
         }
-        //
-        //        // SELECT root.* FROM test_storage root WHERE COALESCE((IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.en")) != "NULL", JSON_EXTRACT(translatedFloat, "$.en"), NULL)), (IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.de")) != "NULL", JSON_EXTRACT(translatedFloat, "$.de"), NULL))) >= :p018b2405643b727989df22687412f413
-        //        // SELECT root.* FROM test_storage root WHERE JSON_UNQUOTE(JSON_EXTRACT(`objectField`, "$.fooFloat")) >= :p018b240564747156af729a9b65a50df8
-
-        dump($query->getSQL());
-        //        dump($query->getParameters());
-        //        dump($query->getParameterTypes());
-        //
-        //        dump(
-        //            $this->connection->fetchAllKeyValue(
-        //                'SELECT `key`, COALESCE((IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.en")) != "NULL", JSON_EXTRACT(translatedFloat, "$.en"), NULL)), (IF(JSON_TYPE(JSON_EXTRACT(translatedFloat, "$.de")) != "NULL", JSON_EXTRACT(translatedFloat, "$.de"), NULL))) + 0.0 as resolved FROM test_storage root'
-        //            )
-        //        );
-        //        dump(
-        //            $this->connection->fetchAllKeyValue(
-        //                'SELECT `key`, JSON_UNQUOTE(JSON_EXTRACT(`objectField`, "$.fooFloat")) as resolved FROM test_storage root '
-        //            )
-        //        );
 
         $data = $query->executeQuery()->fetchAllAssociative();
 
@@ -143,19 +125,15 @@ class MySQLFilterStorage implements FilterStorage
 
             $value = SchemaUtil::castValue($this->schema, $filter, $filter['value']);
 
-            $json = $this->isJson($schema['name']);
-
             switch (true) {
                 case $schema['type'] === FieldType::LIST:
                     $where[] = $this->handleListField($query, $filter);
                     break;
                 case $type === 'equals' && $filter['value'] === null:
-                    $value = $json ? "= 'null'" : 'IS NULL';
-                    $where[] = $accessor . ' ' . $value;
+                    $where[] = $accessor . ' IS NULL';
                     break;
                 case $type === 'not' && $filter['value'] === null:
-                    $value = $json ? "!= 'null'" : 'IS NOT NULL';
-                    $where[] = $accessor . ' ' . $value;
+                    $where[] = $accessor . ' IS NOT NULL';
                     break;
                 case $type === 'equals':
                     $where[] = $accessor . ' = :' . $key;
@@ -316,15 +294,15 @@ class MySQLFilterStorage implements FilterStorage
 
         $translated = $fieldSchema['translated'] ?? false;
 
+        $cast = '';
+        if ($type === 'bool') {
+            $cast = ' RETURNING UNSIGNED';
+        }
+
         if ($translated) {
             $selects = [];
 
-            $template = '
-                IF(
-                    LOWER(JSON_TYPE(JSON_EXTRACT(`#field#`, "$.#property#"))) != "null", 
-                    JSON_UNQUOTE(JSON_EXTRACT(`#field#`, "$.#property#")), 
-                    NULL
-                )';
+            $template = 'JSON_VALUE(`#field#`, "$.#property#" '.$cast.')';
 
             foreach ($context->languages as $language) {
                 $selects[] = str_replace(['#field#', '#property#'], [$filter['field'], $language], $template);
@@ -333,8 +311,8 @@ class MySQLFilterStorage implements FilterStorage
             return 'COALESCE(' . implode(', ', $selects) . ')';
         }
 
-        if ($type === FieldType::OBJECT) {
-            return 'JSON_UNQUOTE(JSON_EXTRACT(`' . $field . '`, "$.' . $property . '"))';
+        if ($type === FieldType::OBJECT && !empty($property)) {
+            return 'JSON_VALUE(`' . $field . '`, "$.' . $property . '"'.$cast.')';
         }
 
         if ($type === FieldType::OBJECT_LIST) {

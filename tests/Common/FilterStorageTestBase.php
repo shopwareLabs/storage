@@ -19,12 +19,26 @@ abstract class FilterStorageTestBase extends TestCase
 
     abstract public function getStorage(): FilterStorage;
 
+    #[DataProvider('storageProvider')]
+    final public function testStorage(Documents $input, FilterCriteria $criteria, FilterResult $expected): void
+    {
+        $storage = $this->getStorage();
+
+        $storage->store($input);
+
+        $loaded = $storage->read($criteria, new StorageContext(languages: ['en', 'de']));
+
+        static::assertEquals($expected, $loaded);
+    }
+
     #[DataProvider('debugProvider')]
     final public function testDebug(
         Documents $input,
         FilterCriteria $criteria,
         FilterResult $expected
     ): void {
+        self::markTestSkipped('Just for debugging purposes to run single cases');
+
         $storage = $this->getStorage();
 
         $storage->store($input);
@@ -36,54 +50,37 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function debugProvider(): \Generator
     {
-        yield 'Test translated list field with equals-any filter and bool values' => [
+        yield 'Test object field with null value equals filter' => [
             'input' => new Documents([
-                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
-                self::document(key: 'key2', translatedBool: ['en' => false]),
-                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => true]),
-                self::document(key: 'key4', translatedBool: ['de' => false]),
+                self::document(key: 'key1', objectField: ['foo' => 'bar']),
+                self::document(key: 'key2', objectField: ['foo' => 'baz']),
+                self::document(key: 'key3', objectField: null),
+                self::document(key: 'key4', objectField: ['foo' => null]),
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'equals-any', 'value' => [false, true]]
+                    ['field' => 'objectField.foo', 'type' => 'equals', 'value' => null]
                 ]
             ),
             'expected' => new FilterResult([
-                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
-                self::document(key: 'key2', translatedBool: ['en' => false]),
-                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => true]),
-                self::document(key: 'key4', translatedBool: ['de' => false]),
+                self::document(key: 'key4', objectField: ['foo' => null]),
             ])
         ];
-        yield 'Test translated list field with not filter and bool values' => [
+        yield 'Test object field with nested null value equals filter' => [
             'input' => new Documents([
-                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
-                self::document(key: 'key2', translatedBool: ['en' => false]),
-                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
-                self::document(key: 'key4', translatedBool: ['de' => false]),
+                self::document(key: 'key1', objectField: ['foo' => 'bar']),
+                self::document(key: 'key2', objectField: ['foo' => 'baz']),
+                self::document(key: 'key3', objectField: null),
+                self::document(key: 'key4', objectField: ['foo' => null]),
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedBool', 'type' => 'not', 'value' => false]
+                    ['field' => 'objectField', 'type' => 'equals', 'value' => null]
                 ]
             ),
             'expected' => new FilterResult([
-                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
+                self::document(key: 'key3', objectField: null),
             ])
-        ];
-        yield 'Test translated list field with not-any filter and bool values' => [
-            'input' => new Documents([
-                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
-                self::document(key: 'key2', translatedBool: ['en' => false]),
-                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
-                self::document(key: 'key4', translatedBool: ['de' => false]),
-            ]),
-            'criteria' => new FilterCriteria(
-                filters: [
-                    ['field' => 'translatedBool', 'type' => 'not-any', 'value' => [true, false]]
-                ]
-            ),
-            'expected' => new FilterResult([])
         ];
     }
 
@@ -145,17 +142,6 @@ abstract class FilterStorageTestBase extends TestCase
         ];
     }
 
-    #[DataProvider('storageProvider')]
-    final public function testStorage(Documents $input, FilterCriteria $criteria, FilterResult $expected): void
-    {
-        $storage = $this->getStorage();
-
-        $storage->store($input);
-
-        $loaded = $storage->read($criteria, new StorageContext(languages: ['en', 'de']));
-
-        static::assertEquals($expected, $loaded);
-    }
 
     final protected function getSchema(): Schema
     {
@@ -234,7 +220,7 @@ abstract class FilterStorageTestBase extends TestCase
             'criteria' => new FilterCriteria(),
             'expected' => new FilterResult([])
         ];
-        yield 'Test with keys and values' => [
+        yield 'Test keys and values' => [
             'input' => new Documents([
                 self::document(key: 'key1'),
                 self::Document(key: 'key2'),
@@ -266,7 +252,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test string field with equals filter' => [
+        yield 'Test string field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
@@ -282,7 +268,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', stringField: 'foo'),
             ])
         ];
-        yield 'Test string field with equals any filter' => [
+        yield 'Test string field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
@@ -298,7 +284,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
             ])
         ];
-        yield 'Test string field with not filter' => [
+        yield 'Test string field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
@@ -314,7 +300,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', stringField: 'baz'),
             ])
         ];
-        yield 'Test string field with not any filter' => [
+        yield 'Test string field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
@@ -439,7 +425,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', stringField: 'a'),
             ])
         ];
-        yield 'Test string field with gte and lte filter' => [
+        yield 'Test string field gte and lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'a'),
                 self::document(key: 'key2', stringField: 'b'),
@@ -457,7 +443,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', stringField: 'c'),
             ])
         ];
-        yield 'Test string field with null value equals filter' => [
+        yield 'Test string field null value equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
@@ -472,7 +458,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', stringField: null)
             ])
         ];
-        yield 'Test string field with null value not filter' => [
+        yield 'Test string field null value not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
@@ -489,7 +475,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test text field with equals filter' => [
+        yield 'Test text field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', textField: 'foo'),
                 self::document(key: 'key2', textField: 'bar'),
@@ -505,7 +491,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', textField: 'foo'),
             ])
         ];
-        yield 'Test text field with equals any filter' => [
+        yield 'Test text field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', textField: 'foo'),
                 self::document(key: 'key2', textField: 'bar'),
@@ -521,7 +507,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
             ])
         ];
-        yield 'Test text field with not filter' => [
+        yield 'Test text field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', textField: 'foo'),
                 self::document(key: 'key2', textField: 'bar'),
@@ -537,7 +523,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', textField: 'baz'),
             ])
         ];
-        yield 'Test text field with not any filter' => [
+        yield 'Test text field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', textField: 'foo'),
                 self::document(key: 'key2', textField: 'bar'),
@@ -662,7 +648,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', textField: 'a'),
             ])
         ];
-        yield 'Test text field with gte and lte filter' => [
+        yield 'Test text field gte and lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', textField: 'a'),
                 self::document(key: 'key2', textField: 'b'),
@@ -681,7 +667,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test date field with equals filter' => [
+        yield 'Test date field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -696,7 +682,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with equals any filter' => [
+        yield 'Test date field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -712,7 +698,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with not filter' => [
+        yield 'Test date field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -728,7 +714,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with not any filter' => [
+        yield 'Test date field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -743,7 +729,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with gte filter' => [
+        yield 'Test date field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -759,7 +745,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with lte filter' => [
+        yield 'Test date field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -775,7 +761,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with gt filter' => [
+        yield 'Test date field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -790,7 +776,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with lt filter' => [
+        yield 'Test date field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -805,7 +791,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with gte and lte filter' => [
+        yield 'Test date field gte and lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -823,7 +809,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
-        yield 'Test date field with null value equals filter' => [
+        yield 'Test date field null value equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01'),
                 self::document(key: 'key2', dateField: '2021-01-02'),
@@ -838,7 +824,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: null)
             ])
         ];
-        yield 'Test date field with null value not filter' => [
+        yield 'Test date field null value not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
@@ -855,7 +841,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test int field with equals filter' => [
+        yield 'Test int field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -870,7 +856,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
             ])
         ];
-        yield 'Test int field with equals any filter' => [
+        yield 'Test int field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -886,7 +872,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
             ])
         ];
-        yield 'Test int field with not filter' => [
+        yield 'Test int field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -902,7 +888,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: 3),
             ])
         ];
-        yield 'Test int field with not any filter' => [
+        yield 'Test int field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -917,7 +903,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: 3),
             ])
         ];
-        yield 'Test int field with gte filter' => [
+        yield 'Test int field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -933,7 +919,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: 3),
             ])
         ];
-        yield 'Test int field with lte filter' => [
+        yield 'Test int field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -949,7 +935,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
             ])
         ];
-        yield 'Test int field with gt filter' => [
+        yield 'Test int field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -964,7 +950,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: 3),
             ])
         ];
-        yield 'Test int field with lt filter' => [
+        yield 'Test int field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -979,7 +965,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', intField: 1),
             ])
         ];
-        yield 'Test int field with gte and lte filter' => [
+        yield 'Test int field gte and lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -997,7 +983,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: 3),
             ])
         ];
-        yield 'Test int field with null value equals filter' => [
+        yield 'Test int field null value equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -1012,7 +998,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: null)
             ])
         ];
-        yield 'Test int field with null value not filter' => [
+        yield 'Test int field null value not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
@@ -1029,7 +1015,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test float field with equals filter' => [
+        yield 'Test float field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1044,7 +1030,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
             ])
         ];
-        yield 'Test float field with equals any filter' => [
+        yield 'Test float field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1060,7 +1046,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
             ])
         ];
-        yield 'Test float field with not filter' => [
+        yield 'Test float field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1076,7 +1062,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
-        yield 'Test float field with not any filter' => [
+        yield 'Test float field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1091,7 +1077,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
-        yield 'Test float field with gte filter' => [
+        yield 'Test float field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1107,7 +1093,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
-        yield 'Test float field with lte filter' => [
+        yield 'Test float field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1123,7 +1109,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
             ])
         ];
-        yield 'Test float field with gt filter' => [
+        yield 'Test float field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1138,7 +1124,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
-        yield 'Test float field with lt filter' => [
+        yield 'Test float field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1153,7 +1139,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', floatField: 1.1),
             ])
         ];
-        yield 'Test float field with gte and lte filter' => [
+        yield 'Test float field gte and lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1171,7 +1157,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
-        yield 'Test float field with null value equals filter' => [
+        yield 'Test float field null value equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1186,7 +1172,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: null)
             ])
         ];
-        yield 'Test float field with null value not filter' => [
+        yield 'Test float field null value not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
@@ -1203,7 +1189,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test object field with equals filter' => [
+        yield 'Test object field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1218,7 +1204,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
             ])
         ];
-        yield 'Test object field with equals any filter' => [
+        yield 'Test object field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1234,7 +1220,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
         ];
-        yield 'Test object field with not filter' => [
+        yield 'Test object field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1250,7 +1236,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
         ];
-        yield 'Test object field with not any filter' => [
+        yield 'Test object field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1265,7 +1251,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
             ])
         ];
-        yield 'Test object field with contains filter' => [
+        yield 'Test object field contains filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1281,7 +1267,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
             ])
         ];
-        yield 'Test object field with gte filter' => [
+        yield 'Test object field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1297,7 +1283,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
         ];
-        yield 'Test object field with lte filter' => [
+        yield 'Test object field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1313,7 +1299,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
             ])
         ];
-        yield 'Test object field with gt filter' => [
+        yield 'Test object field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1328,7 +1314,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
         ];
-        yield 'Test object field with lt filter' => [
+        yield 'Test object field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1343,36 +1329,39 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
             ])
         ];
-        yield 'Test object field with null value equals filter' => [
-            'input' => new Documents([
-                self::document(key: 'key1', objectField: ['foo' => 'bar']),
-                self::document(key: 'key2', objectField: ['foo' => 'baz']),
-                self::document(key: 'key3', objectField: null),
-            ]),
-            'criteria' => new FilterCriteria(
-                filters: [
-                    ['field' => 'objectField.foo', 'type' => 'equals', 'value' => null]
-                ]
-            ),
-            'expected' => new FilterResult([
-            ])
-        ];
-        yield 'Test object field with nested null value equals filter' => [
-            'input' => new Documents([
-                self::document(key: 'key1', objectField: ['foo' => 'bar']),
-                self::document(key: 'key2', objectField: ['foo' => 'baz']),
-                self::document(key: 'key3', objectField: ['foo' => null]),
-            ]),
-            'criteria' => new FilterCriteria(
-                filters: [
-                    ['field' => 'objectField', 'type' => 'equals', 'value' => null]
-                ]
-            ),
-            'expected' => new FilterResult([
-                self::document(key: 'key3', objectField: ['foo' => null])
-            ])
-        ];
-        yield 'Test object field with null value not filter' => [
+//        yield 'Test object field null value equals filter' => [
+//            'input' => new Documents([
+//                self::document(key: 'key1', objectField: ['foo' => 'bar']),
+//                self::document(key: 'key2', objectField: ['foo' => 'baz']),
+//                self::document(key: 'key3', objectField: null),
+//                self::document(key: 'key4', objectField: ['foo' => null]),
+//            ]),
+//            'criteria' => new FilterCriteria(
+//                filters: [
+//                    ['field' => 'objectField.foo', 'type' => 'equals', 'value' => null]
+//                ]
+//            ),
+//            'expected' => new FilterResult([
+//                self::document(key: 'key4', objectField: ['foo' => null]),
+//            ])
+//        ];
+//        yield 'Test object field nested null value equals filter' => [
+//            'input' => new Documents([
+//                self::document(key: 'key1', objectField: ['foo' => 'bar']),
+//                self::document(key: 'key2', objectField: ['foo' => 'baz']),
+//                self::document(key: 'key3', objectField: null),
+//                self::document(key: 'key4', objectField: ['foo' => null]),
+//            ]),
+//            'criteria' => new FilterCriteria(
+//                filters: [
+//                    ['field' => 'objectField', 'type' => 'equals', 'value' => null]
+//                ]
+//            ),
+//            'expected' => new FilterResult([
+//                self::document(key: 'key3', objectField: null),
+//            ])
+//        ];
+        yield 'Test object field null value not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
@@ -1389,7 +1378,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test object field with equals filter and int value' => [
+        yield 'Test object field equals filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1404,7 +1393,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
             ])
         ];
-        yield 'Test object field with equals any filter and int values' => [
+        yield 'Test object field equals any filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1420,7 +1409,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
             ])
         ];
-        yield 'Test object field with not filter and int value' => [
+        yield 'Test object field not filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1436,7 +1425,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
         ];
-        yield 'Test object field with not any filter and int values' => [
+        yield 'Test object field not any filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1451,7 +1440,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
         ];
-        yield 'Test object field with gte filter and int value' => [
+        yield 'Test object field gte filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1467,7 +1456,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
         ];
-        yield 'Test object field with lte filter and int value' => [
+        yield 'Test object field lte filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1483,7 +1472,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
             ])
         ];
-        yield 'Test object field with gt filter and int value' => [
+        yield 'Test object field gt filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1498,7 +1487,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
         ];
-        yield 'Test object field with lt filter and int value' => [
+        yield 'Test object field lt filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1513,7 +1502,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
             ])
         ];
-        yield 'Test object field with gte and lte filter and int values' => [
+        yield 'Test object field gte and lte filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
@@ -1532,7 +1521,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test object field with equals filter and float values' => [
+        yield 'Test object field equals filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1547,7 +1536,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
             ])
         ];
-        yield 'Test object field with equals any filter and float values' => [
+        yield 'Test object field equals any filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1563,7 +1552,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
             ])
         ];
-        yield 'Test object field with not filter and float values' => [
+        yield 'Test object field not filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1579,7 +1568,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
-        yield 'Test object field with not any filter and float values' => [
+        yield 'Test object field not any filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1594,7 +1583,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
-        yield 'Test object field with gte filter and float values' => [
+        yield 'Test object field gte filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1610,7 +1599,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
-        yield 'Test object field with lte filter and float values' => [
+        yield 'Test object field lte filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1626,7 +1615,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
             ])
         ];
-        yield 'Test object field with gt filter and float values' => [
+        yield 'Test object field gt filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1641,7 +1630,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
-        yield 'Test object field with lt filter and float values' => [
+        yield 'Test object field lt filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1656,7 +1645,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
             ])
         ];
-        yield 'Test object field with gte and lte filter and float values' => [
+        yield 'Test object field gte and lte filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
@@ -1675,7 +1664,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test object field with equals filter and date values' => [
+        yield 'Test object field equals filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1690,7 +1679,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with equals any filter and date values' => [
+        yield 'Test object field equals any filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1706,7 +1695,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with not filter and date values' => [
+        yield 'Test object field not filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1722,7 +1711,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with not any filter and date values' => [
+        yield 'Test object field not any filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1737,7 +1726,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with gte filter and date values' => [
+        yield 'Test object field gte filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1753,7 +1742,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with lte filter and date values' => [
+        yield 'Test object field lte filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1769,7 +1758,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with gt filter and date values' => [
+        yield 'Test object field gt filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1784,7 +1773,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with lt filter and date values' => [
+        yield 'Test object field lt filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1799,7 +1788,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
             ])
         ];
-        yield 'Test object field with gte and lte filter and date values' => [
+        yield 'Test object field gte and lte filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
@@ -1818,7 +1807,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list field with equals filter' => [
+        yield 'Test list field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key2', listField: ['foo', 'baz']),
@@ -1833,7 +1822,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
             ])
         ];
-        yield 'Test list field with equals any filter' => [
+        yield 'Test list field equals any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key2', listField: ['foo', 'baz']),
@@ -1849,7 +1838,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ])
         ];
-        yield 'Test list field with not filter' => [
+        yield 'Test list field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key2', listField: ['foo', 'baz']),
@@ -1865,7 +1854,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ])
         ];
-        yield 'Test list field with not any filter' => [
+        yield 'Test list field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key2', listField: ['foo', 'baz']),
@@ -1880,7 +1869,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', listField: ['foo', 'bar']),
             ])
         ];
-        yield 'Test list field with contains filter' => [
+        yield 'Test list field contains filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key2', listField: ['foo', 'baz']),
@@ -1896,7 +1885,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
             ])
         ];
-        yield 'Test list field with null value equals filter' => [
+        yield 'Test list field null value equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key2', listField: [1, 3]),
@@ -1911,7 +1900,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: null)
             ])
         ];
-        yield 'Test list field with null value not filter' => [
+        yield 'Test list field null value not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key2', listField: [1, 3]),
@@ -1928,7 +1917,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list field with equals filter and int values' => [
+        yield 'Test list field equals filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key2', listField: [1, 3]),
@@ -1943,7 +1932,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
             ])
         ];
-        yield 'Test list field with equals any filter and int values' => [
+        yield 'Test list field equals any filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key2', listField: [1, 3]),
@@ -1959,7 +1948,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: [1, 4]),
             ])
         ];
-        yield 'Test list field with not filter and int values' => [
+        yield 'Test list field not filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key2', listField: [1, 3]),
@@ -1975,7 +1964,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: [1, 4]),
             ])
         ];
-        yield 'Test list field with not any filter and int values' => [
+        yield 'Test list field not any filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key2', listField: [1, 3]),
@@ -1990,7 +1979,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', listField: [1, 2]),
             ])
         ];
-        yield 'Test list field with equals filter and float values' => [
+        yield 'Test list field equals filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1.1, 2.2]),
                 self::document(key: 'key2', listField: [1.1, 3.3]),
@@ -2005,7 +1994,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1.1, 3.3]),
             ])
         ];
-        yield 'Test list field with equals any filter and float values' => [
+        yield 'Test list field equals any filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1.1, 2.2]),
                 self::document(key: 'key2', listField: [1.1, 3.3]),
@@ -2021,7 +2010,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ])
         ];
-        yield 'Test list field with not filter and float values' => [
+        yield 'Test list field not filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1.1, 2.2]),
                 self::document(key: 'key2', listField: [1.1, 3.3]),
@@ -2037,7 +2026,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ])
         ];
-        yield 'Test list field with not any filter and float values' => [
+        yield 'Test list field not any filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: [1.1, 2.2]),
                 self::document(key: 'key2', listField: [1.1, 3.3]),
@@ -2052,7 +2041,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', listField: [1.1, 2.2]),
             ])
         ];
-        yield 'Test list field with equals filter and date values' => [
+        yield 'Test list field equals filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
@@ -2067,7 +2056,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
             ])
         ];
-        yield 'Test list field with equals any filter and date values' => [
+        yield 'Test list field equals any filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
@@ -2083,7 +2072,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ])
         ];
-        yield 'Test list field with not filter and date values' => [
+        yield 'Test list field not filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
@@ -2099,7 +2088,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ])
         ];
-        yield 'Test list field with not any filter and date values' => [
+        yield 'Test list field not any filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
@@ -2114,7 +2103,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
             ])
         ];
-        yield 'Test list field with contains filter and date values' => [
+        yield 'Test list field contains filter and date values' => [
             'input' => new Documents([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
@@ -2130,7 +2119,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list object field with equals filter and string value' => [
+        yield 'Test list object field equals filter and string value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['foo' => 'bar'], ['foo' => 'bar-2']]),
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
@@ -2146,7 +2135,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
         ];
-        yield 'Test list object field with equals any filter and string value' => [
+        yield 'Test list object field equals any filter and string value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['foo' => 'bar'], ['foo' => 'bar-2']]),
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
@@ -2162,7 +2151,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
         ];
-        yield 'Test list object field with contains filter and string value' => [
+        yield 'Test list object field contains filter and string value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['foo' => 'bar'], ['foo' => 'bar-2']]),
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
@@ -2178,7 +2167,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
         ];
-        yield 'Test list object field with starts with filter and string value' => [
+        yield 'Test list object field starts-with filter and string value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['foo' => 'bar'], ['foo' => 'bar-2']]),
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
@@ -2193,7 +2182,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
         ];
-        yield 'Test list object field with ends with filter and string value' => [
+        yield 'Test list object field ends-with filter and string value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['foo' => 'bar'], ['foo' => 'bar-2']]),
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
@@ -2210,7 +2199,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list object field with equals filter and int value' => [
+        yield 'Test list object field equals filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
@@ -2226,7 +2215,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
             ])
         ];
-        yield 'Test list object field with equals any filter and int value' => [
+        yield 'Test list object field equals any filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
@@ -2242,7 +2231,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ])
         ];
-        yield 'Test list object field with gte filter and int value' => [
+        yield 'Test list object field gte filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
@@ -2257,7 +2246,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ])
         ];
-        yield 'Test list object field with lte filter and int value' => [
+        yield 'Test list object field lte filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
@@ -2273,7 +2262,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
             ])
         ];
-        yield 'Test list object field with gt filter and int value' => [
+        yield 'Test list object field gt filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
@@ -2289,7 +2278,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ])
         ];
-        yield 'Test list object field with lt filter and int value' => [
+        yield 'Test list object field lt filter and int value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
@@ -2306,7 +2295,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list object field with equals filter and float value' => [
+        yield 'Test list object field equals filter and float value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
@@ -2322,7 +2311,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
             ])
         ];
-        yield 'Test list object field with equals any filter and float value' => [
+        yield 'Test list object field equals any filter and float value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
@@ -2339,7 +2328,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ])
         ];
-        yield 'Test list object field with gte filter and float value' => [
+        yield 'Test list object field gte filter and float value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
@@ -2354,7 +2343,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ])
         ];
-        yield 'Test list object field with lte filter and float value' => [
+        yield 'Test list object field lte filter and float value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
@@ -2370,7 +2359,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
             ])
         ];
-        yield 'Test list object field with gt filter and float value' => [
+        yield 'Test list object field gt filter and float value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
@@ -2386,7 +2375,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ])
         ];
-        yield 'Test list object field with lt filter and float value' => [
+        yield 'Test list object field lt filter and float value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
@@ -2403,7 +2392,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list object field with equals filter and date value' => [
+        yield 'Test list object field equals filter and date value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
@@ -2419,7 +2408,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
             ])
         ];
-        yield 'Test list object field with equals any filter and date value' => [
+        yield 'Test list object field equals any filter and date value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
@@ -2436,7 +2425,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test list object field with gte filter and date value' => [
+        yield 'Test list object field gte filter and date value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
@@ -2451,7 +2440,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ])
         ];
-        yield 'Test list object field with lte filter and date value' => [
+        yield 'Test list object field lte filter and date value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
@@ -2467,7 +2456,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
             ])
         ];
-        yield 'Test list object field with gt filter and date value' => [
+        yield 'Test list object field gt filter and date value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
@@ -2483,7 +2472,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ])
         ];
-        yield 'Test list object field with lt filter and date value' => [
+        yield 'Test list object field lt filter and date value' => [
             'input' => new Documents([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
@@ -2516,7 +2505,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated string field with equals filter' => [
+        yield 'Test translated string field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2534,7 +2523,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['de' => 'foo']),
             ])
         ];
-        yield 'Test translated string field with equals-any filter' => [
+        yield 'Test translated string field equals-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2552,7 +2541,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
             ])
         ];
-        yield 'Test translated string field with not filter' => [
+        yield 'Test translated string field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2569,7 +2558,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ])
         ];
-        yield 'Test translated string field with not any filter' => [
+        yield 'Test translated string field not any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2585,7 +2574,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ])
         ];
-        yield 'Test translated string field with contains filter' => [
+        yield 'Test translated string field contains filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'boo']),
@@ -2603,7 +2592,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['en' => 'foo', 'de' => 'bar']),
             ])
         ];
-        yield 'Test translated string field with starts-with filter' => [
+        yield 'Test translated string field starts-with filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2620,7 +2609,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
             ])
         ];
-        yield 'Test translated string field with ends-with filter' => [
+        yield 'Test translated string field ends-with filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2637,7 +2626,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
             ])
         ];
-        yield 'Test translated string field with gte filter' => [
+        yield 'Test translated string field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
@@ -2655,7 +2644,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
             ])
         ];
-        yield 'Test translated string field with gt filter' => [
+        yield 'Test translated string field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
@@ -2671,7 +2660,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
             ])
         ];
-        yield 'Test translated string field with lte filter' => [
+        yield 'Test translated string field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
@@ -2689,7 +2678,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
             ])
         ];
-        yield 'Test translated string field with lt filter' => [
+        yield 'Test translated string field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
@@ -2705,7 +2694,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
             ])
         ];
-        yield 'Test translated string field with equals filter and empty string' => [
+        yield 'Test translated string field equals filter and empty string' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
@@ -2723,7 +2712,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated int field with equals filter' => [
+        yield 'Test translated int field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -2741,7 +2730,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ])
         ];
-        yield 'Test translated int field with equals-any filter' => [
+        yield 'Test translated int field equals-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -2759,7 +2748,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedInt: ['de' => 4]),
             ])
         ];
-        yield 'Test translated int field with not filter' => [
+        yield 'Test translated int field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -2775,7 +2764,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
             ])
         ];
-        yield 'Test translated int field with not-any filter' => [
+        yield 'Test translated int field not-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -2789,7 +2778,7 @@ abstract class FilterStorageTestBase extends TestCase
             ),
             'expected' => new FilterResult([])
         ];
-        yield 'Test translated int field with gte filter' => [
+        yield 'Test translated int field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
@@ -2806,7 +2795,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
             ])
         ];
-        yield 'Test translated int field with gt filter' => [
+        yield 'Test translated int field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
@@ -2822,7 +2811,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
             ])
         ];
-        yield 'Test translated int field with lte filter' => [
+        yield 'Test translated int field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
@@ -2840,7 +2829,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
             ])
         ];
-        yield 'Test translated int field with lt filter' => [
+        yield 'Test translated int field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
@@ -2858,7 +2847,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated float field with equals filter' => [
+        yield 'Test translated float field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -2876,7 +2865,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ])
         ];
-        yield 'Test translated float field with equals-any filter' => [
+        yield 'Test translated float field equals-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -2894,7 +2883,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedFloat: ['de' => 4.4]),
             ])
         ];
-        yield 'Test translated float field with not filter' => [
+        yield 'Test translated float field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -2910,7 +2899,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
             ])
         ];
-        yield 'Test translated float field with not-any filter' => [
+        yield 'Test translated float field not-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -2924,7 +2913,7 @@ abstract class FilterStorageTestBase extends TestCase
             ),
             'expected' => new FilterResult([])
         ];
-        yield 'Test translated float field with gte filter' => [
+        yield 'Test translated float field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
@@ -2941,7 +2930,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
             ])
         ];
-        yield 'Test translated float field with gt filter' => [
+        yield 'Test translated float field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
@@ -2957,7 +2946,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
             ])
         ];
-        yield 'Test translated float field with lte filter' => [
+        yield 'Test translated float field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
@@ -2975,7 +2964,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ])
         ];
-        yield 'Test translated float field with lt filter' => [
+        yield 'Test translated float field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
@@ -2993,7 +2982,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated bool field with equals filter' => [
+        yield 'Test translated bool field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),
@@ -3011,7 +3000,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ])
         ];
-        yield 'Test translated bool field with not filter' => [
+        yield 'Test translated bool field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),
@@ -3028,7 +3017,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated date field with equals filter' => [
+        yield 'Test translated date field equals filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-02 00:00:00.000']),
@@ -3046,7 +3035,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
             ])
         ];
-        yield 'Test translated date field with equals-any filter' => [
+        yield 'Test translated date field equals-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-02 00:00:00.000']),
@@ -3064,7 +3053,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
             ])
         ];
-        yield 'Test translated date field with not filter' => [
+        yield 'Test translated date field not filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-02 00:00:00.000']),
@@ -3080,7 +3069,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
             ])
         ];
-        yield 'Test translated date field with not-any filter' => [
+        yield 'Test translated date field not-any filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-02 00:00:00.000']),
@@ -3094,7 +3083,7 @@ abstract class FilterStorageTestBase extends TestCase
             ),
             'expected' => new FilterResult([])
         ];
-        yield 'Test translated date field with gte filter' => [
+        yield 'Test translated date field gte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
@@ -3111,7 +3100,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
             ])
         ];
-        yield 'Test translated date field with gt filter' => [
+        yield 'Test translated date field gt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
@@ -3127,7 +3116,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
             ])
         ];
-        yield 'Test translated date field with lte filter' => [
+        yield 'Test translated date field lte filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
@@ -3145,7 +3134,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
             ])
         ];
-        yield 'Test translated date field with lt filter' => [
+        yield 'Test translated date field lt filter' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
@@ -3163,7 +3152,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated list field with equals filter and string values' => [
+        yield 'Test translated list field equals filter and string values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
@@ -3181,7 +3170,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ])
         ];
-        yield 'Test translated list field with equals-any filter and string values' => [
+        yield 'Test translated list field equals-any filter and string values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
@@ -3199,7 +3188,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ])
         ];
-        yield 'Test translated list field with not filter and string values' => [
+        yield 'Test translated list field not filter and string values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
@@ -3215,7 +3204,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
             ])
         ];
-        yield 'Test translated list field with not-any filter and string values' => [
+        yield 'Test translated list field not-any filter and string values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
@@ -3229,7 +3218,7 @@ abstract class FilterStorageTestBase extends TestCase
             ),
             'expected' => new FilterResult([])
         ];
-        yield 'Test translated list field with contains filter and string values' => [
+        yield 'Test translated list field contains filter and string values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
@@ -3248,7 +3237,7 @@ abstract class FilterStorageTestBase extends TestCase
             ])
         ];
 
-        yield 'Test translated list field with equals filter and int values' => [
+        yield 'Test translated list field equals filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -3266,7 +3255,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ])
         ];
-        yield 'Test translated list field with equals-any filter and int values' => [
+        yield 'Test translated list field equals-any filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -3284,7 +3273,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ])
         ];
-        yield 'Test translated list field with not filter and int values' => [
+        yield 'Test translated list field not filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -3300,7 +3289,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
             ])
         ];
-        yield 'Test translated list field with not-any filter and int values' => [
+        yield 'Test translated list field not-any filter and int values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
@@ -3315,7 +3304,7 @@ abstract class FilterStorageTestBase extends TestCase
             'expected' => new FilterResult([])
         ];
 
-        yield 'Test translated list field with equals filter and float values' => [
+        yield 'Test translated list field equals filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -3333,7 +3322,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ])
         ];
-        yield 'Test translated list field with equals-any filter and float values' => [
+        yield 'Test translated list field equals-any filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -3351,7 +3340,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ])
         ];
-        yield 'Test translated list field with not filter and float values' => [
+        yield 'Test translated list field not filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -3367,7 +3356,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
             ])
         ];
-        yield 'Test translated list field with not-any filter and float values' => [
+        yield 'Test translated list field not-any filter and float values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
@@ -3382,7 +3371,7 @@ abstract class FilterStorageTestBase extends TestCase
             'expected' => new FilterResult([])
         ];
 
-        yield 'Test translated list field with equals filter and bool values' => [
+        yield 'Test translated list field equals filter and bool values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),
@@ -3400,7 +3389,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ])
         ];
-        yield 'Test translated list field with equals-any filter and bool values' => [
+        yield 'Test translated list field equals-any filter and bool values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),
@@ -3419,7 +3408,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ])
         ];
-        yield 'Test translated list field with not filter and bool values' => [
+        yield 'Test translated list field not filter and bool values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),
@@ -3435,7 +3424,7 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
             ])
         ];
-        yield 'Test translated list field with not-any filter and bool values' => [
+        yield 'Test translated list field not-any filter and bool values' => [
             'input' => new Documents([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),

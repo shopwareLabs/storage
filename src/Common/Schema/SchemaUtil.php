@@ -9,11 +9,14 @@ class SchemaUtil
 {
     public static function castValue(Schema $schema, array $filter, mixed $value): mixed
     {
+        if ($value === null) {
+            return null;
+        }
+
         $field = self::resolveFieldSchema($schema, $filter);
 
         if ($field['type'] === FieldType::INT) {
             return match (true) {
-                $value === null => null,
                 is_array($value) => array_map(fn ($v) => (int) $v, $value),
                 default => (int) $value,
             };
@@ -21,7 +24,6 @@ class SchemaUtil
 
         if ($field['type'] === FieldType::FLOAT) {
             return match (true) {
-                $value === null => null,
                 is_array($value) => array_map(fn ($v) => (float) $v, $value),
                 default => (float) $value,
             };
@@ -29,7 +31,6 @@ class SchemaUtil
 
         if ($field['type'] === FieldType::BOOL) {
             return match (true) {
-                $value === null => null,
                 is_array($value) => array_map(fn ($v) => (bool) $v, $value),
                 default => (bool) $value,
             };
@@ -37,7 +38,6 @@ class SchemaUtil
 
         if ($field['type'] === FieldType::DATETIME) {
             return match (true) {
-                $value === null => null,
                 is_array($value) => array_map(fn ($v) => (new \DateTimeImmutable($v))->format('Y-m-d H:i:s.v'), $value),
                 default => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),
             };
