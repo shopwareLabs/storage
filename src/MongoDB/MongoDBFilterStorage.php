@@ -80,7 +80,7 @@ class MongoDBFilterStorage implements FilterStorage
             $query['_key'] = ['$in' => $criteria->keys];
         }
         if ($criteria->filters) {
-            $filters = $this->parseFilters($criteria->filters);
+            $filters = $this->parseFilters($criteria->filters, $context);
 
             $query = array_merge($query, $filters);
         }
@@ -128,75 +128,111 @@ class MongoDBFilterStorage implements FilterStorage
      * @param Filter[] $filters
      * @return array<string|int, array<mixed>>
      */
-    private function parseFilters(array $filters): array
+    private function parseFilters(array $filters, StorageContext $context): array
     {
         $queries = [];
 
         foreach ($filters as $filter) {
-            $type = $filter['type'];
+            $schema = SchemaUtil::resolveFieldSchema($this->schema, $filter);
 
-            $field = $filter['field'];
+            $translated = $schema['translated'] ?? false;
 
             $value = SchemaUtil::castValue(
                 schema: $this->schema,
                 filter: $filter,
-                value: $filter['value']
+                value: $filter['value'] ?? null
             );
+
+            $type = $filter['type'];
+
+            $field = $filter['field'];
+
+            $factory = fn (\Closure $function): array => $function($field, $value);
+
+            if ($translated) {
+                $factory = function (\Closure $generator) use ($filter, $context, $value) {
+                    return $this->translationQuery($generator, $filter, $context, $value);
+                };
+            }
 
             switch (true) {
                 case $type === 'equals':
-                    $queries[$field]['$eq'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$eq' => $value]];
+                    }));
+
                     break;
                 case $type === 'equals-any':
-                    $queries[$field]['$in'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$in' => $value]];
+                    }));
+
                     break;
                 case $type === 'not':
-                    $queries[$field]['$ne'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$ne' => $value]];
+                    }));
                     break;
                 case $type === 'not-any':
-                    $queries[$field]['$nin'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$nin' => $value]];
+                    }));
                     break;
                 case $type === 'gt':
-                    $queries[$field]['$gt'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$gt' => $value]];
+                    }));
                     break;
                 case $type === 'gte':
-                    $queries[$field]['$gte'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$gte' => $value]];
+                    }));
                     break;
                 case $type === 'lt':
-                    $queries[$field]['$lt'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$lt' => $value]];
+                    }));
                     break;
                 case $type === 'lte':
-                    $queries[$field]['$lte'] = $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$lte' => $value]];
+                    }));
                     break;
                 case $type === 'starts-with':
                     if (!is_string($value)) {
                         throw new \RuntimeException('Contains filter only supports string values');
                     }
-                    $queries[$field]['$regex'] = '^' . $value;
+                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$regex' => '^' . $value]];
+                    }));
                     break;
                 case $type === 'ends-with':
                     if (!is_string($value)) {
                         throw new \RuntimeException('Contains filter only supports string values');
                     }
-                    $queries[$field]['$regex'] = $value . '$';
+                    $queries = array_merge($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$regex' => $value . '$']];
+                    }));
                     break;
                 case $type === 'contains':
                     if (!is_string($value)) {
                         throw new \RuntimeException('Contains filter only supports string values');
                     }
-                    $queries[$field]['$regex'] = $value;
+                    $queries = array_merge($queries, $factory(function (string $field, mixed $value) {
+                        return [$field => ['$regex' => $value]];
+                    }));
                     break;
                 case $type === 'and':
-                    $queries[] = $this->parseFilters($this->queries($filter));
+                    $queries[] = ['$and' => $this->parseFilters($this->queries($filter), $context)];
                     break;
                 case $type === 'or':
-                    $queries[] = ['$or' => $this->parseFilters($this->queries($filter))];
+                    $queries[] = ['$or' => $this->parseFilters($this->queries($filter), $context)];
                     break;
                 case $type === 'nor':
-                    $queries[] = ['$nor' => $this->parseFilters($this->queries($filter))];
+                    $queries[] = ['$nor' => $this->parseFilters($this->queries($filter), $context)];
                     break;
                 case $type === 'nand':
-                    $queries[] = ['$not' => $this->parseFilters($this->queries($filter))];
+                    $queries[] = ['$not' => $this->parseFilters($this->queries($filter), $context)];
                     break;
                 default:
                     throw new \RuntimeException(sprintf('Unsupported filter type %s', $type));
@@ -207,7 +243,7 @@ class MongoDBFilterStorage implements FilterStorage
     }
 
     /**
-     * @param Filter $filter
+     * @param array $filter
      * @return Filter[]
      */
     private function queries(array $filter): array
@@ -220,5 +256,35 @@ class MongoDBFilterStorage implements FilterStorage
 
         /** @var Filter[] $queries */
         return $queries;
+    }
+
+    private function translationQuery(\Closure $gen, array $filter, StorageContext $context, mixed $value): array
+    {
+        $queries = [];
+
+        $before = [];
+
+        $field = $filter['field'];
+
+        foreach ($context->languages as $index => $language) {
+            if (array_key_first($context->languages) === $index) {
+                $queries[] = ['$and' => [
+                    [$field . '.' . $language => ['$ne' => null]],
+                    $gen($field . '.' . $language, $value)
+                ]];
+                $before[] = $language;
+                continue;
+            }
+
+            $nested = [];
+            foreach ($before as $id) {
+                $nested[] = [$field . '.' . $id => ['$eq' => null]];
+            }
+            $nested[] = $gen($field . '.' . $language, $value);
+
+            $queries[] = ['$and' => $nested];
+        }
+
+        return ['$or' => $queries];
     }
 }
