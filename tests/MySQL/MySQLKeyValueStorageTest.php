@@ -46,7 +46,7 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
         }
 
         $params = [
-            'url' => 'mysql://shopware:shopware@localhost:3306/shopware',
+            'url' => 'mysql://shopware:shopware@127.0.0.1:3306/shopware',
             'charset' => 'utf8mb4',
             'driverOptions' => [
                 \PDO::ATTR_STRINGIFY_FETCHES => true,
