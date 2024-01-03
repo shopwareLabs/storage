@@ -2,15 +2,16 @@
 
 namespace Shopware\Storage\Common\Schema;
 
-class Schema
+class Field
 {
     /**
-     * @param string $source
-     * @param Field[] $fields
+     * @param array<Field> $fields
      */
     public function __construct(
-        public string $source,
-        public array $fields
+        public string $name,
+        public string $type,
+        public bool $translated = false,
+        public array $fields = []
     ) {
         // map fields to use the field name as array key
         $this->fields = array_combine(

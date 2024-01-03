@@ -47,6 +47,10 @@ class RedisKeyValueStorage implements KeyValueStorage
             }
             $key = $keys[$index];
 
+            if (!is_string($value)) {
+                throw new \RuntimeException(sprintf('Invalid data type for key %s', $key));
+            }
+
             $data = json_decode($value, true, 512, \JSON_THROW_ON_ERROR);
             if (!is_array($data)) {
                 throw new \RuntimeException(sprintf('Invalid data type for key %s', $key));

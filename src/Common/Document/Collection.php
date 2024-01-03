@@ -17,9 +17,9 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
     protected array $elements = [];
 
     /**
-     * @param array<TElement> $elements
+     * @param array<array-key, TElement> $elements
      */
-    public function __construct(iterable $elements = [])
+    public function __construct(array $elements = [])
     {
         $this->elements = $elements;
     }
@@ -48,11 +48,7 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
      */
     public function set($key, $element): void
     {
-        if ($key === null) {
-            $this->elements[] = $element;
-        } else {
-            $this->elements[$key] = $element;
-        }
+        $this->elements[$key] = $element;
     }
 
     /**
@@ -69,6 +65,9 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
         return null;
     }
 
+    /**
+     * @param array-key $key
+     */
     public function has($key): bool
     {
         return array_key_exists($key, $this->elements);
@@ -108,6 +107,9 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
         unset($this->elements[$key]);
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function jsonSerialize(): array
     {
         return array_values($this->elements);

@@ -3,10 +3,11 @@
 namespace Shopware\Storage\Common\Search;
 
 use Shopware\Storage\Common\Filter\FilterCriteria;
+use Shopware\Storage\Common\Filter\Operator\Operator;
+use Shopware\Storage\Common\Filter\Sorting;
+use Shopware\Storage\Common\Filter\Type\Filter;
 
 /**
- * @phpstan-import-type Sorting from FilterCriteria
- * @phpstan-import-type Filter from FilterCriteria
  */
 class SearchCriteria
 {
@@ -24,7 +25,7 @@ class SearchCriteria
          */
         public array $sorting = [],
         /**
-         * @var Filter[]
+         * @var array<Filter|Operator>
          */
         public array $filters = []
     ) {

@@ -2,43 +2,43 @@
 
 namespace Shopware\Storage\Common\Schema;
 
-/**
- * @phpstan-import-type Field from Schema
- */
 class SchemaUtil
 {
-    public static function castValue(Schema $schema, array $filter, mixed $value): mixed
+    public static function cast(Schema $schema, string $accessor, mixed $value): mixed
     {
         if ($value === null) {
             return null;
         }
 
-        $field = self::resolveFieldSchema($schema, $filter);
+        $type = self::type(schema: $schema, accessor: $accessor);
 
-        if ($field['type'] === FieldType::INT) {
+        if ($type === FieldType::INT) {
             return match (true) {
                 is_array($value) => array_map(fn ($v) => (int) $v, $value),
+                // @phpstan-ignore-next-line
                 default => (int) $value,
             };
         }
 
-        if ($field['type'] === FieldType::FLOAT) {
+        if ($type === FieldType::FLOAT) {
             return match (true) {
                 is_array($value) => array_map(fn ($v) => (float) $v, $value),
+                // @phpstan-ignore-next-line
                 default => (float) $value,
             };
         }
 
-        if ($field['type'] === FieldType::BOOL) {
+        if ($type === FieldType::BOOL) {
             return match (true) {
                 is_array($value) => array_map(fn ($v) => (bool) $v, $value),
                 default => (bool) $value,
             };
         }
 
-        if ($field['type'] === FieldType::DATETIME) {
+        if ($type === FieldType::DATETIME) {
             return match (true) {
                 is_array($value) => array_map(fn ($v) => (new \DateTimeImmutable($v))->format('Y-m-d H:i:s.v'), $value),
+                // @phpstan-ignore-next-line
                 default => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),
             };
         }
@@ -46,50 +46,53 @@ class SchemaUtil
         return $value;
     }
 
-    /**
-     * @param array{"field": string} $filter
-     * @return Field&array{"name": string}
-     */
-    public static function resolveRootFieldSchema(Schema $schema, array $filter): array
+    public static function property(string $accessor): string
     {
-        $parts = explode('.', $filter['field']);
+        $parts = explode('.', $accessor);
 
-        $field = $schema->fields[$parts[0]] ?? null;
-
-        if (!$field) {
-            throw new \RuntimeException(sprintf('Root field %s not found in schema', $filter['field']));
-        }
-
-        $field['name'] = $parts[0];
-
-        return $field;
+        return $parts[0];
     }
 
-    /**
-     * @param array{"field": string} $filter
-     * @return Field
-     */
-    public static function resolveFieldSchema(Schema $schema, array $filter): array
+    public static function translated(Schema $schema, string $accessor): bool
     {
-        $field = self::resolveRootFieldSchema($schema, $filter);
+        $schema = self::fieldSchema(schema: $schema, accessor: $accessor);
+
+        return $schema->translated;
+    }
+
+    public static function type(Schema $schema, string $accessor): string
+    {
+        $schema = self::fieldSchema(schema: $schema, accessor: $accessor);
+
+        return $schema->type;
+    }
+
+    public static function fieldSchema(Schema $schema, string $accessor): Field
+    {
+        $property = self::property(accessor: $accessor);
+
+        $field = $schema->fields[$property] ?? null;
 
         if (!$field) {
-            throw new \RuntimeException(sprintf('Field %s not found in schema', $filter['field']));
+            throw new \RuntimeException(sprintf('Field %s not found in schema', $property));
         }
 
-        if (!in_array($field['type'], [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
+        if (!$field->type) {
+            throw new \RuntimeException(sprintf('Field %s not found in schema', $accessor));
+        }
+
+        if (!in_array($field->type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
             return $field;
         }
 
-        $parts = explode('.', $filter['field']);
+        $parts = explode('.', $accessor);
 
-        // remove first element
         array_shift($parts);
 
         foreach ($parts as $part) {
-            $field = $field['fields'][$part] ?? null;
+            $field = $field->fields[$part] ?? null;
 
-            if (!$field) {
+            if (!$field instanceof Field) {
                 throw new \RuntimeException(sprintf('Field %s not found in schema', $part));
             }
         }

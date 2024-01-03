@@ -2,7 +2,6 @@
 
 namespace Shopware\Storage\MongoDB;
 
-use MongoDB\BSON\ObjectId;
 use MongoDB\Client;
 use MongoDB\Collection;
 use Shopware\Storage\Common\Document\Document;
@@ -10,14 +9,29 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Filter\FilterResult;
 use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Operator\AndOperator;
+use Shopware\Storage\Common\Filter\Operator\NandOperator;
+use Shopware\Storage\Common\Filter\Operator\NorOperator;
+use Shopware\Storage\Common\Filter\Operator\Operator;
+use Shopware\Storage\Common\Filter\Operator\OrOperator;
+use Shopware\Storage\Common\Filter\Paging\Page;
+use Shopware\Storage\Common\Filter\Sorting;
+use Shopware\Storage\Common\Filter\Type\Any;
+use Shopware\Storage\Common\Filter\Type\Contains;
+use Shopware\Storage\Common\Filter\Type\Equals;
+use Shopware\Storage\Common\Filter\Type\Filter;
+use Shopware\Storage\Common\Filter\Type\Gt;
+use Shopware\Storage\Common\Filter\Type\Gte;
+use Shopware\Storage\Common\Filter\Type\Lt;
+use Shopware\Storage\Common\Filter\Type\Lte;
+use Shopware\Storage\Common\Filter\Type\Neither;
+use Shopware\Storage\Common\Filter\Type\Not;
+use Shopware\Storage\Common\Filter\Type\Prefix;
+use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\StorageContext;
 
-/**
- * @phpstan-import-type Sorting from FilterCriteria
- * @phpstan-import-type Filter from FilterCriteria
- */
 class MongoDBFilterStorage implements FilterStorage
 {
     public function __construct(
@@ -60,8 +74,8 @@ class MongoDBFilterStorage implements FilterStorage
 
         $options = [];
 
-        if ($criteria->page) {
-            $options['skip'] = ($criteria->page - 1) * $criteria->limit;
+        if ($criteria->paging instanceof Page) {
+            $options['skip'] = ($criteria->paging->page - 1) * $criteria->limit;
         }
 
         if ($criteria->limit) {
@@ -69,9 +83,9 @@ class MongoDBFilterStorage implements FilterStorage
         }
 
         if ($criteria->sorting) {
-            $options['sort'] = array_map(function ($sort) {
+            $options['sort'] = array_map(function (Sorting $sort) {
                 return [
-                    $sort['field'] => $sort['direction'] === 'ASC' ? 1 : -1
+                    $sort->field => $sort->order === 'ASC' ? 1 : -1
                 ];
             }, $criteria->sorting);
         }
@@ -125,7 +139,7 @@ class MongoDBFilterStorage implements FilterStorage
     }
 
     /**
-     * @param Filter[] $filters
+     * @param array<Operator|Filter> $filters
      * @return array<string|int, array<mixed>>
      */
     private function parseFilters(array $filters, StorageContext $context): array
@@ -133,138 +147,143 @@ class MongoDBFilterStorage implements FilterStorage
         $queries = [];
 
         foreach ($filters as $filter) {
-            $schema = SchemaUtil::resolveFieldSchema($this->schema, $filter);
-
-            $translated = $schema['translated'] ?? false;
-
-            $value = SchemaUtil::castValue(
-                schema: $this->schema,
-                filter: $filter,
-                value: $filter['value'] ?? null
-            );
-
-            $type = $filter['type'];
-
-            $field = $filter['field'];
-
-            $factory = fn (\Closure $function): array => $function($field, $value);
-
-            if ($translated) {
-                $factory = function (\Closure $generator) use ($filter, $context, $value) {
-                    return $this->translationQuery($generator, $filter, $context, $value);
-                };
+            if ($filter instanceof Operator) {
+                $queries[] = $this->parseOperator($filter, $context);
+                continue;
             }
 
-            switch (true) {
-                case $type === 'equals':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$eq' => $value]];
-                    }));
-
-                    break;
-                case $type === 'equals-any':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$in' => $value]];
-                    }));
-
-                    break;
-                case $type === 'not':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$ne' => $value]];
-                    }));
-                    break;
-                case $type === 'not-any':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$nin' => $value]];
-                    }));
-                    break;
-                case $type === 'gt':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$gt' => $value]];
-                    }));
-                    break;
-                case $type === 'gte':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$gte' => $value]];
-                    }));
-                    break;
-                case $type === 'lt':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$lt' => $value]];
-                    }));
-                    break;
-                case $type === 'lte':
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$lte' => $value]];
-                    }));
-                    break;
-                case $type === 'starts-with':
-                    if (!is_string($value)) {
-                        throw new \RuntimeException('Contains filter only supports string values');
-                    }
-                    $queries = array_merge_recursive($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$regex' => '^' . $value]];
-                    }));
-                    break;
-                case $type === 'ends-with':
-                    if (!is_string($value)) {
-                        throw new \RuntimeException('Contains filter only supports string values');
-                    }
-                    $queries = array_merge($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$regex' => $value . '$']];
-                    }));
-                    break;
-                case $type === 'contains':
-                    if (!is_string($value)) {
-                        throw new \RuntimeException('Contains filter only supports string values');
-                    }
-                    $queries = array_merge($queries, $factory(function (string $field, mixed $value) {
-                        return [$field => ['$regex' => $value]];
-                    }));
-                    break;
-                case $type === 'and':
-                    $queries[] = ['$and' => $this->parseFilters($this->queries($filter), $context)];
-                    break;
-                case $type === 'or':
-                    $queries[] = ['$or' => $this->parseFilters($this->queries($filter), $context)];
-                    break;
-                case $type === 'nor':
-                    $queries[] = ['$nor' => $this->parseFilters($this->queries($filter), $context)];
-                    break;
-                case $type === 'nand':
-                    $queries[] = ['$not' => $this->parseFilters($this->queries($filter), $context)];
-                    break;
-                default:
-                    throw new \RuntimeException(sprintf('Unsupported filter type %s', $type));
-            }
+            $queries = array_merge_recursive($queries, $this->parseFilter($filter, $context));
         }
 
         return $queries;
     }
 
     /**
-     * @param array $filter
-     * @return Filter[]
+     * @return array<mixed>
      */
-    private function queries(array $filter): array
+    private function parseFilter(Filter $filter, StorageContext $context): array
     {
-        if (!isset($filter['queries'])) {
-            throw new \LogicException('Missing queries in and query');
+        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $filter->field);
+
+        $value = SchemaUtil::cast(
+            schema: $this->schema,
+            accessor: $filter->field,
+            value: $filter->value
+        );
+
+        $field = $filter->field;
+
+        $factory = fn (\Closure $function): array => $function($field, $value);
+
+        if ($translated) {
+            $factory = function (\Closure $generator) use ($filter, $context, $value) {
+                return $this->translationQuery($generator, $filter, $context, $value);
+            };
         }
 
-        $queries = $filter['queries'];
+        if ($filter instanceof Equals) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$eq' => $value]];
+            });
+        }
 
-        /** @var Filter[] $queries */
-        return $queries;
+        if ($filter instanceof Any) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$in' => $value]];
+            });
+        }
+
+        if ($filter instanceof Not) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$ne' => $value]];
+            });
+        }
+
+        if ($filter instanceof Neither) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$nin' => $value]];
+            });
+        }
+
+        if ($filter instanceof Gt) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$gt' => $value]];
+            });
+        }
+
+        if ($filter instanceof Gte) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$gte' => $value]];
+            });
+        }
+
+        if ($filter instanceof Lt) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$lt' => $value]];
+            });
+        }
+
+        if ($filter instanceof Lte) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$lte' => $value]];
+            });
+        }
+
+        if ($filter instanceof Prefix) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$regex' => '^' . $value]];
+            });
+        }
+
+        if ($filter instanceof Suffix) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$regex' => $value . '$']];
+            });
+        }
+
+        if ($filter instanceof Contains) {
+            return $factory(function (string $field, mixed $value) {
+                return [$field => ['$regex' => $value]];
+            });
+        }
+
+        throw new \LogicException(sprintf('Unsupported filter type %s', $filter::class));
     }
 
-    private function translationQuery(\Closure $gen, array $filter, StorageContext $context, mixed $value): array
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseOperator(Operator $operator, StorageContext $context): array
+    {
+        if ($operator instanceof AndOperator) {
+            return ['$and' => $this->parseFilters($operator->filters, $context)];
+        }
+
+        if ($operator instanceof OrOperator) {
+            return ['$or' => $this->parseFilters($operator->filters, $context)];
+        }
+
+        if ($operator instanceof NorOperator) {
+            return ['$nor' => $this->parseFilters($operator->filters, $context)];
+        }
+
+        if ($operator instanceof NandOperator) {
+            return ['$not' => $this->parseFilters($operator->filters, $context)];
+        }
+
+        throw new \RuntimeException(sprintf('Unsupported operator %s', $operator::class));
+    }
+
+    /**
+     * @return array{"$or": array<mixed>}
+     */
+    private function translationQuery(\Closure $gen, Filter $filter, StorageContext $context, mixed $value): array
     {
         $queries = [];
 
         $before = [];
 
-        $field = $filter['field'];
+        $field = $filter->field;
 
         foreach ($context->languages as $index => $language) {
             if (array_key_first($context->languages) === $index) {

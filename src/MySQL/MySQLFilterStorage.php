@@ -10,6 +10,24 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Filter\FilterResult;
 use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Operator\AndOperator;
+use Shopware\Storage\Common\Filter\Operator\NandOperator;
+use Shopware\Storage\Common\Filter\Operator\NorOperator;
+use Shopware\Storage\Common\Filter\Operator\Operator;
+use Shopware\Storage\Common\Filter\Operator\OrOperator;
+use Shopware\Storage\Common\Filter\Paging\Page;
+use Shopware\Storage\Common\Filter\Type\Any;
+use Shopware\Storage\Common\Filter\Type\Contains;
+use Shopware\Storage\Common\Filter\Type\Equals;
+use Shopware\Storage\Common\Filter\Type\Filter;
+use Shopware\Storage\Common\Filter\Type\Gt;
+use Shopware\Storage\Common\Filter\Type\Gte;
+use Shopware\Storage\Common\Filter\Type\Lt;
+use Shopware\Storage\Common\Filter\Type\Lte;
+use Shopware\Storage\Common\Filter\Type\Neither;
+use Shopware\Storage\Common\Filter\Type\Not;
+use Shopware\Storage\Common\Filter\Type\Prefix;
+use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
@@ -17,18 +35,12 @@ use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Util\Uuid;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-/**
- * @phpstan-import-type Sorting from FilterCriteria
- * @phpstan-import-type Filter from FilterCriteria
- * @phpstan-import-type Field from Schema
- */
 class MySQLFilterStorage implements FilterStorage
 {
     public function __construct(
         private readonly Connection $connection,
         private readonly Schema     $schema
-    )
-    {
+    ) {
     }
 
 
@@ -40,7 +52,7 @@ class MySQLFilterStorage implements FilterStorage
     public function remove(array $keys): void
     {
         $this->connection->executeStatement(
-            'DELETE FROM ' . $this->schema->source . ' WHERE `key` IN (:keys)',
+            'DELETE FROM `' . $this->schema->source . '` WHERE `key` IN (:keys)',
             ['keys' => $keys],
             ['keys' => ArrayParameterType::STRING]
         );
@@ -71,8 +83,8 @@ class MySQLFilterStorage implements FilterStorage
             $query->setMaxResults($criteria->limit);
         }
 
-        if ($criteria->page) {
-            $query->setFirstResult(($criteria->page - 1) * $criteria->limit);
+        if ($criteria->paging instanceof Page) {
+            $query->setFirstResult(($criteria->paging->page - 1) * $criteria->limit);
         }
 
         if ($criteria->keys) {
@@ -82,9 +94,9 @@ class MySQLFilterStorage implements FilterStorage
 
         if ($criteria->sorting) {
             foreach ($criteria->sorting as $sorting) {
-                $accessor = $this->getAccessor($query, $sorting, $context);
+                $accessor = $this->getAccessor($query, $sorting->field, $context);
 
-                $query->addOrderBy($accessor, $sorting['direction']);
+                $query->addOrderBy($accessor, $sorting->order);
             }
         }
 
@@ -107,7 +119,7 @@ class MySQLFilterStorage implements FilterStorage
     }
 
     /**
-     * @param Filter[] $filters
+     * @param array<Filter|Operator> $filters
      * @return array<string>
      */
     private function addFilters(QueryBuilder $query, array $filters, StorageContext $context): array
@@ -115,125 +127,142 @@ class MySQLFilterStorage implements FilterStorage
         $where = [];
 
         foreach ($filters as $filter) {
-            $key = 'p' . Uuid::randomHex();
-
-            $accessor = $this->getAccessor($query, $filter, $context);
-
-            $type = $filter['type'];
-
-            $schema = SchemaUtil::resolveRootFieldSchema($this->schema, $filter);
-
-            $value = SchemaUtil::castValue($this->schema, $filter, $filter['value']);
-
-            switch (true) {
-                case $schema['type'] === FieldType::LIST:
-                    $where[] = $this->handleListField($query, $filter);
-                    break;
-                case $type === 'equals' && $filter['value'] === null:
-                    $where[] = $accessor . ' IS NULL';
-                    break;
-                case $type === 'not' && $filter['value'] === null:
-                    $where[] = $accessor . ' IS NOT NULL';
-                    break;
-                case $type === 'equals':
-                    $where[] = $accessor . ' = :' . $key;
-                    $query->setParameter($key, $value);
-                    break;
-                case $type === 'equals-any':
-                    if (!is_array($filter['value'])) {
-                        throw new \RuntimeException('Equals any filter value has to be an array');
-                    }
-                    $where[] = $accessor . ' IN (:' . $key . ')';
-                    $query->setParameter($key, $value, $this->getType($filter['value']));
-                    break;
-                case $type === 'not':
-                    $where[] = $accessor . ' != :' . $key;
-                    $query->setParameter($key, $value);
-                    break;
-                case $type === 'not-any':
-                    if (!is_array($value)) {
-                        throw new \RuntimeException('Not any filter value has to be an array');
-                    }
-                    $where[] = $accessor . ' NOT IN (:' . $key . ')';
-                    $query->setParameter($key, $value, $this->getType($value));
-                    break;
-                case $type === 'contains':
-                    $where[] = $accessor . ' LIKE :' . $key;
-                    $query->setParameter($key, '%' . $value . '%');
-                    break;
-                case $type === 'starts-with':
-                    $where[] = $accessor . ' LIKE :' . $key;
-                    $query->setParameter($key, $value . '%');
-                    break;
-                case $type === 'ends-with':
-                    $where[] = $accessor . ' LIKE :' . $key;
-                    $query->setParameter($key, '%' . $value);
-                    break;
-                case $type === 'gte':
-                    $where[] = $accessor . ' >= :' . $key;
-                    $query->setParameter($key, $value);
-                    break;
-                case $type === 'lte':
-                    $where[] = $accessor . ' <= :' . $key;
-                    $query->setParameter($key, $value);
-                    break;
-                case $type === 'gt':
-                    $where[] = $accessor . ' > :' . $key;
-                    $query->setParameter($key, $value);
-                    break;
-                case $type === 'lt':
-                    $where[] = $accessor . ' < :' . $key;
-                    $query->setParameter($key, $value);
-                    break;
-                case $type === 'and':
-                    $nested = $this->addFilters($query, $this->queries($filter), $context);
-                    $where[] = '(' . implode(' AND ', $nested) . ')';
-                    break;
-                case $type === 'or':
-                    $nested = $this->addFilters($query, $this->queries($filter), $context);
-                    $where[] = '(' . implode(' OR ', $nested) . ')';
-                    break;
-                case $type === 'nand':
-                    $nested = $this->addFilters($query, $this->queries($filter), $context);
-                    $where[] = 'NOT (' . implode(' AND ', $nested) . ')';
-                // no break
-                case $type === 'nor':
-                    $nested = $this->addFilters($query, $this->queries($filter), $context);
-                    $where[] = 'NOT (' . implode(' OR ', $nested) . ')';
-                    break;
+            if ($filter instanceof Operator) {
+                $where[] = $this->parseOperator($query, $filter, $context);
+                continue;
             }
+
+            $where[] = $this->parseFilter($query, $filter, $context);
         }
 
         return $where;
     }
 
-    /**
-     * @param Filter $filter
-     * @return Filter[]
-     */
-    private function queries(array $filter): array
+    private function parseFilter(QueryBuilder $query, Filter $filter, StorageContext $context): string
     {
-        if (!isset($filter['queries'])) {
-            throw new \LogicException('Missing queries in and query');
+        $key = 'p' . Uuid::randomHex();
+
+        $accessor = $this->getAccessor(query: $query, accessor: $filter->field, context: $context);
+
+        $value = SchemaUtil::cast(schema: $this->schema, accessor: $filter->field, value: $filter->value);
+
+        $property = SchemaUtil::property(accessor: $filter->field);
+
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
+
+        if ($type === FieldType::LIST) {
+            return $this->handleListField($query, $filter);
         }
 
-        $queries = $filter['queries'];
+        if ($filter instanceof Equals && $filter->value === null) {
+            return $accessor . ' IS NULL';
+        }
 
-        /** @var Filter[] $queries */
-        return $queries;
+        if ($filter instanceof Not && $filter->value === null) {
+            return $accessor . ' IS NOT NULL';
+        }
+
+        if ($filter instanceof Equals) {
+            $query->setParameter($key, $value);
+            return $accessor . ' = :' . $key;
+        }
+
+        if ($filter instanceof Any) {
+            if (!is_array($filter->value)) {
+                throw new \RuntimeException(sprintf('Filter value has to be an array for any filter types. Miss match for field filter %s', $filter->field));
+            }
+            $query->setParameter($key, $value, $this->getType($filter->value));
+            return $accessor . ' IN (:' . $key . ')';
+        }
+
+        if ($filter instanceof Not) {
+            $query->setParameter($key, $value);
+            return $accessor . ' != :' . $key;
+        }
+
+        if ($filter instanceof Neither) {
+            if (!is_array($filter->value)) {
+                throw new \RuntimeException(sprintf('Filter value has to be an array for not-any filter types. Miss match for field filter %s', $filter->field));
+            }
+
+            $query->setParameter($key, $value, $this->getType($filter->value));
+            return $accessor . ' NOT IN (:' . $key . ')';
+        }
+
+        if ($filter instanceof Gt) {
+            $query->setParameter($key, $value);
+            return $accessor . ' > :' . $key;
+        }
+
+        if ($filter instanceof Lt) {
+            $query->setParameter($key, $value);
+            return $accessor . ' < :' . $key;
+        }
+
+        if ($filter instanceof Gte) {
+            $query->setParameter($key, $value);
+            return $accessor . ' >= :' . $key;
+        }
+
+        if ($filter instanceof Lte) {
+            $query->setParameter($key, $value);
+            return $accessor . ' <= :' . $key;
+        }
+
+        if ($filter instanceof Contains) {
+            $query->setParameter($key, '%' . $value . '%');
+            return $accessor . ' LIKE :' . $key;
+        }
+
+        if ($filter instanceof Prefix) {
+            $query->setParameter($key, $value . '%');
+            return $accessor . ' LIKE :' . $key;
+        }
+
+        if ($filter instanceof Suffix) {
+            $query->setParameter($key, '%' . $value);
+            return $accessor . ' LIKE :' . $key;
+        }
+
+        throw new \LogicException(sprintf('Unsupported filter type %s', $filter::class));
+    }
+
+    private function parseOperator(QueryBuilder $query, Operator $operator, StorageContext $context): string
+    {
+        if ($operator instanceof AndOperator) {
+            $nested = $this->addFilters($query, $operator->filters, $context);
+
+            return '(' . implode(' AND ', $nested) . ')';
+        }
+
+        if ($operator instanceof OrOperator) {
+            $nested = $this->addFilters($query, $operator->filters, $context);
+
+            return '(' . implode(' OR ', $nested) . ')';
+        }
+
+        if ($operator instanceof NandOperator) {
+            $nested = $this->addFilters($query, $operator->filters, $context);
+
+            return 'NOT (' . implode(' AND ', $nested) . ')';
+        }
+
+        if ($operator instanceof NorOperator) {
+            $nested = $this->addFilters($query, $operator->filters, $context);
+
+            return 'NOT (' . implode(' OR ', $nested) . ')';
+        }
+
+        throw new \LogicException(sprintf('Unsupported operator type %s', $operator::class));
     }
 
     private function isJson(string $field): bool
     {
-        $schema = $this->schema->fields[$field] ?? null;
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $field);
 
-        if (!$schema) {
-            throw new \LogicException('Unknown field: ' . $field);
-        }
+        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $field);
 
-        $translated = $schema['translated'] ?? false;
-
-        return $translated || in_array($schema['type'], [FieldType::OBJECT, FieldType::LIST, FieldType::OBJECT_LIST], true);
+        return $translated || in_array($type, [FieldType::OBJECT, FieldType::LIST, FieldType::OBJECT_LIST], true);
     }
 
     private function getTotal(QueryBuilder $query, FilterCriteria $criteria): ?int
@@ -273,26 +302,19 @@ class MySQLFilterStorage implements FilterStorage
         return ArrayParameterType::STRING;
     }
 
-    /**
-     * @param array{"field": string} $filter
-     */
-    private function getAccessor(QueryBuilder $query, array $filter, StorageContext $context): string
+    private function getAccessor(QueryBuilder $query, string $accessor, StorageContext $context): string
     {
-        $parts = explode('.', $filter['field']);
-
-        if (!isset($this->schema->fields[$parts[0]])) {
-            throw new \LogicException('Unknown field: ' . $parts[0]);
-        }
-
-        $fieldSchema = $this->schema->fields[$parts[0]];
+        $parts = explode('.', $accessor);
 
         $field = array_shift($parts);
 
         $property = implode('.', $parts);
 
-        $type = $fieldSchema['type'];
+        $root = SchemaUtil::property(accessor: $accessor);
 
-        $translated = $fieldSchema['translated'] ?? false;
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $root);
+
+        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $root);
 
         $cast = '';
         if ($type === 'bool') {
@@ -305,7 +327,7 @@ class MySQLFilterStorage implements FilterStorage
             $template = 'JSON_VALUE(`#field#`, "$.#property#" '.$cast.')';
 
             foreach ($context->languages as $language) {
-                $selects[] = str_replace(['#field#', '#property#'], [$filter['field'], $language], $template);
+                $selects[] = str_replace(['#field#', '#property#'], [$accessor, $language], $template);
             }
 
             return 'COALESCE(' . implode(', ', $selects) . ')';
@@ -316,105 +338,114 @@ class MySQLFilterStorage implements FilterStorage
         }
 
         if ($type === FieldType::OBJECT_LIST) {
-            $alias = $this->buildObjectListTable($query, $filter);
+            $alias = $this->buildObjectListTable($query, $accessor);
 
             return '`'. $alias .'`' . '.column_value';
         }
 
-        return '`' . $filter['field'] . '`';
+        return '`' . $accessor . '`';
     }
 
-    /**
-     * @param Filter $filter
-     */
-    private function handleListField(QueryBuilder $query, array $filter): string
+    private function handleListField(QueryBuilder $query, Filter $filter): string
     {
-        $type = $filter['type'];
-
         $key = 'key' . Uuid::randomHex();
 
-        $keyValue = is_string($filter['value']) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
+        $keyValue = is_string($filter->value) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
 
-        switch (true) {
-            case ($filter['value'] === null && $type === 'not'):
-                return $filter['field'] . ' IS NOT NULL';
-
-            case ($filter['value'] === null && $type === 'equals'):
-                return $filter['field'] . ' IS NULL';
-
-            case ($type === 'equals'):
-                $query->setParameter($key, $filter['value']);
-
-                return 'JSON_CONTAINS(`' . $filter['field'] . '`, ' . $keyValue . ')';
-
-            case ($type === 'not'):
-                $query->setParameter($key, $filter['value']);
-
-                return 'NOT JSON_CONTAINS(`' . $filter['field'] . '`, ' . $keyValue . ')';
-
-            case ($type === 'equals-any'):
-
-                if (!is_array($filter['value'])) {
-                    throw new \RuntimeException(sprintf('Filter value has to be an array for equals-any filter types. Miss match for field filter %s', $filter['field']));
-                }
-
-                $where = [];
-                foreach ($filter['value'] as $value) {
-                    $key = 'key' . Uuid::randomHex();
-
-                    $keyValue = is_string($value) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
-
-                    $query->setParameter($key, $value);
-
-                    $where[] = 'JSON_CONTAINS(`' . $filter['field'] . '`, ' . $keyValue . ')';
-                }
-                return '(' . implode(' OR ', $where) . ')';
-
-            case ($type === 'not-any'):
-                $where = [];
-
-                if (!is_array($filter['value'])) {
-                    throw new \RuntimeException(sprintf('Filter value has to be an array for not-any filter types. Miss match for field filter %s', $filter['field']));
-                }
-
-                foreach ($filter['value'] as $value) {
-                    $key = 'key' . Uuid::randomHex();
-
-                    $keyValue = is_string($value) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
-
-                    $query->setParameter($key, $value);
-
-                    $where[] = 'JSON_CONTAINS(`' . $filter['field'] . '`, ' . $keyValue . ')';
-                }
-
-                return 'NOT (' . implode(' OR ', $where) . ')';
-
-            case ($type === 'contains' && is_int($filter['value'])):
-                $query->setParameter($key, $filter['value']);
-
-                return "JSON_CONTAINS(`" . $filter['field'] . "`, :" . $key . ")";
-            case ($type === 'contains'):
-                $query->setParameter($key, '%' . $filter['value'] . '%');
-
-                return "JSON_SEARCH(`" . $filter['field'] . "`, 'one', :" . $key . ", NULL, '$[*]')";
+        if ($filter->value === null && $filter instanceof Not) {
+            return $filter->field . ' IS NOT NULL';
         }
 
-        throw new \RuntimeException('Unknown filter type: ' . $type);
+        if ($filter->value === null && $filter instanceof Equals) {
+            return $filter->field . ' IS NULL';
+        }
+
+        if ($filter instanceof Equals) {
+            $query->setParameter($key, $filter->value);
+
+            return 'JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+        }
+
+        if ($filter instanceof Not) {
+            $query->setParameter($key, $filter->value);
+
+            return 'NOT JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+        }
+
+        if ($filter instanceof Any) {
+            $where = [];
+            if (!is_array($filter->value)) {
+                throw new \RuntimeException(sprintf('Filter value has to be an array for any filter types. Miss match for field filter %s', $filter->field));
+            }
+
+            foreach ($filter->value as $value) {
+                $key = 'key' . Uuid::randomHex();
+
+                $keyValue = is_string($value) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
+
+                $query->setParameter($key, $value);
+
+                $where[] = 'JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+            }
+            return '(' . implode(' OR ', $where) . ')';
+        }
+
+        if ($filter instanceof Neither) {
+            $where = [];
+
+            if (!is_array($filter->value)) {
+                throw new \RuntimeException(sprintf('Filter value has to be an array for not-any filter types. Miss match for field filter %s', $filter->field));
+            }
+
+            foreach ($filter->value as $value) {
+                $key = 'key' . Uuid::randomHex();
+
+                $keyValue = is_string($value) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
+
+                $query->setParameter($key, $value);
+
+                $where[] = 'JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+            }
+
+            return 'NOT (' . implode(' OR ', $where) . ')';
+        }
+
+        if ($filter instanceof Contains && is_int($filter->value)) {
+            $query->setParameter($key, $filter->value);
+
+            return "JSON_CONTAINS(`" . $filter->field . "`, :" . $key . ")";
+        }
+
+        if ($filter instanceof Contains) {
+            $query->setParameter($key, '%' . $filter->value . '%');
+
+            return "JSON_SEARCH(`" . $filter->field . "`, 'one', :" . $key . ", NULL, '$[*]')";
+        }
+
+        if ($filter instanceof Prefix) {
+            $query->setParameter($key, $filter->value . '%');
+
+            return "JSON_SEARCH(`" . $filter->field . "`, 'one', :" . $key . ", NULL, '$[*]')";
+        }
+
+        if ($filter instanceof Suffix) {
+            $query->setParameter($key, '%' . $filter->value);
+
+            return "JSON_SEARCH(`" . $filter->field . "`, 'one', :" . $key . ", NULL, '$[*]')";
+        }
+
+        throw new \LogicException(sprintf('Unsupported filter type %s', $filter::class));
     }
 
-    /**
-     * @param array{"field": string} $filter
-     */
-    private function buildObjectListTable(QueryBuilder $query, array $filter): string
+    private function buildObjectListTable(QueryBuilder $query, string $accessor): string
     {
-        $parts = explode('.', $filter['field']);
+        $parts = explode('.', $accessor);
 
         $field = array_shift($parts);
 
         $alias = 'jt_' . Uuid::randomHex();
 
         $sql = <<<SQL
-
 JSON_TABLE(#field#, '$[*]' COLUMNS (
     `column_value` #type# PATH '$.#property#'
 ))
@@ -422,7 +453,7 @@ SQL;
 
         $property = implode('.', $parts);
 
-        $type = $this->getPropertyType($field, $property);
+        $type = $this->getPropertyType($accessor);
         $sql = str_replace('#field#', $field, $sql);
         $sql = str_replace('#alias#', $alias, $sql);
         $sql = str_replace('#type#', $type, $sql);
@@ -476,40 +507,20 @@ SQL;
         return $documents;
     }
 
-    private function getPropertyType(string $field, string $property): string
+    private function getPropertyType(string $accessor): string
     {
-        $schema = $this->schema->fields[$field] ?? null;
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $accessor);
 
-        if (!$schema) {
+        if (!$type) {
             return 'VARCHAR(255)';
         }
 
-        $parts = explode('.', $property);
-        foreach ($parts as $part) {
-            if (!isset($schema['fields'])) {
-                throw new \RuntimeException(sprintf('Missing nested fields for, accessor part %s in field accessor %s', $part, $field));
-            }
-            $nested = $schema['fields'];
-
-            /** @var array<string, Field> $nested */
-            $schema = $nested[$part] ?? null;
-
-            if (!$schema) {
-                throw new \RuntimeException(sprintf('Can not resolve accessor part %s in field accessor %s', $part, $field));
-            }
-        }
-
-        switch ($schema['type']) {
-            case FieldType::INT:
-                return 'INT(11)';
-            case FieldType::FLOAT:
-                return 'DECIMAL(10, 2)';
-            case FieldType::BOOL:
-                return 'TINYINT(1)';
-            case FieldType::DATETIME:
-                return 'DATETIME(3)';
-            default:
-                return 'VARCHAR(255)';
-        }
+        return match ($type) {
+            FieldType::INT => 'INT(11)',
+            FieldType::FLOAT => 'DECIMAL(10, 2)',
+            FieldType::BOOL => 'TINYINT(1)',
+            FieldType::DATETIME => 'DATETIME(3)',
+            default => 'VARCHAR(255)',
+        };
     }
 }
