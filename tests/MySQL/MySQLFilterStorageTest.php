@@ -23,7 +23,7 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
             ->executeStatement('DROP TABLE IF EXISTS `test_storage`');
 
         $this->getConnection()
-            ->executeStatement(file_get_contents(__DIR__ . '/test_storage.sql'));
+            ->executeStatement((string) file_get_contents(__DIR__ . '/test_storage.sql'));
     }
 
     protected function tearDown(): void
@@ -42,7 +42,7 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
         );
     }
 
-    private static function getConnection()
+    private static function getConnection(): Connection
     {
         if (self::$connection) {
             return self::$connection;

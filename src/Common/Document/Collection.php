@@ -17,9 +17,9 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
     protected array $elements = [];
 
     /**
-     * @param array<TElement> $elements
+     * @param array<array-key, TElement> $elements
      */
-    public function __construct(iterable $elements = [])
+    public function __construct(array $elements = [])
     {
         $this->elements = $elements;
     }
@@ -43,24 +43,20 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
     }
 
     /**
-     * @param string|int|null $key
+     * @param array-key $key
      * @param TElement $element
      */
-    public function set(string|int|null $key, $element): void
+    public function set($key, $element): void
     {
-        if ($key === null) {
-            $this->elements[] = $element;
-        } else {
-            $this->elements[$key] = $element;
-        }
+        $this->elements[$key] = $element;
     }
 
     /**
-     * @param string|int $key
+     * @param array-key $key
      *
      * @return TElement|null
      */
-    public function get(string|int $key)
+    public function get($key)
     {
         if ($this->has($key)) {
             return $this->elements[$key];
@@ -69,7 +65,10 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
         return null;
     }
 
-    public function has(string|int $key): bool
+    /**
+     * @param array-key $key
+     */
+    public function has($key): bool
     {
         return array_key_exists($key, $this->elements);
     }
@@ -80,7 +79,7 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
     }
 
     /**
-     * @return string[]|int[]
+     * @return array-key[]
      */
     public function keys(): array
     {
@@ -88,7 +87,7 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
     }
 
     /**
-     * @return list<mixed>
+     * @return list<TElement>
      */
     public function map(\Closure $closure): array
     {
@@ -101,13 +100,16 @@ class Collection implements \IteratorAggregate, \Countable, \JsonSerializable
     }
 
     /**
-     * @param string|int $key
+     * @param array-key $key
      */
-    public function remove(string|int $key): void
+    public function remove($key): void
     {
         unset($this->elements[$key]);
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function jsonSerialize(): array
     {
         return array_values($this->elements);

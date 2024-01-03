@@ -21,6 +21,24 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Filter\FilterResult;
 use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Operator\AndOperator;
+use Shopware\Storage\Common\Filter\Operator\NandOperator;
+use Shopware\Storage\Common\Filter\Operator\NorOperator;
+use Shopware\Storage\Common\Filter\Operator\Operator;
+use Shopware\Storage\Common\Filter\Operator\OrOperator;
+use Shopware\Storage\Common\Filter\Paging\Page;
+use Shopware\Storage\Common\Filter\Type\Any;
+use Shopware\Storage\Common\Filter\Type\Contains;
+use Shopware\Storage\Common\Filter\Type\Equals;
+use Shopware\Storage\Common\Filter\Type\Filter;
+use Shopware\Storage\Common\Filter\Type\Gt;
+use Shopware\Storage\Common\Filter\Type\Gte;
+use Shopware\Storage\Common\Filter\Type\Lt;
+use Shopware\Storage\Common\Filter\Type\Lte;
+use Shopware\Storage\Common\Filter\Type\Neither;
+use Shopware\Storage\Common\Filter\Type\Not;
+use Shopware\Storage\Common\Filter\Type\Prefix;
+use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
@@ -82,8 +100,8 @@ class OpenSearchFilterStorage implements FilterStorage
     ): FilterResult {
         $search = new Search();
 
-        if ($criteria->page) {
-            $search->setFrom(($criteria->page - 1) * $criteria->limit);
+        if ($criteria->paging instanceof Page) {
+            $search->setFrom(($criteria->paging->page - 1) * $criteria->limit);
         }
 
         if ($criteria->limit) {
@@ -114,8 +132,8 @@ class OpenSearchFilterStorage implements FilterStorage
         if ($criteria->sorting) {
             foreach ($criteria->sorting as $sorting) {
                 $search->addSort(new FieldSort(
-                    field: $sorting['field'],
-                    order: $sorting['direction']
+                    field: $sorting->field,
+                    order: $sorting->order
                 ));
             }
         }
@@ -143,32 +161,40 @@ class OpenSearchFilterStorage implements FilterStorage
         );
     }
 
-
+    /**
+     * @param array<Operator|Filter> $filters
+     * @return array<BuilderInterface>
+     */
     private function parseRootFilter(array $filters, StorageContext $context): array
     {
         $queries = [];
 
         foreach ($filters as $filter) {
-            $root = SchemaUtil::resolveRootFieldSchema(
-                schema: $this->schema,
-                filter: $filter
-            );
-
-            $translated = $root['translated'] ?? false;
-
-            // object field? created nested
-            if (in_array($root['type'], [FieldType::OBJECT, FieldType::OBJECT_LIST], true) || $translated) {
-                $nested = $this->parseFilter(
-                    filter: $filter,
-                    context: $context
-                );
-
-                $queries[] = new NestedQuery(path: $root['name'], query: $nested);
+            if ($filter instanceof Operator) {
+                $queries[] = $this->parseOperator($filter, $context);
 
                 continue;
             }
 
-            $queries[] = $this->parseFilter(
+            $property = SchemaUtil::property($filter->field);
+
+            $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
+
+            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $filter->field);
+
+            // object field? created nested
+            if (in_array($type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true) || $translated) {
+                $nested = $this->parse(
+                    filter: $filter,
+                    context: $context
+                );
+
+                $queries[] = new NestedQuery(path: $property, query: $nested);
+
+                continue;
+            }
+
+            $queries[] = $this->parse(
                 filter: $filter,
                 context: $context
             );
@@ -177,7 +203,7 @@ class OpenSearchFilterStorage implements FilterStorage
         return $queries;
     }
 
-    private function translatedQuery(\Closure $factory, array $filter, StorageContext $context): BuilderInterface
+    private function translatedQuery(\Closure $factory, Filter $filter, StorageContext $context): BuilderInterface
     {
         $queries = [];
 
@@ -187,12 +213,11 @@ class OpenSearchFilterStorage implements FilterStorage
             if (array_key_first($context->languages) === $index) {
                 $queries[] = new BoolQuery([
                     BoolQuery::MUST => [
-                        new ExistsQuery(field: $filter['field'] . '.' . $languageId),
-                        $factory([
-                            'field' => $filter['field'] . '.' . $languageId,
-                            'value' => $filter['value'],
-                            'type' => $filter['type']
-                        ])
+                        new ExistsQuery(field: $filter->field . '.' . $languageId),
+                        $factory(
+                            $filter->field . '.' . $languageId,
+                            $filter->value
+                        )
                     ]
                 ]);
 
@@ -205,17 +230,13 @@ class OpenSearchFilterStorage implements FilterStorage
 
             foreach ($before as $id) {
                 $bool->add(
-                    new ExistsQuery(field: $filter['field'] . '.' . $id),
+                    new ExistsQuery(field: $filter->field . '.' . $id),
                     BoolQuery::MUST_NOT
                 );
             }
 
             $bool->add(
-                $factory([
-                    'field' => $filter['field'] . '.' . $languageId,
-                    'value' => $filter['value'],
-                    'type' => $filter['type']
-                ])
+                $factory($filter->field . '.' . $languageId, $filter->value)
             );
 
             $before[] = $languageId;
@@ -231,24 +252,89 @@ class OpenSearchFilterStorage implements FilterStorage
         return $source;
     }
 
-    private function parseFilter(array $filter, StorageContext $context): BuilderInterface
+    private function parse(Filter|Operator $filter, StorageContext $context): BuilderInterface
     {
-        $type = $filter['type'];
-        $value = $filter['value'];
-
-        try {
-            $schema = SchemaUtil::resolveFieldSchema($this->schema, $filter);
-        } catch (\Exception) {
-            $schema = [];
+        if ($filter instanceof Operator) {
+            return $this->parseOperator($filter, $context);
         }
 
-        // nested support?
-        $translated = $schema['translated'] ?? false;
+        return $this->parseFilter($filter, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     */
+    private function getTotal(FilterCriteria $criteria, array $result): int|null
+    {
+        if (!$criteria->total) {
+            return null;
+        }
+
+        if (!array_key_exists('hits', $result) || !is_array($result['hits'])) {
+            throw new \LogicException('Missing hits key in opensearch result set');
+        }
+
+        if (!array_key_exists('total', $result['hits']) || !is_array($result['hits']['total'])) {
+            throw new \LogicException('Missing hits.total key in opensearch result set');
+        }
+
+        if (!array_key_exists('value', $result['hits']['total'])) {
+            throw new \LogicException('Missing hits.total.value key in opensearch result set');
+        }
+
+        return (int) $result['hits']['total']['value'];
+    }
+
+    private function parseOperator(Operator $operator, StorageContext $context): BoolQuery
+    {
+        $nested = array_map(function (Filter|Operator $query) use ($context) {
+            return $this->parse(filter: $query, context: $context);
+        }, $operator->filters);
+
+        if ($operator instanceof AndOperator) {
+            return new BoolQuery([
+                BoolQuery::MUST => $nested
+            ]);
+        }
+
+        if ($operator instanceof OrOperator) {
+            $bool = new BoolQuery([
+                BoolQuery::SHOULD => $nested
+            ]);
+
+            $bool->addParameter('minimum_should_match', 1);
+
+            return $bool;
+        }
+
+        if ($operator instanceof NandOperator) {
+            return new BoolQuery([
+                BoolQuery::MUST_NOT => $nested
+            ]);
+        }
+
+        if ($operator instanceof NorOperator) {
+            $bool = new BoolQuery([
+                BoolQuery::MUST_NOT => $nested
+            ]);
+
+            $bool->addParameter('minimum_should_match', 1);
+
+            return $bool;
+        }
+
+        throw new \LogicException(sprintf('Unsupported operator %s', $operator::class));
+    }
+
+    private function parseFilter(Filter $filter, StorageContext $context): BuilderInterface
+    {
+        $value = $filter->value;
+
+        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $filter->field);
 
         // create an inline function which generates me a BuilderInterface, based on the given filter
-
         $factory = function (\Closure $factory) use ($filter) {
-            return $factory($filter);
+            return $factory($filter->field, $filter->value);
         };
 
         if ($translated) {
@@ -257,176 +343,124 @@ class OpenSearchFilterStorage implements FilterStorage
             };
         }
 
-        switch (true) {
-            // field === null
-            case $value === null && $type === 'equals':
-                return $factory(function (array $filter) {
-                    return new BoolQuery([
-                        BoolQuery::MUST_NOT => new ExistsQuery(field: $filter['field'])
-                    ]);
-                });
-
-                // field !== null
-            case $value === null && $type === 'not':
-                return $factory(function (array $filter) {
-                    return new ExistsQuery(field: $filter['field']);
-                });
-            case $type === 'equals':
-                return $factory(function (array $filter) {
-                    return new TermQuery(
-                        field: $filter['field'],
-                        value: $filter['value']
-                    );
-                });
-            case $type === 'not':
-                return $factory(function (array $filter) {
-                    return new BoolQuery([
-                        BoolQuery::MUST_NOT => new TermsQuery(
-                            field: $filter['field'],
-                            terms: [$filter['value']]
-                        )
-                    ]);
-                });
-
-            case $type === 'equals-any':
-                return $factory(function (array $filter) {
-                    return new TermsQuery(
-                        field: $filter['field'],
-                        terms: $filter['value']
-                    );
-                });
-
-            case $type ===  'not-any':
-                return $factory(function (array $filter) {
-                    return new BoolQuery([
-                        BoolQuery::MUST_NOT => new TermsQuery(
-                            field: $filter['field'],
-                            terms: $filter['value']
-                        )
-                    ]);
-                });
-            case $type ===  'contains':
-                return $factory(function (array $filter) {
-                    return new WildcardQuery(
-                        field: $filter['field'],
-                        value: '*' . $filter['value'] . '*'
-                    );
-                });
-            case $type ===  'starts-with':
-                return $factory(function (array $filter) {
-                    return new WildcardQuery(
-                        field: $filter['field'],
-                        value: $filter['value'] . '*'
-                    );
-                });
-            case $type ===  'ends-with':
-                return $factory(function (array $filter) {
-                    return new WildcardQuery(
-                        field: $filter['field'],
-                        value: '*' . $filter['value']
-                    );
-                });
-            case $type ===  'gte':
-                return $factory(function (array $filter) {
-                    return new RangeQuery(
-                        field: $filter['field'],
-                        parameters: ['gte' => $filter['value']]
-                    );
-                });
-
-            case $type ===  'lte':
-                return $factory(function (array $filter) {
-                    return new RangeQuery(
-                        field: $filter['field'],
-                        parameters: ['lte' => $filter['value']]
-                    );
-                });
-
-            case $type ===  'gt':
-                return $factory(function (array $filter) {
-                    return new RangeQuery(
-                        field: $filter['field'],
-                        parameters: ['gt' => $filter['value']]
-                    );
-                });
-            case $type ===  'lt':
-                return $factory(function (array $filter) {
-                    return new RangeQuery(
-                        field: $filter['field'],
-                        parameters: ['lt' => $filter['value']]
-                    );
-                });
-
-            case $type ===  'and':
-                $nested = array_map(function ($filter) use ($context) {
-                    return $this->parseFilter(
-                        filter: $filter,
-                        context: $context
-                    );
-                }, $filter['queries']);
-
+        if ($value === null && $filter instanceof Equals) {
+            return $factory(function (string $field, mixed $value) {
                 return new BoolQuery([
-                    BoolQuery::MUST => $nested
+                    BoolQuery::MUST_NOT => new ExistsQuery(field: $field)
                 ]);
-
-            case $type ===  'or':
-                $nested = array_map(function ($filter) use ($context) {
-                    return $this->parseFilter(
-                        filter: $filter,
-                        context: $context
-                    );
-                }, $filter['queries']);
-
-                $bool = new BoolQuery([
-                    BoolQuery::SHOULD => $nested
-                ]);
-
-                $bool->addParameter('minimum_should_match', 1);
-
-                return $bool;
-
-            case $type ===  'nand':
-
-                $nested = array_map(function ($filter) use ($context) {
-                    return $this->parseFilter(
-                        filter: $filter,
-                        context: $context
-                    );
-                }, $filter['queries']);
-
-                return new BoolQuery([
-                    BoolQuery::MUST_NOT => $nested
-                ]);
-
-            case $type ===  'nor':
-
-                $nested = array_map(function ($filter) use ($context) {
-                    return $this->parseFilter(
-                        filter: $filter,
-                        context: $context
-                    );
-                }, $filter['queries']);
-
-                $bool = new BoolQuery([
-                    BoolQuery::MUST_NOT => $nested
-                ]);
-
-                $bool->addParameter('minimum_should_match', 1);
-
-                return $bool;
-
-            default:
-                throw new \RuntimeException(sprintf('Filter type %s is not supported', $type));
-        }
-    }
-
-    private function getTotal(FilterCriteria $criteria, callable|array $result)
-    {
-        if ($criteria->total) {
-            return $result['hits']['total']['value'];
+            });
         }
 
-        return null;
+        if ($value === null && $filter instanceof Not) {
+            return $factory(function (string $field, mixed $value) {
+                return new ExistsQuery(field: $field);
+            });
+        }
+
+        if ($filter instanceof Equals) {
+            return $factory(function (string $field, mixed $value) {
+                return new TermQuery(
+                    field: $field,
+                    value: $value
+                );
+            });
+        }
+
+        if ($filter instanceof Not) {
+            return $factory(function (string $field, mixed $value) {
+                return new BoolQuery([
+                    BoolQuery::MUST_NOT => new TermsQuery(
+                        field: $field,
+                        terms: [$value]
+                    )
+                ]);
+            });
+        }
+
+        if ($filter instanceof Any) {
+            return $factory(function (string $field, mixed $value) {
+                return new TermsQuery(
+                    field: $field,
+                    terms: $value
+                );
+            });
+        }
+
+        if ($filter instanceof Neither) {
+            return $factory(function (string $field, mixed $value) {
+                return new BoolQuery([
+                    BoolQuery::MUST_NOT => new TermsQuery(
+                        field: $field,
+                        terms: $value
+                    )
+                ]);
+            });
+        }
+
+        if ($filter instanceof Contains) {
+            return $factory(function (string $field, mixed $value) {
+                return new WildcardQuery(
+                    field: $field,
+                    value: '*' . $value . '*'
+                );
+            });
+        }
+
+        if ($filter instanceof Prefix) {
+            return $factory(function (string $field, mixed $value) {
+                return new WildcardQuery(
+                    field: $field,
+                    value: $value . '*'
+                );
+            });
+        }
+
+        if ($filter instanceof Suffix) {
+            return $factory(function (string $field, mixed $value) {
+                return new WildcardQuery(
+                    field: $field,
+                    value: '*' . $value
+                );
+            });
+        }
+
+        if ($filter instanceof Gt) {
+            return $factory(function (string $field, mixed $value) {
+                return new RangeQuery(
+                    field: $field,
+                    parameters: ['gt' => $value]
+                );
+            });
+        }
+
+        if ($filter instanceof Gte) {
+            return $factory(function (string $field, mixed $value) {
+                return new RangeQuery(
+                    field: $field,
+                    parameters: ['gte' => $value]
+                );
+            });
+        }
+
+        if ($filter instanceof Lt) {
+            return $factory(function (string $field, mixed $value) {
+                return new RangeQuery(
+                    field: $field,
+                    parameters: ['lt' => $value]
+                );
+            });
+        }
+
+        if ($filter instanceof Lte) {
+            return $factory(function (string $field, mixed $value) {
+                return new RangeQuery(
+                    field: $field,
+                    parameters: ['lte' => $value]
+                );
+            });
+        }
+
+        throw new \LogicException(sprintf('Unsupported filter type %s', $filter::class));
     }
 
 }

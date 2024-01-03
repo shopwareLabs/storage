@@ -38,4 +38,4 @@ jobs:
         run: composer install
 
       - name: Run phpstan
-        run: ./vendor/bin/phpstan analyse src tests
+        run: ./vendor/bin/phpstan analyse src tests --level max

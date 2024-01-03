@@ -36,6 +36,13 @@ class OpenSearchStorageTest extends FilterStorageTestBase
             ->exists(['index' => $this->getSchema()->source]);
 
         if ($exists) {
+            // delete all documents from index
+            $this->getClient()->deleteByQuery([
+                'index' => $this->getSchema()->source,
+                'body' => [
+                    'query' => ['match_all' => new \stdClass()]
+                ]
+            ]);
             return;
         }
 
@@ -135,17 +142,25 @@ class OpenSearchStorageTest extends FilterStorageTestBase
     protected function tearDown(): void
     {
         parent::tearDown();
+    }
 
-        $exists = $this->getClient()
-            ->indices()
-            ->exists(['index' => $this->getSchema()->source]);
+    public static function tearDownAfterClass(): void
+    {
+        parent::tearDownAfterClass();
+
+        $builder = ClientBuilder::create();
+        $builder->setHosts(['http://localhost:9200']);
+        $client = $builder->build();
+
+        $exists = $client->indices()
+            ->exists(['index' => FilterStorageTestBase::TEST_STORAGE]);
 
         if ($exists) {
-            $this->getClient()
-                ->indices()
-                ->delete(['index' => $this->getSchema()->source]);
+            $client->indices()
+                ->delete(['index' => FilterStorageTestBase::TEST_STORAGE]);
         }
     }
+
 
     public function getStorage(): FilterStorage
     {

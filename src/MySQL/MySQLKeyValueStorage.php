@@ -67,9 +67,14 @@ class MySQLKeyValueStorage implements KeyValueStorage
 
         $documents = [];
         foreach ($data as $row) {
+            if (!isset($row['key']) || !is_string($row['key'])) {
+                throw new \LogicException('Invalid data, missing key for document');
+            }
+
+            $key = $row['key'];
             $documents[] = new Document(
-                key: $row['key'],
-                data: json_decode($row['value'], true, 512, \JSON_THROW_ON_ERROR)
+                key: $key,
+                data: $this->decode($key, $row)
             );
         }
 
@@ -88,8 +93,27 @@ class MySQLKeyValueStorage implements KeyValueStorage
         }
 
         return new Document(
-            key: $data['key'],
-            data: json_decode($data['value'], true, 512, \JSON_THROW_ON_ERROR)
+            key: $key,
+            data: $this->decode($key, $data)
         );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function decode(string $key, array $data): array
+    {
+        if (!is_string($data['value'])) {
+            throw new \RuntimeException(sprintf('Stored data, for key "%s" is invalid, expected type of string', $key));
+        }
+
+        $value = json_decode($data['value'], true, 512, \JSON_THROW_ON_ERROR);
+
+        if (!is_array($value)) {
+            throw new \RuntimeException(sprintf('Invalid data type for key "%s"', $key));
+        }
+
+        return $value;
     }
 }

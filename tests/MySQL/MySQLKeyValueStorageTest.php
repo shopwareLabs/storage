@@ -39,14 +39,14 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
         );
     }
 
-    private static function getConnection()
+    private static function getConnection(): Connection
     {
         if (self::$connection) {
             return self::$connection;
         }
 
         $params = [
-            'url' => 'mysql://shopware:shopware@localhost:3306/shopware',
+            'url' => 'mysql://shopware:shopware@127.0.0.1:3306/shopware',
             'charset' => 'utf8mb4',
             'driverOptions' => [
                 \PDO::ATTR_STRINGIFY_FETCHES => true,
