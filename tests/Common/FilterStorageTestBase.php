@@ -2,6 +2,7 @@
 
 namespace Shopware\StorageTests\Common;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
@@ -14,11 +15,11 @@ use Shopware\Storage\Common\StorageContext;
 
 abstract class FilterStorageTestBase extends TestCase
 {
+    public const TEST_STORAGE = 'test_storage';
+
     abstract public function getStorage(): FilterStorage;
 
-    /**
-     * @dataProvider debugProvider
-     */
+    #[DataProvider('debugProvider')]
     final public function testDebug(
         Documents $input,
         FilterCriteria $criteria,
@@ -35,47 +36,62 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function debugProvider(): \Generator
     {
-        yield 'Test translated float field with gte filter' => [
+        yield 'Test translated list field with equals-any filter and bool values' => [
             'input' => new Documents([
-                self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
-                self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
-                self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
-                self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
+                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
+                self::document(key: 'key2', translatedBool: ['en' => false]),
+                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => true]),
+                self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'translatedFloat', 'type' => 'gte', 'value' => 2.2]
+                    ['field' => 'translatedBool', 'type' => 'equals-any', 'value' => [false, true]]
                 ]
             ),
             'expected' => new FilterResult([
-                self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
-                self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
+                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
+                self::document(key: 'key2', translatedBool: ['en' => false]),
+                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => true]),
+                self::document(key: 'key4', translatedBool: ['de' => false]),
             ])
         ];
-
-        yield 'Test object field with gte filter and float values' => [
+        yield 'Test translated list field with not filter and bool values' => [
             'input' => new Documents([
-                self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
-                self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
-                self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
+                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
+                self::document(key: 'key2', translatedBool: ['en' => false]),
+                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
+                self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
             'criteria' => new FilterCriteria(
                 filters: [
-                    ['field' => 'objectField.fooFloat', 'type' => 'gte', 'value' => 2.2]
+                    ['field' => 'translatedBool', 'type' => 'not', 'value' => false]
                 ]
             ),
             'expected' => new FilterResult([
-                self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
-                self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
+                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
             ])
+        ];
+        yield 'Test translated list field with not-any filter and bool values' => [
+            'input' => new Documents([
+                self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
+                self::document(key: 'key2', translatedBool: ['en' => false]),
+                self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
+                self::document(key: 'key4', translatedBool: ['de' => false]),
+            ]),
+            'criteria' => new FilterCriteria(
+                filters: [
+                    ['field' => 'translatedBool', 'type' => 'not-any', 'value' => [true, false]]
+                ]
+            ),
+            'expected' => new FilterResult([])
         ];
     }
 
     /**
-     * @dataProvider removeProvider
      * @param string[] $remove
      * @param array<Document> $expected
      */
+    #[DataProvider('removeProvider')]
     final public function testRemove(Documents $input, array $remove, array $expected): void
     {
         $storage = $this->getStorage();
@@ -129,9 +145,7 @@ abstract class FilterStorageTestBase extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider storageProvider
-     */
+    #[DataProvider('storageProvider')]
     final public function testStorage(Documents $input, FilterCriteria $criteria, FilterResult $expected): void
     {
         $storage = $this->getStorage();
@@ -146,7 +160,7 @@ abstract class FilterStorageTestBase extends TestCase
     final protected function getSchema(): Schema
     {
         return new Schema(
-            source: 'test_storage',
+            source: self::TEST_STORAGE,
             fields: [
                 'stringField' => ['type' => FieldType::STRING],
                 'textField' => ['type' => FieldType::TEXT],
@@ -213,7 +227,7 @@ abstract class FilterStorageTestBase extends TestCase
         );
     }
 
-    final public function storageProvider(): \Generator
+    final public static function storageProvider(): \Generator
     {
         yield 'Smoke test' => [
             'input' => new Documents(),
