@@ -94,6 +94,10 @@ class DynamoDBKeyValueStorage implements KeyValueStorage
             'Key' => self::key($key),
         ]);
 
+        if (empty($data->getItem())) {
+            return null;
+        }
+
         /** @var array{key: AttributeValue, value: AttributeValue} $item */
         $item = $data->getItem();
 
