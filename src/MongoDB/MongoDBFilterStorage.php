@@ -68,7 +68,7 @@ class MongoDBFilterStorage implements FilterStorage
         $this->collection()->insertMany(array_values($items));
     }
 
-    public function read(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
     {
         $query = [];
 

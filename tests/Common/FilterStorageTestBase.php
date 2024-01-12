@@ -39,7 +39,7 @@ abstract class FilterStorageTestBase extends TestCase
 
         $storage->store($input);
 
-        $loaded = $storage->read($criteria, new StorageContext(languages: ['en', 'de']));
+        $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
 
         static::assertEquals($expected, $loaded);
     }
@@ -54,7 +54,7 @@ abstract class FilterStorageTestBase extends TestCase
 
         $storage->store($input);
 
-        $loaded = $storage->read($criteria, new StorageContext(languages: ['en', 'de']));
+        $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
 
         static::assertEquals($expected, $loaded);
     }
@@ -85,7 +85,7 @@ abstract class FilterStorageTestBase extends TestCase
             keys: $input->keys()
         );
 
-        $loaded = $storage->read($criteria, new StorageContext(languages: ['en', 'de']));
+        $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
 
         $expected = new FilterResult($expected);
 

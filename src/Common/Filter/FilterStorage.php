@@ -12,5 +12,5 @@ interface FilterStorage extends Storage
      * @param StorageContext $context
      * @return FilterResult
      */
-    public function read(FilterCriteria $criteria, StorageContext $context): FilterResult;
+    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult;
 }
