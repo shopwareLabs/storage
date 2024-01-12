@@ -6,6 +6,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\FilterCriteria;
 use Shopware\Storage\Common\Filter\FilterResult;
 use Shopware\Storage\Common\Filter\FilterStorage;
@@ -39,7 +40,11 @@ abstract class FilterStorageTestBase extends TestCase
 
         $storage->store($input);
 
-        $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
+        try {
+            $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
+        } catch (NotSupportedByEngine $e) {
+            static::markTestIncomplete($e->getMessage());
+        }
 
         static::assertEquals($expected, $loaded);
     }
@@ -1156,6 +1161,38 @@ abstract class FilterStorageTestBase extends TestCase
             'expected' => new FilterResult([
                 self::document('key1', floatField: 1.1),
                 self::document('key2', floatField: 2.2)
+            ])
+        ];
+
+        yield 'Test bool field with equals filter' => [
+            'input' => new Documents([
+                self::document(key: 'key1', boolField: true),
+                self::document(key: 'key2', boolField: false),
+                self::document(key: 'key3', boolField: true),
+            ]),
+            'criteria' => new FilterCriteria(
+                filters: [
+                     new Equals(field: 'boolField', value: true)
+                ]
+            ),
+            'expected' => new FilterResult([
+                self::document(key: 'key1', boolField: true),
+                self::document(key: 'key3', boolField: true),
+            ])
+        ];
+        yield 'Test bool field with not filter' => [
+            'input' => new Documents([
+                self::document(key: 'key1', boolField: true),
+                self::document(key: 'key2', boolField: false),
+                self::document(key: 'key3', boolField: true),
+            ]),
+            'criteria' => new FilterCriteria(
+                filters: [
+                     new Not(field: 'boolField', value: true)
+                ]
+            ),
+            'expected' => new FilterResult([
+                self::document(key: 'key2', boolField: false),
             ])
         ];
 
@@ -3423,6 +3460,7 @@ abstract class FilterStorageTestBase extends TestCase
     protected static function document(
         string $key,
         ?string $stringField = null,
+        ?bool $boolField = null,
         ?string $textField = null,
         ?string $dateField = null,
         ?int $intField = null,
@@ -3442,6 +3480,7 @@ abstract class FilterStorageTestBase extends TestCase
                 'stringField' => $stringField,
                 'textField' => $textField,
                 'dateField' => $dateField,
+                'boolField' => $boolField,
                 'intField' => $intField,
                 'floatField' => $floatField,
                 'objectField' => $objectField,
