@@ -12,9 +12,7 @@ use Shopware\Storage\Common\Filter\Operator\NandOperator;
 use Shopware\Storage\Common\Filter\Operator\NorOperator;
 use Shopware\Storage\Common\Filter\Operator\Operator;
 use Shopware\Storage\Common\Filter\Operator\OrOperator;
-use Shopware\Storage\Common\Filter\Paging\Offset;
 use Shopware\Storage\Common\Filter\Paging\Page;
-use Shopware\Storage\Common\Filter\Sorting;
 use Shopware\Storage\Common\Filter\Type\Any;
 use Shopware\Storage\Common\Filter\Type\Contains;
 use Shopware\Storage\Common\Filter\Type\Equals;
@@ -62,7 +60,7 @@ class ArrayFilterStorage implements FilterStorage
         }
     }
 
-    public function read(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
     {
         $filtered = $this->storage;
 

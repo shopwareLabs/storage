@@ -72,7 +72,7 @@ class MySQLFilterStorage implements FilterStorage
         $queue->execute();
     }
 
-    public function read(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
     {
         $query = $this->connection->createQueryBuilder();
 

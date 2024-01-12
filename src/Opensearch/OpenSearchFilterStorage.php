@@ -5,10 +5,7 @@ namespace Shopware\Storage\Opensearch;
 use OpenSearch\Client;
 use OpenSearchDSL\BuilderInterface;
 use OpenSearchDSL\Query\Compound\BoolQuery;
-use OpenSearchDSL\Query\Compound\DisMaxQuery;
-use OpenSearchDSL\Query\FullText\MultiMatchQuery;
 use OpenSearchDSL\Query\Joining\NestedQuery;
-use OpenSearchDSL\Query\MatchAllQuery;
 use OpenSearchDSL\Query\TermLevel\ExistsQuery;
 use OpenSearchDSL\Query\TermLevel\RangeQuery;
 use OpenSearchDSL\Query\TermLevel\TermQuery;
@@ -94,7 +91,7 @@ class OpenSearchFilterStorage implements FilterStorage
         ]);
     }
 
-    public function read(
+    public function filter(
         FilterCriteria $criteria,
         StorageContext $context
     ): FilterResult {

@@ -22,7 +22,6 @@ class MySQLKeyValueStorage implements KeyValueStorage
         return '`' . $this->source . '`';
     }
 
-
     public function setup(): void
     {
         // todo@o.skroblin auto setup feature

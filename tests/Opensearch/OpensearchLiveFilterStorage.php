@@ -31,9 +31,9 @@ class OpensearchLiveFilterStorage implements FilterStorage
         $this->client->indices()->refresh(['index' => $this->schema->source]);
     }
 
-    public function read(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
     {
-        return $this->decorated->read($criteria, $context);
+        return $this->decorated->filter($criteria, $context);
     }
 
     public function setup(): void
