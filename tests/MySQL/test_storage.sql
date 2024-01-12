@@ -4,6 +4,7 @@ CREATE TABLE `test_storage` (
     `textField` longtext COLLATE utf8mb4_unicode_ci,
     `dateField` datetime(3) DEFAULT NULL,
     `intField` int DEFAULT NULL,
+    `boolField` tinyint(1) DEFAULT NULL,
     `floatField` decimal(10, 4) DEFAULT NULL,
     `objectField` json DEFAULT NULL,
     `listField` json DEFAULT NULL,
