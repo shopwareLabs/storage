@@ -9,7 +9,5 @@ class Operator
     /**
      * @param array<Operator|Filter> $filters
      */
-    public function __construct(public array $filters = [])
-    {
-    }
+    public function __construct(public array $filters = []) {}
 }

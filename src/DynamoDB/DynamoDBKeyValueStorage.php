@@ -15,8 +15,7 @@ class DynamoDBKeyValueStorage implements KeyValueStorage
     public function __construct(
         private readonly DynamoDbClient $client,
         private readonly string $source
-    ) {
-    }
+    ) {}
 
 
     public function setup(): void
@@ -71,7 +70,7 @@ class DynamoDBKeyValueStorage implements KeyValueStorage
             new BatchGetItemInput([
                 'RequestItems' => [
                     $this->source => new KeysAndAttributes([
-                        'Keys' => array_map(fn (string $key) => ['key' => new AttributeValue(['S' => $key])], $keys)
+                        'Keys' => array_map(fn(string $key) => ['key' => new AttributeValue(['S' => $key])], $keys)
                     ]),
                 ],
             ])

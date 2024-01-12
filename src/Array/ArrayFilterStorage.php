@@ -37,9 +37,7 @@ class ArrayFilterStorage implements FilterStorage
      */
     private array $storage = [];
 
-    public function __construct(private readonly Schema $schema)
-    {
-    }
+    public function __construct(private readonly Schema $schema) {}
 
     public function setup(): void
     {
@@ -65,11 +63,11 @@ class ArrayFilterStorage implements FilterStorage
         $filtered = $this->storage;
 
         if ($criteria->keys) {
-            $filtered = array_filter($filtered, fn ($key) => in_array($key, $criteria->keys, true), ARRAY_FILTER_USE_KEY);
+            $filtered = array_filter($filtered, fn($key) => in_array($key, $criteria->keys, true), ARRAY_FILTER_USE_KEY);
         }
 
         if ($criteria->filters) {
-            $filtered = array_filter($filtered, fn (Document $document): bool => $this->match($document, $criteria->filters, $context));
+            $filtered = array_filter($filtered, fn(Document $document): bool => $this->match($document, $criteria->filters, $context));
         }
 
         if ($criteria->sorting) {
@@ -275,7 +273,7 @@ class ArrayFilterStorage implements FilterStorage
             if (!is_array($value)) {
                 throw new \LogicException('Accessor is not an array');
             }
-            return array_map(fn ($item) => $this->resolveAccessor($accessor, $item), $value);
+            return array_map(fn($item) => $this->resolveAccessor($accessor, $item), $value);
         }
 
         return $value;
@@ -362,7 +360,7 @@ class ArrayFilterStorage implements FilterStorage
     private function equalsAny(mixed $docValue, array $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => in_array($item, $value, true))),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => in_array($item, $value, true))),
             default => in_array($docValue, $value, true),
         };
     }
@@ -373,7 +371,7 @@ class ArrayFilterStorage implements FilterStorage
     private function contains(array|string $docValue, string $value): bool
     {
         return match (true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => str_contains($item, $value))),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => str_contains($item, $value))),
             default => str_contains($docValue, $value),
         };
     }
@@ -384,7 +382,7 @@ class ArrayFilterStorage implements FilterStorage
     private function startsWith(array|string $docValue, string $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => str_starts_with($item, $value))),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => str_starts_with($item, $value))),
             default => str_starts_with((string) $docValue, $value),
         };
     }
@@ -395,7 +393,7 @@ class ArrayFilterStorage implements FilterStorage
     private function endsWith(array|string $docValue, string $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => str_ends_with($item, $value))),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => str_ends_with($item, $value))),
             default => str_ends_with((string) $docValue, $value),
         };
     }
@@ -403,7 +401,7 @@ class ArrayFilterStorage implements FilterStorage
     private function gte(mixed $docValue, mixed $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => $item >= $value)),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => $item >= $value)),
             default => $docValue >= $value,
         };
     }
@@ -411,7 +409,7 @@ class ArrayFilterStorage implements FilterStorage
     private function gt(mixed $docValue, mixed $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => $item > $value)),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => $item > $value)),
             default => $docValue > $value,
         };
     }
@@ -419,7 +417,7 @@ class ArrayFilterStorage implements FilterStorage
     private function lt(mixed $docValue, mixed $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => $item < $value)),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => $item < $value)),
             default => $docValue < $value,
         };
     }
@@ -427,7 +425,7 @@ class ArrayFilterStorage implements FilterStorage
     private function lte(mixed $docValue, mixed $value): bool
     {
         return match(true) {
-            is_array($docValue) => !empty(array_filter($docValue, fn ($item) => $item <= $value)),
+            is_array($docValue) => !empty(array_filter($docValue, fn($item) => $item <= $value)),
             default => $docValue <= $value,
         };
     }

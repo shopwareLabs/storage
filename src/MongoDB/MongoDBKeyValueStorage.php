@@ -15,8 +15,7 @@ class MongoDBKeyValueStorage implements KeyValueStorage
         private readonly string $database,
         private readonly string $collection,
         private readonly Client $client
-    ) {
-    }
+    ) {}
 
     public function mget(array $keys): Documents
     {

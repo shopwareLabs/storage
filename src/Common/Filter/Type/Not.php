@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Type;
 
-class Not extends Filter
-{
-}
+class Not extends Filter {}

@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Type;
 
-class Lte extends Filter
-{
-}
+class Lte extends Filter {}

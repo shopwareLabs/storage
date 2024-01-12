@@ -17,6 +17,5 @@ class AggregationCriteria
         public ?SearchTerm $term = null,
         public array $filters = [],
         public array $keys = []
-    ) {
-    }
+    ) {}
 }

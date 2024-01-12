@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Operator;
 
-class AndOperator extends Operator
-{
-}
+class AndOperator extends Operator {}

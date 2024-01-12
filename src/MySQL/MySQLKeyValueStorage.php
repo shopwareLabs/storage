@@ -14,8 +14,7 @@ class MySQLKeyValueStorage implements KeyValueStorage
     public function __construct(
         private readonly Connection $connection,
         private readonly string $source
-    ) {
-    }
+    ) {}
 
     private function table(): string
     {
@@ -59,7 +58,7 @@ class MySQLKeyValueStorage implements KeyValueStorage
     public function mget(array $keys): Documents
     {
         $data = $this->connection->fetchAllAssociative(
-            query: 'SELECT `key`, `value` FROM '.$this->table().' WHERE `key` IN (:keys)',
+            query: 'SELECT `key`, `value` FROM ' . $this->table() . ' WHERE `key` IN (:keys)',
             params: ['keys' => $keys],
             types: ['keys' => ArrayParameterType::STRING]
         );

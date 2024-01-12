@@ -43,9 +43,7 @@ use Shopware\Storage\Common\StorageContext;
 
 class OpenSearchFilterStorage implements FilterStorage
 {
-    public function __construct(private readonly Client $client, private readonly Schema $schema)
-    {
-    }
+    public function __construct(private readonly Client $client, private readonly Schema $schema) {}
 
     public function setup(): void
     {
@@ -341,7 +339,7 @@ class OpenSearchFilterStorage implements FilterStorage
         }
 
         if ($value === null && $filter instanceof Equals) {
-            return $factory(function (string $field, mixed $value) {
+            return $factory(function (string $field) {
                 return new BoolQuery([
                     BoolQuery::MUST_NOT => new ExistsQuery(field: $field)
                 ]);
@@ -349,7 +347,7 @@ class OpenSearchFilterStorage implements FilterStorage
         }
 
         if ($value === null && $filter instanceof Not) {
-            return $factory(function (string $field, mixed $value) {
+            return $factory(function (string $field) {
                 return new ExistsQuery(field: $field);
             });
         }

@@ -8,9 +8,7 @@ use Shopware\Storage\Common\KeyValue\KeyValueStorage;
 
 class RedisKeyValueStorage implements KeyValueStorage
 {
-    public function __construct(private readonly \Redis $client)
-    {
-    }
+    public function __construct(private readonly \Redis $client) {}
 
     public function setup(): void
     {

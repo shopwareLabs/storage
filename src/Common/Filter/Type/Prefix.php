@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Type;
 
-class Prefix extends Filter
-{
-}
+class Prefix extends Filter {}

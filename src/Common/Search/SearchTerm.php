@@ -7,7 +7,5 @@ class SearchTerm
     /**
      * @param InterpretedTerm[] $terms
      */
-    public function __construct(public array $terms)
-    {
-    }
+    public function __construct(public array $terms) {}
 }

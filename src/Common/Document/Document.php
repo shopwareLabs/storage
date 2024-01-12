@@ -10,6 +10,5 @@ class Document
     public function __construct(
         public string $key,
         public array $data
-    ) {
-    }
+    ) {}
 }

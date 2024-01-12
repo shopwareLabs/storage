@@ -7,6 +7,4 @@ use Shopware\Storage\Common\Document\Collection;
 /**
  * @extends Collection<array>
  */
-class Aggregations extends Collection
-{
-}
+class Aggregations extends Collection {}

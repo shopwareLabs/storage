@@ -40,8 +40,7 @@ class MySQLFilterStorage implements FilterStorage
     public function __construct(
         private readonly Connection $connection,
         private readonly Schema     $schema
-    ) {
-    }
+    ) {}
 
 
     public function setup(): void
@@ -324,7 +323,7 @@ class MySQLFilterStorage implements FilterStorage
         if ($translated) {
             $selects = [];
 
-            $template = 'JSON_VALUE(`#field#`, "$.#property#" '.$cast.')';
+            $template = 'JSON_VALUE(`#field#`, "$.#property#" ' . $cast . ')';
 
             foreach ($context->languages as $language) {
                 $selects[] = str_replace(['#field#', '#property#'], [$accessor, $language], $template);
@@ -334,13 +333,13 @@ class MySQLFilterStorage implements FilterStorage
         }
 
         if ($type === FieldType::OBJECT && !empty($property)) {
-            return 'JSON_VALUE(`' . $field . '`, "$.' . $property . '"'.$cast.')';
+            return 'JSON_VALUE(`' . $field . '`, "$.' . $property . '"' . $cast . ')';
         }
 
         if ($type === FieldType::OBJECT_LIST) {
             $alias = $this->buildObjectListTable($query, $accessor);
 
-            return '`'. $alias .'`' . '.column_value';
+            return '`' . $alias . '`' . '.column_value';
         }
 
         return '`' . $accessor . '`';

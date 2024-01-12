@@ -139,11 +139,6 @@ class OpenSearchStorageTest extends FilterStorageTestBase
         ]);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-    }
-
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();

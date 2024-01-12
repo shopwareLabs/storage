@@ -20,6 +20,5 @@ class FilterCriteria
         public bool $total = false,
         public array $sorting = [],
         public array $filters = []
-    ) {
-    }
+    ) {}
 }

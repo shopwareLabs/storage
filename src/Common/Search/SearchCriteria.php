@@ -28,6 +28,5 @@ class SearchCriteria
          * @var array<Filter|Operator>
          */
         public array $filters = []
-    ) {
-    }
+    ) {}
 }

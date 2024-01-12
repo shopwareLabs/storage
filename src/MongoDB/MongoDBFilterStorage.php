@@ -38,8 +38,7 @@ class MongoDBFilterStorage implements FilterStorage
         private readonly string $database,
         private readonly Schema $schema,
         private readonly Client $client
-    ) {
-    }
+    ) {}
 
     public function setup(): void
     {
@@ -173,7 +172,7 @@ class MongoDBFilterStorage implements FilterStorage
 
         $field = $filter->field;
 
-        $factory = fn (\Closure $function): array => $function($field, $value);
+        $factory = fn(\Closure $function): array => $function($field, $value);
 
         if ($translated) {
             $factory = function (\Closure $generator) use ($filter, $context, $value) {
