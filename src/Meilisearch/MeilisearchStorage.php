@@ -7,9 +7,9 @@ use Meilisearch\Endpoints\Indexes;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Operator\AndOperator;
 use Shopware\Storage\Common\Filter\Operator\NandOperator;
 use Shopware\Storage\Common\Filter\Operator\NorOperator;
@@ -30,29 +30,28 @@ use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class MeilisearchStorage implements FilterStorage
+class MeilisearchStorage implements Storage, FilterAware
 {
     public function __construct(
         private readonly Client $client,
         private readonly Schema $schema
     ) {}
 
-    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(Criteria $criteria, StorageContext $context): Result
     {
         $params = [];
 
         if ($criteria->paging instanceof Page) {
             $params['page'] = $criteria->paging->page;
-            $params['hitsPerPage'] = $criteria->limit;
-        } elseif ($criteria->limit !== null) {
-            $params['limit'] = $criteria->limit;
+            $params['hitsPerPage'] = $criteria->paging->limit;
         }
 
         $filters = $criteria->filters;
-        if ($criteria->keys !== null) {
-            $filters[] = new Any(field: 'key', value: $criteria->keys);
+        if ($criteria->primaries !== null) {
+            $filters[] = new Any(field: 'key', value: $criteria->primaries);
         }
 
         if (!empty($filters)) {
@@ -72,7 +71,7 @@ class MeilisearchStorage implements FilterStorage
             $documents[] = new Document(key: $key, data: $hit);
         }
 
-        return new FilterResult(
+        return new Result(
             elements: $documents
         );
     }

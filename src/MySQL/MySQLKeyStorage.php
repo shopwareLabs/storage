@@ -6,10 +6,11 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-class MySQLKeyValueStorage implements KeyValueStorage
+class MySQLKeyStorage implements KeyAware, Storage
 {
     public function __construct(
         private readonly Connection $connection,

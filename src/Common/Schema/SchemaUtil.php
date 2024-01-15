@@ -57,7 +57,7 @@ class SchemaUtil
     {
         $schema = self::fieldSchema(schema: $schema, accessor: $accessor);
 
-        return $schema->translated;
+        return $schema->options['translated'] ?? false;
     }
 
     public static function type(Schema $schema, string $accessor): string
@@ -72,12 +72,7 @@ class SchemaUtil
         $property = self::property(accessor: $accessor);
 
         if ($property === 'key') {
-            return new Field(
-                name: 'key',
-                type: FieldType::STRING,
-                translated: false,
-                fields: [],
-            );
+            return new Field(name: 'key', type: FieldType::STRING);
         }
 
         $field = $schema->fields[$property] ?? null;

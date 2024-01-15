@@ -15,9 +15,10 @@ use OpenSearchDSL\Search;
 use OpenSearchDSL\Sort\FieldSort;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Paging\Limit;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Operator\AndOperator;
 use Shopware\Storage\Common\Filter\Operator\NandOperator;
 use Shopware\Storage\Common\Filter\Operator\NorOperator;
@@ -39,9 +40,11 @@ use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
+use Shopware\Storage\Common\Total;
 
-class OpenSearchFilterStorage implements FilterStorage
+class OpenSearchStorage implements Storage, FilterAware
 {
     public function __construct(private readonly Client $client, private readonly Schema $schema) {}
 
@@ -90,24 +93,23 @@ class OpenSearchFilterStorage implements FilterStorage
     }
 
     public function filter(
-        FilterCriteria $criteria,
+        Criteria $criteria,
         StorageContext $context
-    ): FilterResult {
+    ): Result {
         $search = new Search();
 
         if ($criteria->paging instanceof Page) {
-            $search->setFrom(($criteria->paging->page - 1) * $criteria->limit);
+            $search->setFrom(($criteria->paging->page - 1) * $criteria->paging->limit);
+            $search->setSize($criteria->paging->limit);
+        } elseif ($criteria->paging instanceof Limit) {
+            $search->setSize($criteria->paging->limit);
         }
 
-        if ($criteria->limit) {
-            $search->setSize($criteria->limit);
-        }
-
-        if ($criteria->keys) {
+        if ($criteria->primaries) {
             $search->addQuery(
                 new TermsQuery(
                     field: '_id',
-                    terms: $criteria->keys
+                    terms: $criteria->primaries
                 )
             );
         }
@@ -135,12 +137,14 @@ class OpenSearchFilterStorage implements FilterStorage
 
         $parsed = $search->toArray();
 
-        $result = $this->client->search([
+        $params = [
             'index' => $this->schema->source,
             '_source' => true,
-            'track_total_hits' => $criteria->total,
+            'track_total_hits' => $criteria->total !== Total::NONE,
             'body' => $parsed
-        ]);
+        ];
+
+        $result = $this->client->search($params);
 
         $documents = [];
         foreach ($result['hits']['hits'] as $hit) {
@@ -150,7 +154,7 @@ class OpenSearchFilterStorage implements FilterStorage
             );
         }
 
-        return new FilterResult(
+        return new Result(
             elements: $documents,
             total: $this->getTotal($criteria, $result),
         );
@@ -259,9 +263,9 @@ class OpenSearchFilterStorage implements FilterStorage
     /**
      * @param array<string, mixed> $result
      */
-    private function getTotal(FilterCriteria $criteria, array $result): int|null
+    private function getTotal(Criteria $criteria, array $result): int|null
     {
-        if (!$criteria->total) {
+        if ($criteria->total === Total::NONE) {
             return null;
         }
 

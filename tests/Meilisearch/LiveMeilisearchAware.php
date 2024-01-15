@@ -5,20 +5,20 @@ namespace Shopware\StorageTests\Meilisearch;
 use Meilisearch\Client;
 use Meilisearch\Contracts\TasksQuery;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class LiveMeilisearchStorage implements Storage, FilterStorage
+class LiveMeilisearchAware implements Storage, FilterAware
 {
     public function __construct(
-        private readonly FilterStorage $storage,
+        private readonly FilterAware&Storage $storage,
         private readonly Client $client
     ) {}
 
-    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(Criteria $criteria, StorageContext $context): Result
     {
         return $this->storage->filter($criteria, $context);
     }

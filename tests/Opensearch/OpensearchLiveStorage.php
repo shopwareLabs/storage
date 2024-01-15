@@ -4,17 +4,18 @@ namespace Shopware\StorageTests\Opensearch;
 
 use OpenSearch\Client;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Schema\Schema;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class OpensearchLiveFilterStorage implements FilterStorage
+class OpensearchLiveStorage implements FilterAware, Storage
 {
     public function __construct(
         private readonly Client $client,
-        private readonly FilterStorage $decorated,
+        private readonly FilterAware&Storage $decorated,
         private readonly Schema $schema
     ) {}
 
@@ -30,7 +31,7 @@ class OpensearchLiveFilterStorage implements FilterStorage
         $this->client->indices()->refresh(['index' => $this->schema->source]);
     }
 
-    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(Criteria $criteria, StorageContext $context): Result
     {
         return $this->decorated->filter($criteria, $context);
     }

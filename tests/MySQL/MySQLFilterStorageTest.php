@@ -6,16 +6,17 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Type\Equals;
 use Shopware\Storage\Common\Filter\Type\Not;
-use Shopware\Storage\MySQL\MySQLFilterStorage;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\MySQL\MySQLStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\MySQL\MySQLFilterStorage
+ * @covers \Shopware\Storage\MySQL\MySQLStorage
  */
 class MySQLFilterStorageTest extends FilterStorageTestBase
 {
@@ -32,9 +33,9 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
             ->executeStatement((string) file_get_contents(__DIR__ . '/test_storage.sql'));
     }
 
-    public function getStorage(): FilterStorage
+    public function getStorage(): FilterAware&Storage
     {
-        return new MySQLFilterStorage(
+        return new MySQLStorage(
             connection: $this->getConnection(),
             schema: $this->getSchema()
         );

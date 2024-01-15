@@ -7,9 +7,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Paging\Limit;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Operator\AndOperator;
 use Shopware\Storage\Common\Filter\Operator\NandOperator;
 use Shopware\Storage\Common\Filter\Operator\NorOperator;
@@ -31,11 +32,13 @@ use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
+use Shopware\Storage\Common\Total;
 use Shopware\Storage\Common\Util\Uuid;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-class MySQLFilterStorage implements FilterStorage
+class MySQLStorage implements Storage, FilterAware
 {
     public function __construct(
         private readonly Connection $connection,
@@ -71,24 +74,23 @@ class MySQLFilterStorage implements FilterStorage
         $queue->execute();
     }
 
-    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(Criteria $criteria, StorageContext $context): Result
     {
         $query = $this->connection->createQueryBuilder();
 
         $query->select('root.*');
         $query->from($this->schema->source, 'root');
 
-        if ($criteria->limit) {
-            $query->setMaxResults($criteria->limit);
-        }
-
         if ($criteria->paging instanceof Page) {
-            $query->setFirstResult(($criteria->paging->page - 1) * $criteria->limit);
+            $query->setFirstResult(($criteria->paging->page - 1) * $criteria->paging->limit);
+            $query->setMaxResults($criteria->paging->limit);
+        } elseif ($criteria->paging instanceof Limit) {
+            $query->setMaxResults($criteria->paging->limit);
         }
 
-        if ($criteria->keys) {
+        if ($criteria->primaries) {
             $query->andWhere('`key` IN (:keys)');
-            $query->setParameter('keys', $criteria->keys, Connection::PARAM_STR_ARRAY);
+            $query->setParameter('keys', $criteria->primaries, Connection::PARAM_STR_ARRAY);
         }
 
         if ($criteria->sorting) {
@@ -111,7 +113,7 @@ class MySQLFilterStorage implements FilterStorage
 
         $documents = $this->hydrate($data);
 
-        return new FilterResult(
+        return new Result(
             elements: $documents,
             total: $this->getTotal($query, $criteria)
         );
@@ -264,9 +266,9 @@ class MySQLFilterStorage implements FilterStorage
         return $translated || in_array($type, [FieldType::OBJECT, FieldType::LIST, FieldType::OBJECT_LIST], true);
     }
 
-    private function getTotal(QueryBuilder $query, FilterCriteria $criteria): ?int
+    private function getTotal(QueryBuilder $query, Criteria $criteria): ?int
     {
-        if (!$criteria->total) {
+        if ($criteria->total === Total::NONE) {
             return null;
         }
 

@@ -2,10 +2,9 @@
 
 namespace Shopware\Storage\Common\Filter\Paging;
 
-class Page implements Paging
+class Limit implements Paging
 {
     public function __construct(
-        public int $page,
         public int $limit
     ) {}
 }

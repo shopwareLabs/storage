@@ -5,7 +5,7 @@ namespace Shopware\Storage\Common\Search;
 class SearchTerm
 {
     /**
-     * @param InterpretedTerm[] $terms
+     * @param string[] $terms
      */
     public function __construct(public array $terms) {}
 }

@@ -6,9 +6,10 @@ use MongoDB\Client;
 use MongoDB\Collection;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Paging\Limit;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Operator\AndOperator;
 use Shopware\Storage\Common\Filter\Operator\NandOperator;
 use Shopware\Storage\Common\Filter\Operator\NorOperator;
@@ -30,9 +31,10 @@ use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class MongoDBFilterStorage implements FilterStorage
+class MongoDBStorage implements Storage, FilterAware
 {
     public function __construct(
         private readonly string $database,
@@ -67,18 +69,17 @@ class MongoDBFilterStorage implements FilterStorage
         $this->collection()->insertMany(array_values($items));
     }
 
-    public function filter(FilterCriteria $criteria, StorageContext $context): FilterResult
+    public function filter(Criteria $criteria, StorageContext $context): Result
     {
         $query = [];
 
         $options = [];
 
         if ($criteria->paging instanceof Page) {
-            $options['skip'] = ($criteria->paging->page - 1) * $criteria->limit;
-        }
-
-        if ($criteria->limit) {
-            $options['limit'] = $criteria->limit;
+            $options['skip'] = ($criteria->paging->page - 1) * $criteria->paging->limit;
+            $options['limit'] = $criteria->paging->limit;
+        } elseif ($criteria->paging instanceof Limit) {
+            $options['limit'] = $criteria->paging->limit;
         }
 
         if ($criteria->sorting) {
@@ -89,8 +90,8 @@ class MongoDBFilterStorage implements FilterStorage
             }, $criteria->sorting);
         }
 
-        if ($criteria->keys) {
-            $query['_key'] = ['$in' => $criteria->keys];
+        if ($criteria->primaries) {
+            $query['_key'] = ['$in' => $criteria->primaries];
         }
         if ($criteria->filters) {
             $filters = $this->parseFilters($criteria->filters, $context);
@@ -127,7 +128,7 @@ class MongoDBFilterStorage implements FilterStorage
             );
         }
 
-        return new FilterResult($result, null);
+        return new Result($result, null);
     }
 
     private function collection(): Collection

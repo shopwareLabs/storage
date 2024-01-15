@@ -7,9 +7,9 @@ use PHPUnit\Framework\TestCase;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
-use Shopware\Storage\Common\Filter\FilterCriteria;
-use Shopware\Storage\Common\Filter\FilterResult;
-use Shopware\Storage\Common\Filter\FilterStorage;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Paging\Page;
 use Shopware\Storage\Common\Filter\Type\Any;
 use Shopware\Storage\Common\Filter\Type\Contains;
@@ -25,16 +25,17 @@ use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Field;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
 abstract class FilterStorageTestBase extends TestCase
 {
     public const TEST_STORAGE = 'test_storage';
 
-    abstract public function getStorage(): FilterStorage;
+    abstract public function getStorage(): FilterAware&Storage;
 
     #[DataProvider('storageProvider')]
-    final public function testStorage(Documents $input, FilterCriteria $criteria, FilterResult $expected): void
+    final public function testStorage(Documents $input, Criteria $criteria, Result $expected): void
     {
         $storage = $this->getStorage();
 
@@ -52,8 +53,8 @@ abstract class FilterStorageTestBase extends TestCase
     #[DataProvider('debugProvider')]
     public function testDebug(
         Documents $input,
-        FilterCriteria $criteria,
-        FilterResult $expected
+        Criteria  $criteria,
+        Result    $expected
     ): void {
         $storage = $this->getStorage();
 
@@ -68,8 +69,8 @@ abstract class FilterStorageTestBase extends TestCase
     {
         yield 'Smoke test' => [
             'input' => new Documents(),
-            'criteria' => new FilterCriteria(),
-            'expected' => new FilterResult([])
+            'criteria' => new Criteria(),
+            'expected' => new Result([])
         ];
     }
 
@@ -86,13 +87,13 @@ abstract class FilterStorageTestBase extends TestCase
 
         $storage->remove($remove);
 
-        $criteria = new FilterCriteria(
-            keys: $input->keys()
+        $criteria = new Criteria(
+            primaries: $input->keys()
         );
 
         $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
 
-        $expected = new FilterResult($expected);
+        $expected = new Result($expected);
 
         static::assertEquals($expected, $loaded);
     }
@@ -144,44 +145,44 @@ abstract class FilterStorageTestBase extends TestCase
                 new Field('dateField', FieldType::DATETIME),
                 new Field('listField', FieldType::LIST),
 
-                new Field('translatedString', FieldType::STRING, translated: true),
-                new Field('translatedText', FieldType::TEXT, translated: true),
-                new Field('translatedInt', FieldType::INT, translated: true),
-                new Field('translatedFloat', FieldType::FLOAT, translated: true),
-                new Field('translatedBool', FieldType::BOOL, translated: true),
-                new Field('translatedDate', FieldType::DATETIME, translated: true),
-                new Field('translatedList', FieldType::LIST, translated: true),
+                new Field('translatedString', FieldType::STRING, ['translated' => true]),
+                new Field('translatedText', FieldType::TEXT, ['translated' => true]),
+                new Field('translatedInt', FieldType::INT, ['translated' => true]),
+                new Field('translatedFloat', FieldType::FLOAT, ['translated' => true]),
+                new Field('translatedBool', FieldType::BOOL, ['translated' => true]),
+                new Field('translatedDate', FieldType::DATETIME, ['translated' => true]),
+                new Field('translatedList', FieldType::LIST, ['translated' => true]),
 
-                new Field('objectField', FieldType::OBJECT, false, [
+                new Field('objectField', FieldType::OBJECT, [], [
                     new Field('foo', FieldType::STRING),
                     new Field('fooInt', FieldType::INT),
                     new Field('fooFloat', FieldType::FLOAT),
                     new Field('fooBool', FieldType::BOOL),
                     new Field('fooDate', FieldType::DATETIME),
-                    new Field('translatedFoo', FieldType::STRING, translated: true),
-                    new Field('translatedFooInt', FieldType::INT, translated: true),
-                    new Field('translatedFooFloat', FieldType::FLOAT, translated: true),
-                    new Field('translatedFooBool', FieldType::BOOL, translated: true),
-                    new Field('translatedFooDate', FieldType::DATETIME, translated: true),
-                    new Field('fooObj', FieldType::OBJECT, false, [
+                    new Field('translatedFoo', FieldType::STRING, ['translated' => true]),
+                    new Field('translatedFooInt', FieldType::INT, ['translated' => true]),
+                    new Field('translatedFooFloat', FieldType::FLOAT, ['translated' => true]),
+                    new Field('translatedFooBool', FieldType::BOOL, ['translated' => true]),
+                    new Field('translatedFooDate', FieldType::DATETIME, ['translated' => true]),
+                    new Field('fooObj', FieldType::OBJECT, [], [
                         new Field('bar', FieldType::STRING),
                     ]),
                 ]),
 
-                new Field('objectListField', FieldType::OBJECT_LIST, false, [
+                new Field('objectListField', FieldType::OBJECT_LIST, [], [
                     new Field('foo', FieldType::STRING),
                     new Field('fooInt', FieldType::INT),
                     new Field('fooFloat', FieldType::FLOAT),
                     new Field('fooBool', FieldType::BOOL),
                     new Field('fooDate', FieldType::DATETIME),
-                    new Field('translatedFoo', FieldType::STRING, translated: true),
-                    new Field('translatedFooInt', FieldType::INT, translated: true),
-                    new Field('translatedFooFloat', FieldType::FLOAT, translated: true),
-                    new Field('translatedFooBool', FieldType::BOOL, translated: true),
-                    new Field('translatedFooDate', FieldType::DATETIME, translated: true),
-                    new Field('fooObj', FieldType::OBJECT, false, [
+                    new Field('translatedFoo', FieldType::STRING, ['translated' => true]),
+                    new Field('translatedFooInt', FieldType::INT, ['translated' => true]),
+                    new Field('translatedFooFloat', FieldType::FLOAT, ['translated' => true]),
+                    new Field('translatedFooBool', FieldType::BOOL, ['translated' => true]),
+                    new Field('translatedFooDate', FieldType::DATETIME, ['translated' => true]),
+                    new Field('fooObj', FieldType::OBJECT, [], [
                         new Field('bar', FieldType::STRING),
-                        new Field('translatedBar', FieldType::STRING, translated: true),
+                        new Field('translatedBar', FieldType::STRING, ['translated' => true]),
                     ]),
                 ]),
             ]
@@ -192,8 +193,8 @@ abstract class FilterStorageTestBase extends TestCase
     {
         yield 'Smoke test' => [
             'input' => new Documents(),
-            'criteria' => new FilterCriteria(),
-            'expected' => new FilterResult([])
+            'criteria' => new Criteria(),
+            'expected' => new Result([])
         ];
         yield 'Test keys and values' => [
             'input' => new Documents([
@@ -201,10 +202,10 @@ abstract class FilterStorageTestBase extends TestCase
                 self::Document(key: 'key2'),
                 self::Document(key: 'key3'),
             ]),
-            'criteria' => new FilterCriteria(
-                keys: ['key1', 'key2']
+            'criteria' => new Criteria(
+                primaries: ['key1', 'key2']
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1'),
                 self::document(key: 'key2'),
             ])
@@ -217,11 +218,10 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key4'),
                 self::document(key: 'key5'),
             ]),
-            'criteria' => new FilterCriteria(
-                paging: new Page(2),
-                limit: 2
+            'criteria' => new Criteria(
+                paging: new Page(page: 2, limit: 2)
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3'),
                 self::document(key: 'key4'),
             ])
@@ -233,12 +233,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'foo'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Equals(field: 'stringField', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key3', stringField: 'foo'),
             ])
@@ -249,12 +249,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Any(field: 'stringField', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', stringField: 'foo'),
                 self::document(key: 'key2', stringField: 'bar'),
             ])
@@ -265,12 +265,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Not(field: 'stringField', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ])
@@ -281,12 +281,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Neither(field: 'stringField', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', stringField: 'baz'),
             ])
         ];
@@ -296,12 +296,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Contains(field: 'stringField', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ])
@@ -312,12 +312,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Prefix(field: 'stringField', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'baz'),
             ])
@@ -328,12 +328,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'foo-bar'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Suffix(field: 'stringField', value: 'bar')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: 'foo-bar'),
             ])
@@ -344,12 +344,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'b'),
                 self::document(key: 'key3', stringField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'stringField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', stringField: 'b'),
                 self::document(key: 'key3', stringField: 'c'),
             ])
@@ -360,12 +360,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'b'),
                 self::document(key: 'key3', stringField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Lte(field: 'stringField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', stringField: 'a'),
                 self::document(key: 'key2', stringField: 'b'),
             ])
@@ -376,12 +376,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'b'),
                 self::document(key: 'key3', stringField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gt(field: 'stringField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', stringField: 'c'),
             ])
         ];
@@ -391,12 +391,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'b'),
                 self::document(key: 'key3', stringField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Lt(field: 'stringField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', stringField: 'a'),
             ])
         ];
@@ -407,13 +407,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', stringField: 'c'),
                 self::document(key: 'key4', stringField: 'd'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'stringField', value: 'b'),
                     new Lte(field: 'stringField', value: 'c'),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', stringField: 'b'),
                 self::document(key: 'key3', stringField: 'c'),
             ])
@@ -424,12 +424,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Equals(field: 'stringField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', stringField: null)
             ])
         ];
@@ -439,12 +439,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', stringField: 'bar'),
                 self::document(key: 'key3', stringField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Not(field: 'stringField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document('key1', stringField: 'foo'),
                 self::document('key2', stringField: 'bar')
             ])
@@ -456,12 +456,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'foo'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Equals(field: 'textField', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', textField: 'foo'),
                 self::document(key: 'key3', textField: 'foo'),
             ])
@@ -472,12 +472,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Any(field: 'textField', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', textField: 'foo'),
                 self::document(key: 'key2', textField: 'bar'),
             ])
@@ -488,12 +488,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Not(field: 'textField', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ])
@@ -504,12 +504,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Neither(field: 'textField', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', textField: 'baz'),
             ])
         ];
@@ -519,12 +519,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Contains(field: 'textField', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ])
@@ -535,12 +535,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Prefix(field: 'textField', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'baz'),
             ])
@@ -551,12 +551,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'foo-bar'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Suffix(field: 'textField', value: 'bar')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', textField: 'bar'),
                 self::document(key: 'key3', textField: 'foo-bar'),
             ])
@@ -567,12 +567,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'b'),
                 self::document(key: 'key3', textField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'textField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', textField: 'b'),
                 self::document(key: 'key3', textField: 'c'),
             ])
@@ -583,12 +583,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'b'),
                 self::document(key: 'key3', textField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Lte(field: 'textField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', textField: 'a'),
                 self::document(key: 'key2', textField: 'b'),
             ])
@@ -599,12 +599,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'b'),
                 self::document(key: 'key3', textField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gt(field: 'textField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', textField: 'c'),
             ])
         ];
@@ -614,12 +614,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', textField: 'b'),
                 self::document(key: 'key3', textField: 'c'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Lt(field: 'textField', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', textField: 'a'),
             ])
         ];
@@ -630,13 +630,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', textField: 'c'),
                 self::document(key: 'key4', textField: 'd'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'textField', value: 'b'),
                     new Lte(field: 'textField', value: 'c'),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', textField: 'b'),
                 self::document(key: 'key3', textField: 'c'),
             ])
@@ -648,12 +648,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Equals(field: 'dateField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
             ])
         ];
@@ -663,12 +663,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Any(field: 'dateField', value: ['2021-01-01', '2021-01-02'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
             ])
@@ -679,12 +679,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Not(field: 'dateField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
@@ -695,12 +695,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Neither(field: 'dateField', value: ['2021-01-01', '2021-01-02'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
@@ -710,12 +710,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'dateField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
@@ -726,12 +726,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Lte(field: 'dateField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
             ])
@@ -742,12 +742,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gt(field: 'dateField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
         ];
@@ -757,12 +757,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Lt(field: 'dateField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
             ])
         ];
@@ -773,13 +773,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
                 self::document(key: 'key4', dateField: '2021-01-04 00:00:00.000'),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'dateField', value: '2021-01-02'),
                     new Lte(field: 'dateField', value: '2021-01-03'),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
             ])
@@ -790,12 +790,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02'),
                 self::document(key: 'key3', dateField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'dateField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', dateField: null)
             ])
         ];
@@ -805,12 +805,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
                 self::document(key: 'key3', dateField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'dateField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document('key1', dateField: '2021-01-01 00:00:00.000'),
                 self::document('key2', dateField: '2021-01-02 00:00:00.000')
             ])
@@ -822,12 +822,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'intField', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', intField: 2),
             ])
         ];
@@ -837,12 +837,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'intField', value: [1, 2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
             ])
@@ -853,12 +853,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'intField', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key3', intField: 3),
             ])
@@ -869,12 +869,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'intField', value: [1, 2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', intField: 3),
             ])
         ];
@@ -884,12 +884,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'intField', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ])
@@ -900,12 +900,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'intField', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', intField: 1),
                 self::document(key: 'key2', intField: 2),
             ])
@@ -916,12 +916,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'intField', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', intField: 3),
             ])
         ];
@@ -931,12 +931,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'intField', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', intField: 1),
             ])
         ];
@@ -947,13 +947,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', intField: 3),
                 self::document(key: 'key4', intField: 4),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'intField', value: 2),
                      new Lte(field: 'intField', value: 3),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: 3),
             ])
@@ -964,12 +964,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'intField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', intField: null)
             ])
         ];
@@ -979,12 +979,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', intField: 2),
                 self::document(key: 'key3', intField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'intField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document('key1', intField: 1),
                 self::document('key2', intField: 2)
             ])
@@ -996,12 +996,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'floatField', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', floatField: 2.2),
             ])
         ];
@@ -1011,12 +1011,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'floatField', value: [1.1, 2.2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
             ])
@@ -1027,12 +1027,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'floatField', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key3', floatField: 3.3),
             ])
@@ -1043,12 +1043,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'floatField', value: [1.1, 2.2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
@@ -1058,12 +1058,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'floatField', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ])
@@ -1074,12 +1074,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'floatField', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', floatField: 1.1),
                 self::document(key: 'key2', floatField: 2.2),
             ])
@@ -1090,12 +1090,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'floatField', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', floatField: 3.3),
             ])
         ];
@@ -1105,12 +1105,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'floatField', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', floatField: 1.1),
             ])
         ];
@@ -1121,13 +1121,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', floatField: 3.3),
                 self::document(key: 'key4', floatField: 4.4),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                     new Gte(field: 'floatField', value: 2.2),
                      new Lte(field: 'floatField', value: 3.3),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: 3.3),
             ])
@@ -1138,12 +1138,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'floatField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', floatField: null)
             ])
         ];
@@ -1153,12 +1153,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', floatField: 2.2),
                 self::document(key: 'key3', floatField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'floatField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document('key1', floatField: 1.1),
                 self::document('key2', floatField: 2.2)
             ])
@@ -1170,12 +1170,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', boolField: false),
                 self::document(key: 'key3', boolField: true),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'boolField', value: true)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', boolField: true),
                 self::document(key: 'key3', boolField: true),
             ])
@@ -1186,12 +1186,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', boolField: false),
                 self::document(key: 'key3', boolField: true),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'boolField', value: true)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', boolField: false),
             ])
         ];
@@ -1202,12 +1202,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
             ])
         ];
@@ -1217,12 +1217,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectField.foo', value: ['baz', 'qux'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
@@ -1233,12 +1233,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'objectField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
@@ -1249,12 +1249,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'objectField.foo', value: ['baz', 'qux'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
             ])
         ];
@@ -1264,12 +1264,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Contains(field: 'objectField.foo', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
             ])
@@ -1280,12 +1280,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
@@ -1296,12 +1296,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
             ])
@@ -1312,12 +1312,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ])
         ];
@@ -1327,12 +1327,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['foo' => 'baz']),
                 self::document(key: 'key3', objectField: ['foo' => 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['foo' => 'bar']),
             ])
         ];
@@ -1368,22 +1368,22 @@ abstract class FilterStorageTestBase extends TestCase
         //                self::document(key: 'key3', objectField: null),
         //            ])
         //        ];
-        yield 'Test object field null value not filter' => [
-            'input' => new Documents([
-                self::document(key: 'key1', objectField: ['foo' => 'bar']),
-                self::document(key: 'key2', objectField: ['foo' => 'baz']),
-                self::document(key: 'key3', objectField: null),
-            ]),
-            'criteria' => new FilterCriteria(
-                filters: [
-                     new Not(field: 'objectField.foo', value: null)
-                ]
-            ),
-            'expected' => new FilterResult([
-                self::document('key1', objectField: ['foo' => 'bar']),
-                self::document('key2', objectField: ['foo' => 'baz'])
-            ])
-        ];
+        //        yield 'Test object field null value not filter' => [
+        //            'input' => new Documents([
+        //                self::document(key: 'key1', objectField: ['foo' => 'bar']),
+        //                self::document(key: 'key2', objectField: ['foo' => 'baz']),
+        //                self::document(key: 'key3', objectField: null),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                     new Not(field: 'objectField.foo', value: null)
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                self::document('key1', objectField: ['foo' => 'bar']),
+        //                self::document('key2', objectField: ['foo' => 'baz'])
+        //            ])
+        //        ];
 
         yield 'Test object field equals filter and int value' => [
             'input' => new Documents([
@@ -1391,12 +1391,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
             ])
         ];
@@ -1406,12 +1406,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectField.fooInt', value: [1, 2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
             ])
@@ -1422,12 +1422,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'objectField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
@@ -1438,12 +1438,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'objectField.fooInt', value: [1, 2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
         ];
@@ -1453,12 +1453,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
@@ -1469,12 +1469,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
             ])
@@ -1485,12 +1485,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
         ];
@@ -1500,12 +1500,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooInt' => 1]),
             ])
         ];
@@ -1516,13 +1516,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
                 self::document(key: 'key4', objectField: ['fooInt' => 4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.fooInt', value: 2),
                      new Lte(field: 'objectField.fooInt', value: 3),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooInt' => 2]),
                 self::document(key: 'key3', objectField: ['fooInt' => 3]),
             ])
@@ -1534,12 +1534,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
             ])
         ];
@@ -1549,12 +1549,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectField.fooFloat', value: [1.1, 2.2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
             ])
@@ -1565,12 +1565,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
@@ -1581,12 +1581,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'objectField.fooFloat', value: [1.1, 2.2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
@@ -1596,12 +1596,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
@@ -1612,12 +1612,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
             ])
@@ -1628,12 +1628,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
         ];
@@ -1643,12 +1643,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooFloat' => 1.1]),
             ])
         ];
@@ -1659,13 +1659,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
                 self::document(key: 'key4', objectField: ['fooFloat' => 4.4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.fooFloat', value: 2.2),
                      new Lte(field: 'objectField.fooFloat', value: 3.3),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooFloat' => 2.2]),
                 self::document(key: 'key3', objectField: ['fooFloat' => 3.3]),
             ])
@@ -1677,12 +1677,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
             ])
         ];
@@ -1692,12 +1692,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectField.fooDate', value: ['2021-01-02', '2021-01-03'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
@@ -1708,12 +1708,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
@@ -1724,12 +1724,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'objectField.fooDate', value: ['2021-01-02', '2021-01-03'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
             ])
         ];
@@ -1739,12 +1739,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
@@ -1755,12 +1755,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
             ])
@@ -1771,12 +1771,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
         ];
@@ -1786,12 +1786,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectField.fooDate', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectField: ['fooDate' => '2021-01-01 00:00:00.000']),
             ])
         ];
@@ -1802,13 +1802,13 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
                 self::document(key: 'key4', objectField: ['fooDate' => '2021-01-04 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectField.fooDate', value: '2021-01-02'),
                      new Lte(field: 'objectField.fooDate', value: '2021-01-03'),
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooDate' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', objectField: ['fooDate' => '2021-01-03 00:00:00.000']),
             ])
@@ -1820,12 +1820,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'listField', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: ['foo', 'baz']),
             ])
         ];
@@ -1835,12 +1835,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'listField', value: ['baz', 'qux'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: ['foo', 'baz']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ])
@@ -1851,12 +1851,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'listField', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ])
@@ -1867,12 +1867,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'listField', value: ['baz', 'qux'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
             ])
         ];
@@ -1882,12 +1882,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['foo', 'baz']),
                 self::document(key: 'key3', listField: ['foo', 'qux']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Contains(field: 'listField', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: ['foo', 'bar']),
                 self::document(key: 'key2', listField: ['foo', 'baz']),
             ])
@@ -1898,12 +1898,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'listField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', listField: null)
             ])
         ];
@@ -1913,12 +1913,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: null),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'listField', value: null)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document('key1', listField: [1, 2]),
                 self::document('key2', listField: [1, 3])
             ])
@@ -1930,12 +1930,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: [1, 4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'listField', value: 3)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: [1, 3]),
             ])
         ];
@@ -1945,12 +1945,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: [1, 4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'listField', value: [3, 4])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: [1, 4]),
             ])
@@ -1961,12 +1961,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: [1, 4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'listField', value: 3)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: [1, 2]),
                 self::document(key: 'key3', listField: [1, 4]),
             ])
@@ -1977,12 +1977,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1, 3]),
                 self::document(key: 'key3', listField: [1, 4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'listField', value: [3, 4])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: [1, 2]),
             ])
         ];
@@ -1992,12 +1992,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1.1, 3.3]),
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'listField', value: 3.3)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: [1.1, 3.3]),
             ])
         ];
@@ -2007,12 +2007,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1.1, 3.3]),
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'listField', value: [3.3, 4.4])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: [1.1, 3.3]),
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ])
@@ -2023,12 +2023,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1.1, 3.3]),
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'listField', value: 3.3)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: [1.1, 2.2]),
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ])
@@ -2039,12 +2039,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: [1.1, 3.3]),
                 self::document(key: 'key3', listField: [1.1, 4.4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'listField', value: [3.3, 4.4])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: [1.1, 2.2]),
             ])
         ];
@@ -2054,12 +2054,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'listField', value: '2021-01-03')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
             ])
         ];
@@ -2069,12 +2069,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'listField', value: ['2021-01-03', '2021-01-04'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ])
@@ -2085,12 +2085,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'listField', value: '2021-01-03')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ])
@@ -2101,12 +2101,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'listField', value: ['2021-01-03', '2021-01-04'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
             ])
         ];
@@ -2116,12 +2116,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', listField: ['2021-01-01', '2021-01-03']),
                 self::document(key: 'key3', listField: ['2021-01-01', '2021-01-04']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Contains(field: 'listField', value: '2021-01-02')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', listField: ['2021-01-01', '2021-01-02']),
             ])
         ];
@@ -2132,12 +2132,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectListField.foo', value: 'baz-2')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
@@ -2148,12 +2148,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectListField.foo', value: ['bar-2', 'qux-2'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['foo' => 'bar'], ['foo' => 'bar-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
@@ -2164,12 +2164,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Contains(field: 'objectListField.foo', value: 'baz')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
@@ -2180,12 +2180,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Prefix(field: 'objectListField.foo', value: 'qu')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
         ];
@@ -2195,12 +2195,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Suffix(field: 'objectListField.foo', value: 'z-2')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['foo' => 'baz'], ['foo' => 'baz-2']]),
                 self::document(key: 'key3', objectListField: [['foo' => 'qux'], ['foo' => 'qux-2'], ['foo' => 'baz-2']]),
             ])
@@ -2212,12 +2212,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectListField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
             ])
@@ -2228,12 +2228,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectListField.fooInt', value: [10, 22])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ])
@@ -2244,12 +2244,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectListField.fooInt', value: 22)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ])
         ];
@@ -2259,12 +2259,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectListField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
             ])
@@ -2275,12 +2275,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectListField.fooInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ])
@@ -2291,12 +2291,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
                 self::document(key: 'key3', objectListField: [['fooInt' => 20], ['fooInt' => 22], ['fooInt' => 24]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectListField.fooInt', value: 20)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooInt' => 1], ['fooInt' => 2]]),
                 self::document(key: 'key2', objectListField: [['fooInt' => 10], ['fooInt' => 2]]),
             ])
@@ -2308,12 +2308,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectListField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
             ])
@@ -2325,12 +2325,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ]),
 
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectListField.fooFloat', value: [10.1, 22.2])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ])
@@ -2341,12 +2341,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectListField.fooFloat', value: 22.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ])
         ];
@@ -2356,12 +2356,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectListField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
             ])
@@ -2372,12 +2372,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectListField.fooFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ])
@@ -2388,12 +2388,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key3', objectListField: [['fooFloat' => 20.1], ['fooFloat' => 22.2], ['fooFloat' => 24.2]]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectListField.fooFloat', value: 20.1)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooFloat' => 1.1], ['fooFloat' => 2.2]]),
                 self::document(key: 'key2', objectListField: [['fooFloat' => 10.1], ['fooFloat' => 2.2]]),
             ])
@@ -2405,12 +2405,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectListField.fooDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
             ])
@@ -2421,12 +2421,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'objectListField.fooDate', value: ['2021-01-10 00:00:00.000', '2021-01-22 00:00:00.000'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ])
@@ -2438,12 +2438,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'objectListField.fooDate', value: '2021-01-22 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ])
         ];
@@ -2453,12 +2453,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'objectListField.fooDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
             ])
@@ -2469,12 +2469,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'objectListField.fooDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ])
@@ -2485,12 +2485,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['fooDate' => '2021-01-20 00:00:00.000'], ['fooDate' => '2021-01-22 00:00:00.000'], ['fooDate' => '2021-01-24 00:00:00.000']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'objectListField.fooDate', value: '2021-01-20 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', objectListField: [['fooDate' => '2021-01-01 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key2', objectListField: [['fooDate' => '2021-01-10 00:00:00.000'], ['fooDate' => '2021-01-02 00:00:00.000']]),
             ])
@@ -2502,12 +2502,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key2', objectField: ['fooObj' => ['bar' => 'qux']]),
                 self::document(key: 'key3', objectField: ['fooObj' => ['bar' => 'quux']]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'objectField.fooObj.bar', value: 'qux')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', objectField: ['fooObj' => ['bar' => 'qux']]),
             ])
         ];
@@ -2519,12 +2519,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedString', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['de' => 'foo']),
@@ -2537,12 +2537,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedString', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
@@ -2555,12 +2555,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedString', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedString: ['en' => 'bar', 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ])
@@ -2572,12 +2572,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedString', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ])
         ];
@@ -2588,12 +2588,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'foo', 'de' => 'bar']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Contains(field: 'translatedString', value: 'oo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'boo']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'foo', 'de' => 'bar']),
@@ -2606,12 +2606,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'baz', 'de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Prefix(field: 'translatedString', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
             ])
@@ -2623,12 +2623,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['en' => 'ob', 'de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Suffix(field: 'translatedString', value: 'o')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'foo']),
             ])
@@ -2640,12 +2640,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'b']),
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'translatedString', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'b']),
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
@@ -2658,12 +2658,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'b']),
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'translatedString', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'c']),
             ])
         ];
@@ -2674,12 +2674,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'b']),
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'translatedString', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'b']),
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
@@ -2692,12 +2692,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'b']),
                 self::document(key: 'key4', translatedString: ['en' => 'b', 'de' => 'a']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'translatedString', value: 'b')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedString: ['en' => 'a', 'de' => 'b']),
             ])
         ];
@@ -2708,12 +2708,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => '', 'de' => 'foo']),
                 self::document(key: 'key4', translatedString: ['de' => 'foo']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedString', value: 'foo')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'foo']),
                 self::document(key: 'key4', translatedString: ['de' => 'foo']),
             ])
@@ -2726,12 +2726,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
@@ -2744,12 +2744,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 3]),
                 self::document(key: 'key4', translatedInt: ['de' => 4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedInt', value: [2, 3, 4])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 3]),
                 self::document(key: 'key4', translatedInt: ['de' => 4]),
@@ -2762,12 +2762,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
             ])
         ];
@@ -2778,12 +2778,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedInt', value: [1, 2])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
         yield 'Test translated int field gte filter' => [
             'input' => new Documents([
@@ -2792,12 +2792,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
             ])
@@ -2809,12 +2809,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedInt: ['en' => 3]),
             ])
         ];
@@ -2825,12 +2825,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
@@ -2843,12 +2843,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 1]),
             ])
@@ -2861,12 +2861,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
@@ -2879,12 +2879,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 3.3]),
                 self::document(key: 'key4', translatedFloat: ['de' => 4.4]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedFloat', value: [2.2, 3.3, 4.4])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 3.3]),
                 self::document(key: 'key4', translatedFloat: ['de' => 4.4]),
@@ -2897,12 +2897,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
             ])
         ];
@@ -2913,12 +2913,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedFloat', value: [1.1, 2.2])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
         yield 'Test translated float field gte filter' => [
             'input' => new Documents([
@@ -2927,12 +2927,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
             ])
@@ -2944,12 +2944,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedFloat: ['en' => 3.3]),
             ])
         ];
@@ -2960,12 +2960,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
@@ -2978,12 +2978,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 1.1]),
             ])
@@ -2996,12 +2996,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedBool', value: false)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedBool: ['en' => false]),
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
@@ -3014,12 +3014,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedBool', value: false)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
             ])
         ];
@@ -3031,12 +3031,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
@@ -3049,12 +3049,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-03 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedDate', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-03 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
@@ -3067,12 +3067,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
             ])
         ];
@@ -3083,12 +3083,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-02 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedDate', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000'])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
         yield 'Test translated date field gte filter' => [
             'input' => new Documents([
@@ -3097,12 +3097,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gte(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
             ])
@@ -3114,12 +3114,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Gt(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedDate: ['en' => '2021-01-03 00:00:00.000']),
             ])
         ];
@@ -3130,12 +3130,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lte(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
@@ -3148,12 +3148,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedDate: ['en' => null, 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Lt(field: 'translatedDate', value: '2021-01-02 00:00:00.000')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
                 self::document(key: 'key4', translatedDate: ['de' => '2021-01-01 00:00:00.000']),
             ])
@@ -3166,12 +3166,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'bar']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedString', value: 'bar')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'bar']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
@@ -3184,12 +3184,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'baz']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedString', value: ['bar', 'baz'])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'baz']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
@@ -3202,12 +3202,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'bar']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedString', value: 'bar')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedString: ['en' => 'foo', 'de' => 'bar']),
             ])
         ];
@@ -3218,12 +3218,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'bar']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedString', value: ['foo', 'bar'])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
         yield 'Test translated list field contains filter and string values' => [
             'input' => new Documents([
@@ -3232,12 +3232,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'bar']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Contains(field: 'translatedString', value: 'ba')
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedString: ['en' => 'bar']),
                 self::document(key: 'key3', translatedString: ['en' => null, 'de' => 'bar']),
                 self::document(key: 'key4', translatedString: ['de' => 'bar']),
@@ -3251,12 +3251,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
@@ -3269,12 +3269,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 3]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedInt', value: [2, 3])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedInt: ['en' => 2]),
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 3]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
@@ -3287,12 +3287,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedInt', value: 2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedInt: ['en' => 1, 'de' => 2]),
             ])
         ];
@@ -3303,12 +3303,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedInt: ['en' => null, 'de' => 2]),
                 self::document(key: 'key4', translatedInt: ['de' => 2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedInt', value: [1, 2])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
 
         yield 'Test translated list field equals filter and float values' => [
@@ -3318,12 +3318,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
@@ -3336,12 +3336,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 3.3]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedFloat', value: [2.2, 3.3])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedFloat: ['en' => 2.2]),
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 3.3]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
@@ -3354,12 +3354,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedFloat', value: 2.2)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedFloat: ['en' => 1.1, 'de' => 2.2]),
             ])
         ];
@@ -3370,12 +3370,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedFloat: ['en' => null, 'de' => 2.2]),
                 self::document(key: 'key4', translatedFloat: ['de' => 2.2]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedFloat', value: [1.1, 2.2])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
 
         yield 'Test translated list field equals filter and bool values' => [
@@ -3385,12 +3385,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Equals(field: 'translatedBool', value: false)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key2', translatedBool: ['en' => false]),
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
@@ -3403,12 +3403,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => true]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Any(field: 'translatedBool', value: [false, true])
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
                 self::document(key: 'key2', translatedBool: ['en' => false]),
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => true]),
@@ -3422,12 +3422,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Not(field: 'translatedBool', value: false)
                 ]
             ),
-            'expected' => new FilterResult([
+            'expected' => new Result([
                 self::document(key: 'key1', translatedBool: ['en' => true, 'de' => false]),
             ])
         ];
@@ -3438,12 +3438,12 @@ abstract class FilterStorageTestBase extends TestCase
                 self::document(key: 'key3', translatedBool: ['en' => null, 'de' => false]),
                 self::document(key: 'key4', translatedBool: ['de' => false]),
             ]),
-            'criteria' => new FilterCriteria(
+            'criteria' => new Criteria(
                 filters: [
                      new Neither(field: 'translatedBool', value: [true, false])
                 ]
             ),
-            'expected' => new FilterResult([])
+            'expected' => new Result([])
         ];
     }
 

@@ -5,19 +5,21 @@ namespace Shopware\Storage\Common\Filter;
 use Shopware\Storage\Common\Filter\Operator\Operator;
 use Shopware\Storage\Common\Filter\Paging\Paging;
 use Shopware\Storage\Common\Filter\Type\Filter;
+use Shopware\Storage\Common\Search\SearchTerm;
+use Shopware\Storage\Common\Total;
 
-class FilterCriteria
+class Criteria
 {
     /**
-     * @param array<string> $keys
+     * @param array<string> $primaries
      * @param array<Sorting> $sorting
      * @param array<Operator|Filter> $filters
      */
     public function __construct(
+        public ?SearchTerm $term = null,
         public ?Paging $paging = null,
-        public ?int $limit = null,
-        public ?array $keys = null,
-        public bool $total = false,
+        public ?array $primaries = null,
+        public Total $total = Total::NONE,
         public array $sorting = [],
         public array $filters = []
     ) {}
