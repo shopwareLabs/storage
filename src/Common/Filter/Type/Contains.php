@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Type;
 
-class Contains extends Filter
-{
-}
+class Contains extends Filter {}

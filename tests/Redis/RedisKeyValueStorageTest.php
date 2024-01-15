@@ -2,12 +2,13 @@
 
 namespace Shopware\StorageTests\Redis;
 
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
-use Shopware\Storage\Redis\RedisKeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Redis\RedisKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\Redis\RedisKeyValueStorage
+ * @covers \Shopware\Storage\Redis\RedisKeyStorage
  */
 class RedisKeyValueStorageTest extends KeyValueStorageTestBase
 {
@@ -19,9 +20,9 @@ class RedisKeyValueStorageTest extends KeyValueStorageTestBase
         return $client;
     }
 
-    public function getStorage(): KeyValueStorage
+    public function getStorage(): KeyAware&Storage
     {
-        return new RedisKeyValueStorage(
+        return new RedisKeyStorage(
             client: $this->getClient()
         );
     }

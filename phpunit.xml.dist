@@ -11,6 +11,7 @@
         <testsuite name="common">
             <directory>tests/Common</directory>
         </testsuite>
+
         <testsuite name="array">
             <directory>tests/Array</directory>
         </testsuite>
@@ -29,6 +30,10 @@
 
         <testsuite name="opensearch">
             <directory>tests/Opensearch</directory>
+        </testsuite>
+
+        <testsuite name="meilisearch">
+            <directory>tests/Meilisearch</directory>
         </testsuite>
 
         <testsuite name="redis">

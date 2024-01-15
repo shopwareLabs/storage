@@ -3,12 +3,13 @@
 namespace Shopware\StorageTests\MongoDB;
 
 use MongoDB\Client;
-use Shopware\Storage\Common\Filter\FilterStorage;
-use Shopware\Storage\MongoDB\MongoDBFilterStorage;
+use Shopware\Storage\Common\Filter\FilterAware;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\MongoDB\MongoDBStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\MongoDB\MongoDBFilterStorage
+ * @covers \Shopware\Storage\MongoDB\MongoDBStorage
  */
 class MongoDBFilterStorageTest extends FilterStorageTestBase
 {
@@ -35,9 +36,9 @@ class MongoDBFilterStorageTest extends FilterStorageTestBase
         $this->getClient()->dropDatabase('test');
     }
 
-    public function getStorage(): FilterStorage
+    public function getStorage(): FilterAware&Storage
     {
-        return new MongoDBFilterStorage(
+        return new MongoDBStorage(
             database: 'test',
             schema: $this->getSchema(),
             client: $this->getClient(),

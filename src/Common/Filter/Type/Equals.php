@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Type;
 
-class Equals extends Filter
-{
-}
+class Equals extends Filter {}

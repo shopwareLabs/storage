@@ -31,12 +31,21 @@
     "opensearch-project/opensearch-php": "^2.0",
     "shyim/opensearch-php-dsl": "^1.0.1",
     "async-aws/dynamo-db": "^2.0",
-    "mongodb/mongodb": "^1.16"
+    "mongodb/mongodb": "^1.16",
+    "meilisearch/meilisearch-php": "^1.5",
+    "symfony/http-client": "^6.4",
+    "nyholm/psr7": "^1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5",
     "symfony/var-dumper": "^6.3",
     "phpstan/phpstan": "^1.10",
-    "friendsofphp/php-cs-fixer": "^3.35"
+    "friendsofphp/php-cs-fixer": "^3.35",
+    "kubawerlos/php-cs-fixer-custom-fixers": "~v3.14.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
   }
 }

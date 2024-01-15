@@ -4,12 +4,19 @@ namespace Shopware\StorageTests\MySQL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Shopware\Storage\Common\Filter\FilterStorage;
-use Shopware\Storage\MySQL\MySQLFilterStorage;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Filter\Criteria;
+use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Filter\FilterAware;
+use Shopware\Storage\Common\Filter\Type\Equals;
+use Shopware\Storage\Common\Filter\Type\Not;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\MySQL\MySQLStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\MySQL\MySQLFilterStorage
+ * @covers \Shopware\Storage\MySQL\MySQLStorage
  */
 class MySQLFilterStorageTest extends FilterStorageTestBase
 {
@@ -26,17 +33,9 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
             ->executeStatement((string) file_get_contents(__DIR__ . '/test_storage.sql'));
     }
 
-    protected function tearDown(): void
+    public function getStorage(): FilterAware&Storage
     {
-        parent::tearDown();
-
-        //        $this->getConnection()
-        //            ->executeStatement('DROP TABLE IF EXISTS `test_storage`');
-    }
-
-    public function getStorage(): FilterStorage
-    {
-        return new MySQLFilterStorage(
+        return new MySQLStorage(
             connection: $this->getConnection(),
             schema: $this->getSchema()
         );

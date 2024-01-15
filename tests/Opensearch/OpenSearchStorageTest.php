@@ -4,12 +4,13 @@ namespace Shopware\StorageTests\Opensearch;
 
 use OpenSearch\Client;
 use OpenSearch\ClientBuilder;
-use Shopware\Storage\Common\Filter\FilterStorage;
-use Shopware\Storage\Opensearch\OpenSearchFilterStorage;
+use Shopware\Storage\Common\Filter\FilterAware;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Opensearch\OpenSearchStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\Opensearch\OpenSearchFilterStorage
+ * @covers \Shopware\Storage\Opensearch\OpenSearchStorage
  */
 class OpenSearchStorageTest extends FilterStorageTestBase
 {
@@ -139,11 +140,6 @@ class OpenSearchStorageTest extends FilterStorageTestBase
         ]);
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-    }
-
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
@@ -161,12 +157,11 @@ class OpenSearchStorageTest extends FilterStorageTestBase
         }
     }
 
-
-    public function getStorage(): FilterStorage
+    public function getStorage(): FilterAware&Storage
     {
-        return new OpensearchLiveFilterStorage(
+        return new OpensearchLiveStorage(
             $this->getClient(),
-            new OpenSearchFilterStorage(
+            new OpenSearchStorage(
                 $this->getClient(),
                 $this->getSchema()
             ),

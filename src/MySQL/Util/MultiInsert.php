@@ -53,6 +53,10 @@ class MultiInsert
                 $type = $types[$key];
             }
 
+            if (is_bool($value)) {
+                $value = (int) $value;
+            }
+
             if ($value === null) {
                 $value = 'NULL';
             } elseif (is_array($value)) {

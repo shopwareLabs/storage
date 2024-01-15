@@ -2,6 +2,4 @@
 
 namespace Shopware\Storage\Common\Filter\Type;
 
-class Gt extends Filter
-{
-}
+class Gt extends Filter {}

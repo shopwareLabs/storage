@@ -3,14 +3,15 @@
 namespace Shopware\StorageTests\MongoDB;
 
 use MongoDB\Client;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
-use Shopware\Storage\MongoDB\MongoDBKeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\MongoDB\MongoDBKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
 
 /**
  * @internal
  *
- * @covers \Shopware\Storage\MongoDB\MongoDBKeyValueStorage
+ * @covers \Shopware\Storage\MongoDB\MongoDBKeyStorage
  */
 class MongoDBKeyValueStorageTest extends KeyValueStorageTestBase
 {
@@ -25,9 +26,9 @@ class MongoDBKeyValueStorageTest extends KeyValueStorageTestBase
         return $this->client;
     }
 
-    public function getStorage(): KeyValueStorage
+    public function getStorage(): KeyAware&Storage
     {
-        return new MongoDBKeyValueStorage(
+        return new MongoDBKeyStorage(
             database: 'test',
             collection: 'test_document',
             client: $this->getClient()

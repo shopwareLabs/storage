@@ -4,12 +4,13 @@ namespace Shopware\StorageTests\MySQL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
-use Shopware\Storage\MySQL\MySQLKeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\MySQL\MySQLKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\MySQL\MySQLKeyValueStorage
+ * @covers \Shopware\Storage\MySQL\MySQLKeyStorage
  */
 class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
 {
@@ -31,9 +32,9 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
             ->executeStatement('DROP TABLE IF EXISTS `test_key_value`');
     }
 
-    public function getStorage(): KeyValueStorage
+    public function getStorage(): KeyAware&Storage
     {
-        return new MySQLKeyValueStorage(
+        return new MySQLKeyStorage(
             connection: $this->getConnection(),
             source: 'test_key_value'
         );

@@ -8,12 +8,13 @@ use AsyncAws\DynamoDb\Input\CreateTableInput;
 use AsyncAws\DynamoDb\ValueObject\AttributeDefinition;
 use AsyncAws\DynamoDb\ValueObject\KeySchemaElement;
 use AsyncAws\DynamoDb\ValueObject\ProvisionedThroughput;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
-use Shopware\Storage\DynamoDB\DynamoDBKeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
+use Shopware\Storage\DynamoDB\DynamoDBKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\DynamoDB\DynamoDBKeyValueStorage
+ * @covers \Shopware\Storage\DynamoDB\DynamoDBKeyStorage
  */
 class DynamoDBKeyValueStorageTest extends KeyValueStorageTestBase
 {
@@ -44,9 +45,9 @@ class DynamoDBKeyValueStorageTest extends KeyValueStorageTestBase
         }
     }
 
-    public function getStorage(): KeyValueStorage
+    public function getStorage(): KeyAware&Storage
     {
-        return new DynamoDBKeyValueStorage(
+        return new DynamoDBKeyStorage(
             $this->getClient(),
             'test'
         );

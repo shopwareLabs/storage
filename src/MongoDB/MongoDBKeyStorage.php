@@ -7,16 +7,16 @@ use MongoDB\Client;
 use MongoDB\Collection;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
 
-class MongoDBKeyValueStorage implements KeyValueStorage
+class MongoDBKeyStorage implements KeyAware, Storage
 {
     public function __construct(
         private readonly string $database,
         private readonly string $collection,
         private readonly Client $client
-    ) {
-    }
+    ) {}
 
     public function mget(array $keys): Documents
     {

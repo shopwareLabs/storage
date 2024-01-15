@@ -4,13 +4,12 @@ namespace Shopware\Storage\Redis;
 
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
 
-class RedisKeyValueStorage implements KeyValueStorage
+class RedisKeyStorage implements Storage, KeyAware
 {
-    public function __construct(private readonly \Redis $client)
-    {
-    }
+    public function __construct(private readonly \Redis $client) {}
 
     public function setup(): void
     {

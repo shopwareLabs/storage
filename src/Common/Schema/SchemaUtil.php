@@ -14,7 +14,7 @@ class SchemaUtil
 
         if ($type === FieldType::INT) {
             return match (true) {
-                is_array($value) => array_map(fn ($v) => (int) $v, $value),
+                is_array($value) => array_map(fn($v) => (int) $v, $value),
                 // @phpstan-ignore-next-line
                 default => (int) $value,
             };
@@ -22,7 +22,7 @@ class SchemaUtil
 
         if ($type === FieldType::FLOAT) {
             return match (true) {
-                is_array($value) => array_map(fn ($v) => (float) $v, $value),
+                is_array($value) => array_map(fn($v) => (float) $v, $value),
                 // @phpstan-ignore-next-line
                 default => (float) $value,
             };
@@ -30,14 +30,14 @@ class SchemaUtil
 
         if ($type === FieldType::BOOL) {
             return match (true) {
-                is_array($value) => array_map(fn ($v) => (bool) $v, $value),
+                is_array($value) => array_map(fn($v) => (bool) $v, $value),
                 default => (bool) $value,
             };
         }
 
         if ($type === FieldType::DATETIME) {
             return match (true) {
-                is_array($value) => array_map(fn ($v) => (new \DateTimeImmutable($v))->format('Y-m-d H:i:s.v'), $value),
+                is_array($value) => array_map(fn($v) => (new \DateTimeImmutable($v))->format('Y-m-d H:i:s.v'), $value),
                 // @phpstan-ignore-next-line
                 default => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),
             };
@@ -57,7 +57,7 @@ class SchemaUtil
     {
         $schema = self::fieldSchema(schema: $schema, accessor: $accessor);
 
-        return $schema->translated;
+        return $schema->options['translated'] ?? false;
     }
 
     public static function type(Schema $schema, string $accessor): string
@@ -70,6 +70,10 @@ class SchemaUtil
     public static function fieldSchema(Schema $schema, string $accessor): Field
     {
         $property = self::property(accessor: $accessor);
+
+        if ($property === 'key') {
+            return new Field(name: 'key', type: FieldType::STRING);
+        }
 
         $field = $schema->fields[$property] ?? null;
 

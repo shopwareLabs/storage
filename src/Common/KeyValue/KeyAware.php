@@ -6,7 +6,7 @@ use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Storage;
 
-interface KeyValueStorage extends Storage
+interface KeyAware
 {
     /**
      * @param array<string> $keys

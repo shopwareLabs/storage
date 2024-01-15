@@ -4,9 +4,10 @@ namespace Shopware\Storage\Array;
 
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyValueStorage;
+use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Storage;
 
-class ArrayKeyValueStorage implements KeyValueStorage
+class ArrayKeyStorage implements KeyAware, Storage
 {
     /**
      * @var array<string, Document>
