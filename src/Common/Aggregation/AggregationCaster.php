@@ -33,6 +33,7 @@ class AggregationCaster
                 };
                 break;
             case FieldType::DATETIME:
+
                 $caster = function ($value) {
                     return match (true) {
                         is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),

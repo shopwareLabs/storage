@@ -69,13 +69,13 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         foreach ($aggregations as $aggregation) {
             $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
             if ($translated) {
-                throw new NotSupportedByEngine('', 'Meilisearch does not support translated fields.');
+                throw new NotSupportedByEngine('', 'Meilisearch does not support aggregations on translated fields.');
             }
 
             $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
             if (in_array($type, [FieldType::TEXT, FieldType::STRING], true)) {
                 if ($aggregation instanceof Sum || $aggregation instanceof Avg) {
-                    throw new NotSupportedByEngine('', '');
+                    throw new NotSupportedByEngine('', 'Meilisearch does not support sum/avg aggregations on string/text fields.');
                 }
             }
 

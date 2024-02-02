@@ -144,6 +144,10 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $result = [];
 
         foreach ($aggregations as $aggregation) {
+            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+
+            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+
             $value = $response['aggregations'][$aggregation->name];
 
             // nested aggregation? get the value from the nested path
@@ -159,19 +163,31 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             }
 
             if ($aggregation instanceof Min) {
+                $data = $value['value_as_string'] ?? $value['value'];
+
+                if ($type === FieldType::DATETIME && $translated) {
+                    $data = date('Y-m-d H:i:s.000', $data / 1000);
+                }
+
                 $result[$aggregation->name] = $this->caster->cast(
                     schema: $this->schema,
                     aggregation: $aggregation,
-                    data: $value['value_as_string'] ?? $value['value']
+                    data: $data
                 );
                 continue;
             }
 
             if ($aggregation instanceof Max) {
+                $data = $value['value_as_string'] ?? $value['value'];
+
+                if ($type === FieldType::DATETIME && $translated) {
+                    $data = date('Y-m-d H:i:s.000', $data / 1000);
+                }
+
                 $result[$aggregation->name] = $this->caster->cast(
                     schema: $this->schema,
                     aggregation: $aggregation,
-                    data: $value['value_as_string'] ?? $value['value']
+                    data: $data
                 );
                 continue;
             }

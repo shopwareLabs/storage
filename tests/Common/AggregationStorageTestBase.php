@@ -22,6 +22,19 @@ abstract class AggregationStorageTestBase extends TestCase
 {
     use SchemaStorageTrait;
 
+    /**
+     * @param array<string, mixed> $expected
+     */
+    #[DataProvider('translatedDateCases')]
+    #[DataProvider('dateCases')]
+    public function testDebug(
+        Aggregation $aggregations,
+        Documents $input,
+        array $expected
+    ): void {
+        $this->testStorage($aggregations, $input, $expected);
+    }
+
     abstract public function getStorage(): AggregationAware&Storage;
 
     public static function stringCases(): \Generator
@@ -1244,9 +1257,9 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, translated date field' => [
             new Min(name: 'min', field: 'translatedDate'),
             new Documents([
-                self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
-                self::document(key: 'key2', translatedDate: ['en' => null, 'de' => '2021-01-03 00:00:00.000']),
-                self::document(key: 'key3', translatedDate: ['de' => '2021-01-04 00:00:00.000']),
+                self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
+                self::document(key: 'key2', dateField: '2021-01-01 00:00:00.000', translatedDate: ['en' => null, 'de' => '2021-01-03 00:00:00.000']),
+                self::document(key: 'key3', dateField: '2021-01-01 00:00:00.000', translatedDate: ['de' => '2021-01-04 00:00:00.000']),
             ]),
             ['min' => '2021-01-01 00:00:00.000'],
         ];
@@ -1284,18 +1297,6 @@ abstract class AggregationStorageTestBase extends TestCase
             ]),
             ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-03 00:00:00.000', '2021-01-04 00:00:00.000']]
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $expected
-     */
-    #[DataProvider('dateCases')]
-    public function testDebug(
-        Aggregation $aggregations,
-        Documents $input,
-        array $expected
-    ): void {
-        $this->testStorage($aggregations, $input, $expected);
     }
 
     /**
