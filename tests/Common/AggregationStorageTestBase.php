@@ -771,8 +771,8 @@ abstract class AggregationStorageTestBase extends TestCase
             new Count(name: 'count', field: 'objectListField.stringField'),
             new Documents([
                 self::document(key: 'key1', objectListField: [['stringField' => 'a'], ['stringField' => 'b']]),
-                self::document(key: 'key2', objectListField: [['stringField' => 'a'], ['stringField' => 'd']]),
-                self::document(key: 'key3', objectListField: [['stringField' => 'c'], ['stringField' => 'c']]),
+                self::document(key: 'key2', objectListField: [['stringField' => 'a'], ['stringField' => 'c']]),
+                self::document(key: 'key3', objectListField: [['stringField' => 'c'], ['stringField' => 'd']]),
             ]),
             [
                 'count' => [
@@ -787,8 +787,8 @@ abstract class AggregationStorageTestBase extends TestCase
             new Distinct(name: 'distinct', field: 'objectListField.stringField'),
             new Documents([
                 self::document(key: 'key1', objectListField: [['stringField' => 'a'], ['stringField' => 'b']]),
-                self::document(key: 'key2', objectListField: [['stringField' => 'a'], ['stringField' => 'd']]),
-                self::document(key: 'key3', objectListField: [['stringField' => 'c'], ['stringField' => 'c']]),
+                self::document(key: 'key2', objectListField: [['stringField' => 'a'], ['stringField' => 'c']]),
+                self::document(key: 'key3', objectListField: [['stringField' => 'c'], ['stringField' => 'd']]),
             ]),
             ['distinct' => ['a', 'b', 'c', 'd']]
         ];
@@ -902,8 +902,8 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Count, object list int field' => [
             new Count(name: 'count', field: 'objectListField.intField'),
             new Documents([
-                self::document(key: 'key1', objectListField: [['intField' => 2], ['intField' => 2]]),
-                self::document(key: 'key2', objectListField: [['intField' => 3], ['intField' => 4]]),
+                self::document(key: 'key1', objectListField: [['intField' => 2], ['intField' => 3]]),
+                self::document(key: 'key2', objectListField: [['intField' => 2], ['intField' => 4]]),
                 self::document(key: 'key3', objectListField: [['intField' => 4], ['intField' => 2]]),
             ]),
             [
@@ -949,13 +949,13 @@ abstract class AggregationStorageTestBase extends TestCase
             new Count(name: 'count', field: 'objectListField.boolField'),
             new Documents([
                 self::document(key: 'key1', objectListField: [['boolField' => true], ['boolField' => false]]),
-                self::document(key: 'key2', objectListField: [['boolField' => false], ['boolField' => true]]),
-                self::document(key: 'key3', objectListField: [['boolField' => true], ['boolField' => true]]),
+                self::document(key: 'key2', objectListField: [['boolField' => false]]),
+                self::document(key: 'key3', objectListField: [['boolField' => true]]),
             ]),
             [
                 'count' => [
                     ['key' => false, 'count' => 2],
-                    ['key' => true, 'count' => 4],
+                    ['key' => true, 'count' => 2],
                 ]
             ],
         ];
@@ -993,8 +993,8 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Count, object list date field' => [
             new Count(name: 'count', field: 'objectListField.dateField'),
             new Documents([
-                self::document(key: 'key1', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-02 00:00:00.000']]),
-                self::document(key: 'key2', objectListField: [['dateField' => '2021-01-03 00:00:00.000'], ['dateField' => '2021-01-03 00:00:00.000']]),
+                self::document(key: 'key1', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-03 00:00:00.000']]),
+                self::document(key: 'key2', objectListField: [['dateField' => '2021-01-03 00:00:00.000'], ['dateField' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-03 00:00:00.000']]),
             ]),
             [
@@ -1008,8 +1008,8 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Distinct, object list date field' => [
             new Distinct(name: 'distinct', field: 'objectListField.dateField'),
             new Documents([
-                self::document(key: 'key1', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-02 00:00:00.000']]),
-                self::document(key: 'key2', objectListField: [['dateField' => '2021-01-03 00:00:00.000'], ['dateField' => '2021-01-03 00:00:00.000']]),
+                self::document(key: 'key1', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-03 00:00:00.000']]),
+                self::document(key: 'key2', objectListField: [['dateField' => '2021-01-03 00:00:00.000'], ['dateField' => '2021-01-02 00:00:00.000']]),
                 self::document(key: 'key3', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-03 00:00:00.000']]),
             ]),
             ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']],
@@ -1289,7 +1289,7 @@ abstract class AggregationStorageTestBase extends TestCase
     /**
      * @param array<string, mixed> $expected
      */
-    #[DataProvider('intCases')]
+    #[DataProvider('dateCases')]
     public function testDebug(
         Aggregation $aggregations,
         Documents $input,

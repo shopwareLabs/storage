@@ -6,31 +6,13 @@ use Meilisearch\Client;
 use Meilisearch\Contracts\TasksQuery;
 use Meilisearch\Endpoints\Indexes;
 use Meilisearch\Exceptions\ApiException;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
-use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Exception\NotSupportedByEngine;
-use Shopware\Storage\Common\Filter\Criteria;
-use Shopware\Storage\Common\Filter\Result;
-use Shopware\Storage\Common\Filter\FilterAware;
-use Shopware\Storage\Common\Filter\Paging\Page;
-use Shopware\Storage\Common\Filter\Type\Any;
-use Shopware\Storage\Common\Filter\Type\Contains;
-use Shopware\Storage\Common\Filter\Type\Equals;
-use Shopware\Storage\Common\Filter\Type\Gt;
-use Shopware\Storage\Common\Filter\Type\Gte;
-use Shopware\Storage\Common\Filter\Type\Lt;
-use Shopware\Storage\Common\Filter\Type\Lte;
-use Shopware\Storage\Common\Filter\Type\Neither;
-use Shopware\Storage\Common\Filter\Type\Not;
-use Shopware\Storage\Common\Filter\Type\Prefix;
-use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Storage;
-use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Meilisearch\MeilisearchStorage;
-use Shopware\StorageTests\Common\FilterStorageTestBase;
+use Shopware\StorageTests\Common\AggregationStorageTestBase;
 
-class MeilisearchStorageTest extends FilterStorageTestBase
+class MeilisearchStorageAggregationTest extends AggregationStorageTestBase
 {
     private ?Client $client = null;
 
@@ -93,7 +75,7 @@ class MeilisearchStorageTest extends FilterStorageTestBase
         return $this->client;
     }
 
-    public function getStorage(): FilterAware&Storage
+    public function getStorage(): AggregationAware&Storage
     {
         return new MeilisearchLiveStorage(
             storage: new MeilisearchStorage(

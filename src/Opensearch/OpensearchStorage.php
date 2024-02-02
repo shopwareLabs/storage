@@ -67,8 +67,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 {
     public function __construct(
         private readonly AggregationCaster $caster,
-        private readonly Client            $client,
-        private readonly Schema            $schema
+        private readonly Client $client,
+        private readonly Schema $schema
     ) {}
 
     public function setup(): void
@@ -112,7 +112,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($response['errors'] === true) {
             dump($response);
-            return;
         }
     }
 
