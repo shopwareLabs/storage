@@ -63,7 +63,7 @@ use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
 
-class OpenSStorage implements Storage, FilterAware, AggregationAware
+class OpensearchStorage implements Storage, FilterAware, AggregationAware
 {
     public function __construct(
         private readonly AggregationCaster $caster,

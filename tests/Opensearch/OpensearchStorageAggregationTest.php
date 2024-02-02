@@ -4,16 +4,18 @@ namespace Shopware\StorageTests\Opensearch;
 
 use OpenSearch\Client;
 use OpenSearch\ClientBuilder;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
-use Shopware\Storage\Opensearch\OpenSStorage;
+use Shopware\Storage\Opensearch\OpensearchStorage;
+use Shopware\StorageTests\Common\AggregationStorageTestBase;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\Opensearch\OpenSStorage
+ * @covers \Shopware\Storage\Opensearch\OpensearchStorage
  */
-class OpenSStorageFilterTest extends FilterStorageTestBase
+class OpensearchStorageAggregationTest extends AggregationStorageTestBase
 {
     private ?Client $client = null;
 
@@ -33,11 +35,19 @@ class OpenSStorageFilterTest extends FilterStorageTestBase
     {
         parent::setUp();
 
+        $this->createIndex();
+
+        $this->createScripts();
+    }
+
+    private function createIndex(): void
+    {
         $exists = $this->getClient()
             ->indices()
             ->exists(['index' => $this->getSchema()->source]);
 
         if ($exists) {
+            //$this->getClient()->indices()->delete(['index' => $this->getSchema()->source]);
             // delete all documents from index
             $this->getClient()->deleteByQuery([
                 'index' => $this->getSchema()->source,
@@ -141,6 +151,20 @@ class OpenSStorageFilterTest extends FilterStorageTestBase
         ]);
     }
 
+    private function createScripts(): void
+    {
+        $this->getClient()->putScript([
+            'id' => 'translated',
+            'body' => [
+                'script' => [
+                    'lang' => 'painless',
+                    'source' => file_get_contents(__DIR__ . '/../../src/Opensearch/scripts/translated.groovy')
+                ]
+            ]
+        ]);
+
+    }
+
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
@@ -158,11 +182,11 @@ class OpenSStorageFilterTest extends FilterStorageTestBase
         }
     }
 
-    public function getStorage(): FilterAware&Storage
+    public function getStorage(): AggregationAware&Storage
     {
         return new OpensearchLiveStorage(
             $this->getClient(),
-            new OpenSStorage(
+            new OpensearchStorage(
                 new AggregationCaster(),
                 $this->getClient(),
                 $this->getSchema()
