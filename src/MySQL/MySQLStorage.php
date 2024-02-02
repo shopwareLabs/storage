@@ -5,6 +5,15 @@ namespace Shopware\Storage\MySQL;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
+use Shopware\Storage\Common\Aggregation\Type\Aggregation;
+use Shopware\Storage\Common\Aggregation\Type\Avg;
+use Shopware\Storage\Common\Aggregation\Type\Count;
+use Shopware\Storage\Common\Aggregation\Type\Distinct;
+use Shopware\Storage\Common\Aggregation\Type\Max;
+use Shopware\Storage\Common\Aggregation\Type\Min;
+use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\Criteria;
@@ -38,17 +47,45 @@ use Shopware\Storage\Common\Total;
 use Shopware\Storage\Common\Util\Uuid;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-class MySQLStorage implements Storage, FilterAware
+class MySQLStorage implements Storage, FilterAware, AggregationAware
 {
     public function __construct(
-        private readonly Connection $connection,
-        private readonly Schema     $schema
+        private readonly AggregationCaster $caster,
+        private readonly Connection        $connection,
+        private readonly Schema            $schema
     ) {}
 
+    private static function escape(string $source): string
+    {
+        return '`' . $source . '`';
+    }
 
     public function setup(): void
     {
         // todo@o.skroblin auto setup feature
+    }
+
+    public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
+    {
+        $result = [];
+
+        foreach ($aggregations as $aggregation) {
+            $data = $this->loadAggregation(
+                aggregation: $aggregation,
+                criteria: $criteria,
+                context: $context
+            );
+
+            $data = $this->caster->cast(
+                schema: $this->schema,
+                aggregation: $aggregation,
+                data: $data
+            );
+
+            $result[$aggregation->name] = $data;
+        }
+
+        return $result;
     }
 
     public function remove(array $keys): void
@@ -74,12 +111,73 @@ class MySQLStorage implements Storage, FilterAware
         $queue->execute();
     }
 
+    private function loadAggregation(Aggregation $aggregation, Criteria $criteria, StorageContext $context): mixed
+    {
+        $query = $this->connection->createQueryBuilder();
+
+        $query->from($this->schema->source, 'root');
+
+        $filters = array_merge(
+            $criteria->filters,
+            $aggregation->filter
+        );
+
+        //todo@skroblin support of post filters?
+        if (!empty($filters)) {
+            $parsed = $this->addFilters($query, $filters, $context);
+
+            foreach ($parsed as $filter) {
+                $query->andWhere($filter);
+            }
+        }
+
+        $accessor = $this->getAccessor($query, $aggregation->field, $context);
+
+        if ($aggregation instanceof Min) {
+            $query->select('MIN(' . $accessor . ')');
+            return $query->executeQuery()->fetchOne();
+        }
+
+        if ($aggregation instanceof Max) {
+            $query->select('MAX(' . $accessor . ')');
+            return $query->executeQuery()->fetchOne();
+        }
+
+        if ($aggregation instanceof Avg) {
+            $query->select('AVG(' . $accessor . ')');
+            return $query->executeQuery()->fetchOne();
+        }
+
+        if ($aggregation instanceof Sum) {
+            $query->select('SUM(' . $accessor . ')');
+            return $query->executeQuery()->fetchOne();
+        }
+
+        if ($aggregation instanceof Count) {
+            $query->select([
+                $accessor . ' as `key`',
+                'COUNT(' . $accessor . ') as count'
+            ]);
+            $query->groupBy($accessor);
+
+            return $query->executeQuery()->fetchAllAssociative();
+        }
+
+        if ($aggregation instanceof Distinct) {
+            $query->select('DISTINCT ' . $accessor);
+
+            return $query->executeQuery()->fetchFirstColumn();
+        }
+
+        throw new \LogicException(sprintf('Unsupported aggregation type %s', get_class($aggregation)));
+    }
+
     public function filter(Criteria $criteria, StorageContext $context): Result
     {
         $query = $this->connection->createQueryBuilder();
 
         $query->select('root.*');
-        $query->from($this->schema->source, 'root');
+        $query->from(self::escape($this->schema->source), 'root');
 
         if ($criteria->paging instanceof Page) {
             $query->setFirstResult(($criteria->paging->page - 1) * $criteria->paging->limit);
