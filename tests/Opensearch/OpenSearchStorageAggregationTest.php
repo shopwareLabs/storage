@@ -47,7 +47,7 @@ class OpenSearchStorageAggregationTest extends AggregationStorageTestBase
             ->exists(['index' => $this->getSchema()->source]);
 
         if ($exists) {
-            //            $this->getClient()->indices()->delete(['index' => $this->getSchema()->source]);
+            //$this->getClient()->indices()->delete(['index' => $this->getSchema()->source]);
             // delete all documents from index
             $this->getClient()->deleteByQuery([
                 'index' => $this->getSchema()->source,

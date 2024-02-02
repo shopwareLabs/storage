@@ -7,11 +7,11 @@ use Shopware\Storage\Common\Filter\Type\Filter;
 abstract class Aggregation
 {
     /**
-     * @param array<Filter> $filter
+     * @param array<Filter> $filters
      */
     public function __construct(
         public readonly string $name,
         public readonly string $field,
-        public readonly array $filter = [],
+        public readonly array $filters = [],
     ) {}
 }

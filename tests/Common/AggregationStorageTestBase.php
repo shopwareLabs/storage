@@ -127,7 +127,6 @@ abstract class AggregationStorageTestBase extends TestCase
             ]),
             ['min' => 1],
         ];
-
         yield 'Avg, int field' => [
             new Avg(name: 'avg', field: 'intField'),
             new Documents([
@@ -137,7 +136,6 @@ abstract class AggregationStorageTestBase extends TestCase
             ]),
             ['avg' => 2],
         ];
-
         yield 'Max, int field' => [
             new Max(name: 'max', field: 'intField'),
             new Documents([
@@ -173,7 +171,6 @@ abstract class AggregationStorageTestBase extends TestCase
                 ]
             ],
         ];
-
         yield 'Distinct, int field' => [
             new Distinct(name: 'distinct', field: 'intField'),
             new Documents([
@@ -396,12 +393,68 @@ abstract class AggregationStorageTestBase extends TestCase
 
     public static function listIntCases(): \Generator
     {
-        yield 'Avg, list int field' => [];
-        yield 'Min, list int field' => [];
-        yield 'Max, list int field' => [];
-        yield 'Sum, list int field' => [];
-        yield 'Count, list int field' => [];
-        yield 'Distinct, list int field' => [];
+        yield 'Avg, list int field' => [
+            new Avg(name: 'avg', field: 'listField'),
+            new Documents([
+                self::document('key1', listField: [1, 2, 3]),
+                self::document('key2', listField: [2, 4, 3]),
+                self::document('key3', listField: [2, 5, 5]),
+            ]),
+            ['avg' => 3],
+        ];
+        yield 'Min, list int field' => [
+            new Min(name: 'min', field: 'listField'),
+            new Documents([
+                self::document('key1', listField: [1, 2, 3]),
+                self::document('key2', listField: [2, 4, 3]),
+                self::document('key3', listField: [2, 5, 4]),
+            ]),
+            ['min' => 1],
+        ];
+        yield 'Max, list int field' => [
+            new Max(name: 'max', field: 'listField'),
+            new Documents([
+                self::document('key1', listField: [1, 2, 3]),
+                self::document('key2', listField: [2, 4, 3]),
+                self::document('key3', listField: [2, 5, 4]),
+            ]),
+            ['max' => 5],
+        ];
+        yield 'Sum, list int field' => [
+            new Sum(name: 'sum', field: 'listField'),
+            new Documents([
+                self::document('key1', listField: [1, 2, 3]),
+                self::document('key2', listField: [2, 4, 3]),
+                self::document('key3', listField: [2, 5, 4]),
+            ]),
+            ['sum' => 26],
+        ];
+        yield 'Count, list int field' => [
+            new Count(name: 'count', field: 'listField'),
+            new Documents([
+                self::document('key1', listField: [1, 2, 3]),
+                self::document('key2', listField: [2, 4, 3]),
+                self::document('key3', listField: [2, 5, 3]),
+            ]),
+            [
+                'count' => [
+                    ['key' => 1, 'count' => 1],
+                    ['key' => 2, 'count' => 3],
+                    ['key' => 3, 'count' => 3],
+                    ['key' => 4, 'count' => 1],
+                    ['key' => 5, 'count' => 1],
+                ]
+            ],
+        ];
+        yield 'Distinct, list int field' => [
+            new Distinct(name: 'distinct', field: 'listField'),
+            new Documents([
+                self::document('key1', listField: [1, 2, 3]),
+                self::document('key2', listField: [2, 4, 3]),
+                self::document('key3', listField: [2, 5, 3]),
+            ]),
+            ['distinct' => [1, 2, 3, 4, 5]],
+        ];
     }
 
     public static function listDateCases(): \Generator
@@ -645,15 +698,6 @@ abstract class AggregationStorageTestBase extends TestCase
 
     public static function objectDateCases(): \Generator
     {
-        //        yield 'Avg, object date field' => [
-        //            new Avg(name: 'avg', field: 'objectField.dateField'),
-        //            new Documents([
-        //                self::document(key: 'key1', objectField: ['dateField' => '2021-01-01 00:00:00.000']),
-        //                self::document(key: 'key2', objectField: ['dateField' => '2021-01-02 00:00:00.000']),
-        //                self::document(key: 'key3', objectField: ['dateField' => '2021-01-03 00:00:00.000']),
-        //            ]),
-        //            ['avg' => '2021-01-02 00:00:00.000'],
-        //        ];
         yield 'Min, object date field' => [
             new Min(name: 'min', field: 'objectField.dateField'),
             new Documents([
@@ -672,15 +716,7 @@ abstract class AggregationStorageTestBase extends TestCase
             ]),
             ['max' => '2021-01-03 00:00:00.000'],
         ];
-        //        yield 'Sum, object date field' => [
-        //            new Sum(name: 'sum', field: 'objectField.dateField'),
-        //            new Documents([
-        //                self::document(key: 'key1', objectField: ['dateField' => '2021-01-01 00:00:00.000']),
-        //                self::document(key: 'key2', objectField: ['dateField' => '2021-01-02 00:00:00.000']),
-        //                self::document(key: 'key3', objectField: ['dateField' => '2021-01-03 00:00:00.000']),
-        //            ]),
-        //            ['sum' => '2021-01-06 00:00:00.000'],
-        //        ];
+
         yield 'Count, object date field' => [
             new Count(name: 'count', field: 'objectField.dateField'),
             new Documents([
@@ -936,15 +972,6 @@ abstract class AggregationStorageTestBase extends TestCase
 
     public static function objectListDateCases(): \Generator
     {
-        //        yield 'Avg, object list date field' => [
-        //            new Avg(name: 'avg', field: 'objectListField.dateField'),
-        //            new Documents([
-        //                self::document(key: 'key1', objectListField: [['dateField' => '2021-01-01 00:00:00.000'], ['dateField' => '2021-01-02 00:00:00.000']]),
-        //                self::document(key: 'key2', objectListField: [['dateField' => '2021-01-03 00:00:00.000'], ['dateField' => '2021-01-04 00:00:00.000']]),
-        //                self::document(key: 'key3', objectListField: [['dateField' => '2021-01-05 00:00:00.000'], ['dateField' => '2021-01-06 00:00:00.000']]),
-        //            ]),
-        //            ['avg' => '2021-01-03 00:00:00.000'],
-        //        ];
         yield 'Min, object list date field' => [
             new Min(name: 'min', field: 'objectListField.dateField'),
             new Documents([
@@ -1214,15 +1241,6 @@ abstract class AggregationStorageTestBase extends TestCase
 
     public static function translatedDateCases(): \Generator
     {
-        //        yield 'Avg, translated date field' => [
-        //            new Avg(name: 'avg', field: 'translatedDate'),
-        //            new Documents([
-        //                self::document(key: 'key1', translatedDate: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']),
-        //                self::document(key: 'key2', translatedDate: ['en' => null, 'de' => '2021-01-03 00:00:00.000']),
-        //                self::document(key: 'key3', translatedDate: ['de' => '2021-01-04 00:00:00.000']),
-        //            ]),
-        //            ['avg' => '2021-01-03 00:00:00.000'],
-        //        ];
         yield 'Min, translated date field' => [
             new Min(name: 'min', field: 'translatedDate'),
             new Documents([
@@ -1271,7 +1289,7 @@ abstract class AggregationStorageTestBase extends TestCase
     /**
      * @param array<string, mixed> $expected
      */
-    #[DataProvider('dateCases')]
+    #[DataProvider('intCases')]
     public function testDebug(
         Aggregation $aggregations,
         Documents $input,

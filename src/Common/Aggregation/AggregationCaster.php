@@ -5,6 +5,7 @@ namespace Shopware\Storage\Common\Aggregation;
 use Shopware\Storage\Common\Aggregation\Type\Aggregation;
 use Shopware\Storage\Common\Aggregation\Type\Count;
 use Shopware\Storage\Common\Aggregation\Type\Distinct;
+use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 
@@ -15,13 +16,13 @@ class AggregationCaster
         $type = SchemaUtil::type(schema: $schema, accessor: $aggregation->field);
 
         switch ($type) {
-            case 'integer':
+            case FieldType::INT:
                 $caster = fn($value) => (int) $value;
                 break;
-            case 'float':
+            case FieldType::FLOAT:
                 $caster = fn($value) => round((float) $value, 6);
                 break;
-            case 'bool':
+            case FieldType::BOOL:
                 $caster = function ($value) {
                     return match (true) {
                         $value === '1', $value === 'true' => true,
@@ -30,7 +31,7 @@ class AggregationCaster
                     };
                 };
                 break;
-            case 'datetime':
+            case FieldType::DATETIME:
                 $caster = function ($value) {
                     return match (true) {
                         is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),

@@ -106,11 +106,18 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
         $result = [];
         foreach ($aggregations as $aggregation) {
-            if ($aggregation->filter) {
-                $filtered = array_filter($filtered, fn(Document $document): bool => $this->match($document, $aggregation->filter, $context));
+            // reset to root filter to not apply aggregations specific filters
+            $documents = $filtered;
+
+            if ($aggregation->filters) {
+                $documents = array_filter($documents, fn(Document $document): bool => $this->match($document, $aggregation->filters, $context));
             }
 
-            $value = $this->parseAggregation($filtered, $aggregation, $context);
+            $value = $this->parseAggregation(
+                filtered: $documents,
+                aggregation: $aggregation,
+                context: $context
+            );
 
             $result[$aggregation->name] = $this->caster->cast(
                 schema: $this->schema,

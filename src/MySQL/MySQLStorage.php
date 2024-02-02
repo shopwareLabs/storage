@@ -119,7 +119,7 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
 
         $filters = array_merge(
             $criteria->filters,
-            $aggregation->filter
+            $aggregation->filters
         );
 
         //todo@skroblin support of post filters?
@@ -410,7 +410,6 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         $property = implode('.', $parts);
 
         $root = SchemaUtil::property(accessor: $accessor);
-
 
         $translated = SchemaUtil::translated(schema: $this->schema, accessor: $root);
 

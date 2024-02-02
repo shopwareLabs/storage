@@ -192,15 +192,15 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
     {
         $parsed = [];
 
-        if (!empty($aggregation->filter)) {
-            $parsed[] = ['$match' => $this->parseFilters($aggregation->filter, $context)];
+        if (!empty($aggregation->filters)) {
+            $parsed[] = ['$match' => $this->parseFilters($aggregation->filters, $context)];
         }
 
         $property = SchemaUtil::property(accessor: $aggregation->field);
 
         $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
 
-        if ($type == FieldType::OBJECT_LIST) {
+        if (in_array($type, [FieldType::OBJECT_LIST, FieldType::LIST], true)) {
             $parsed[] = ['$unwind' => '$' . $property];
         }
         $field = '$' . $aggregation->field;

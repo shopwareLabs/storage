@@ -685,13 +685,13 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
                     ->addAggregation($parsed);
             }
 
-            if (empty($aggregation->filter)) {
+            if (empty($aggregation->filters)) {
                 $search->addAggregation($parsed);
                 continue;
             }
 
             $queries = $this->parseRootFilter(
-                filters: $aggregation->filter,
+                filters: $aggregation->filters,
                 context: $context
             );
 
