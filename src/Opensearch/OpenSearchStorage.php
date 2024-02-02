@@ -33,6 +33,7 @@ use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Paging\Limit;
 use Shopware\Storage\Common\Filter\Result;
@@ -605,7 +606,13 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
 
     private function parseAggregation(Aggregation $aggregation, StorageContext $context): AbstractAggregation
     {
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+
         if ($aggregation instanceof Max) {
+            if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::LIST], true)) {
+                throw new NotSupportedByEngine('', 'Max aggregation is not supported for string, text or list fields');
+            }
+
             return new MaxAggregation(
                 name: $aggregation->name,
                 field: $aggregation->field
@@ -613,6 +620,10 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($aggregation instanceof Min) {
+            if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::LIST], true)) {
+                throw new NotSupportedByEngine('', 'Min aggregation is not supported for string, text or list fields');
+            }
+
             return new MinAggregation(
                 name: $aggregation->name,
                 field: $aggregation->field
@@ -620,6 +631,10 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($aggregation instanceof Sum) {
+            if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::LIST], true)) {
+                throw new NotSupportedByEngine('', 'Sum aggregation is not supported for string, text or list fields');
+            }
+
             return new SumAggregation(
                 name: $aggregation->name,
                 field: $aggregation->field
@@ -627,6 +642,10 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($aggregation instanceof Avg) {
+            if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::LIST], true)) {
+                throw new NotSupportedByEngine('', 'Avg aggregation is not supported for string, text or list fields');
+            }
+
             return new AvgAggregation(
                 name: $aggregation->name,
                 field: $aggregation->field
@@ -634,6 +653,10 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($aggregation instanceof Distinct) {
+            if ($type === FieldType::TEXT) {
+                throw new NotSupportedByEngine('', 'Distinct aggregation is not supported for text fields');
+            }
+
             return new TermsAggregation(
                 name: $aggregation->name,
                 field: $aggregation->field
@@ -641,6 +664,10 @@ class OpenSearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($aggregation instanceof Count) {
+            if ($type === FieldType::TEXT) {
+                throw new NotSupportedByEngine('', 'Distinct aggregation is not supported for count fields');
+            }
+
             return new TermsAggregation(
                 name: $aggregation->name,
                 field: $aggregation->field

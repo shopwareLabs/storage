@@ -17,7 +17,8 @@ class AggregationCaster
 
         switch ($type) {
             case FieldType::INT:
-                $caster = fn($value) => (int) $value;
+                // cast to float, because of avg aggregation
+                $caster = fn($value) => (float) $value;
                 break;
             case FieldType::FLOAT:
                 $caster = fn($value) => round((float) $value, 6);
