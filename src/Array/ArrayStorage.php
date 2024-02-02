@@ -2,6 +2,15 @@
 
 namespace Shopware\Storage\Array;
 
+use Shopware\Storage\Common\Aggregation\AggregationAware;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
+use Shopware\Storage\Common\Aggregation\Type\Aggregation;
+use Shopware\Storage\Common\Aggregation\Type\Avg;
+use Shopware\Storage\Common\Aggregation\Type\Count;
+use Shopware\Storage\Common\Aggregation\Type\Distinct;
+use Shopware\Storage\Common\Aggregation\Type\Max;
+use Shopware\Storage\Common\Aggregation\Type\Min;
+use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\FilterAware;
@@ -26,22 +35,23 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
-use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
 
-class ArrayStorage extends ArrayKeyStorage implements FilterAware
+class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAware
 {
     /**
      * @var array<string, Document>
      */
     private array $storage = [];
 
-    public function __construct(private readonly Schema $schema) {}
+    public function __construct(
+        private readonly AggregationCaster $caster,
+        private readonly Schema            $schema
+    ) {}
 
     public function setup(): void
     {
@@ -82,6 +92,36 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware
         }
     }
 
+    public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
+    {
+        $filtered = $this->storage;
+
+        if ($criteria->primaries) {
+            $filtered = array_filter($filtered, fn($key) => in_array($key, $criteria->primaries, true), ARRAY_FILTER_USE_KEY);
+        }
+
+        if ($criteria->filters) {
+            $filtered = array_filter($filtered, fn(Document $document): bool => $this->match($document, $criteria->filters, $context));
+        }
+
+        $result = [];
+        foreach ($aggregations as $aggregation) {
+            if ($aggregation->filter) {
+                $filtered = array_filter($filtered, fn(Document $document): bool => $this->match($document, $aggregation->filter, $context));
+            }
+
+            $value = $this->parseAggregation($filtered, $aggregation, $context);
+
+            $result[$aggregation->name] = $this->caster->cast(
+                schema: $this->schema,
+                aggregation: $aggregation,
+                data: $value
+            );
+        }
+
+        return $result;
+    }
+
     public function filter(Criteria $criteria, StorageContext $context): Result
     {
         $filtered = $this->storage;
@@ -116,6 +156,66 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware
         }
 
         return new Result(elements: $filtered, total: $total);
+    }
+
+    /**
+     * @param array<Document> $filtered
+     */
+    private function parseAggregation(array $filtered, Aggregation $aggregation, StorageContext $context): mixed
+    {
+        $values = [];
+        foreach ($filtered as $document) {
+            $nested = $this->getDocValue(
+                document: $document,
+                accessor: $aggregation->field,
+                context: $context
+            );
+            if (!is_array($nested)) {
+                $values[] = $nested;
+                continue;
+            }
+            foreach ($nested as $item) {
+                $values[] = $item;
+            }
+        }
+
+        if ($aggregation instanceof Min) {
+            return min($values);
+        }
+
+        if ($aggregation instanceof Max) {
+            return max($values);
+        }
+
+        if ($aggregation instanceof Sum) {
+            return array_sum($values);
+        }
+
+        if ($aggregation instanceof Avg) {
+            return array_sum($values) / count($values);
+        }
+
+        if ($aggregation instanceof Distinct) {
+            return array_unique($values);
+        }
+
+        if ($aggregation instanceof Count) {
+            $mapped = [];
+            assert(is_array($values), 'Count aggregation must return an array');
+            foreach ($values as $value) {
+                $key = (string) $value;
+
+                if (!isset($mapped[$key])) {
+                    $mapped[$key] = ['key' => $value, 'count' => 0];
+                }
+
+                $mapped[$key]['count']++;
+            }
+
+            return $mapped;
+        }
+
+        throw new \LogicException(sprintf('Unknown aggregation type %s', get_class($aggregation)));
     }
 
     /**
@@ -458,5 +558,4 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware
             default => $docValue <= $value,
         };
     }
-
 }
