@@ -411,14 +411,17 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
 
         $root = SchemaUtil::property(accessor: $accessor);
 
-        $type = SchemaUtil::type(schema: $this->schema, accessor: $root);
 
         $translated = SchemaUtil::translated(schema: $this->schema, accessor: $root);
 
-        $cast = '';
-        if ($type === 'bool') {
-            $cast = ' RETURNING UNSIGNED';
-        }
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $accessor);
+
+        $cast = match ($type) {
+            FieldType::BOOL => ' RETURNING UNSIGNED',
+            default => '',
+        };
+
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $root);
 
         if ($translated) {
             $selects = [];
