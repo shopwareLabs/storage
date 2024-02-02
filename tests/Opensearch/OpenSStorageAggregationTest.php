@@ -8,14 +8,14 @@ use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
-use Shopware\Storage\Opensearch\OpenSearchStorage;
+use Shopware\Storage\Opensearch\OpenSStorage;
 use Shopware\StorageTests\Common\AggregationStorageTestBase;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\Opensearch\OpenSearchStorage
+ * @covers \Shopware\Storage\Opensearch\OpenSStorage
  */
-class OpenSearchStorageAggregationTest extends AggregationStorageTestBase
+class OpenSStorageAggregationTest extends AggregationStorageTestBase
 {
     private ?Client $client = null;
 
@@ -186,7 +186,7 @@ class OpenSearchStorageAggregationTest extends AggregationStorageTestBase
     {
         return new OpensearchLiveStorage(
             $this->getClient(),
-            new OpenSearchStorage(
+            new OpenSStorage(
                 new AggregationCaster(),
                 $this->getClient(),
                 $this->getSchema()

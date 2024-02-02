@@ -7,13 +7,13 @@ use OpenSearch\ClientBuilder;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
-use Shopware\Storage\Opensearch\OpenSearchStorage;
+use Shopware\Storage\Opensearch\OpenSStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
- * @covers \Shopware\Storage\Opensearch\OpenSearchStorage
+ * @covers \Shopware\Storage\Opensearch\OpenSStorage
  */
-class OpenSearchStorageFilterTest extends FilterStorageTestBase
+class OpenSStorageFilterTest extends FilterStorageTestBase
 {
     private ?Client $client = null;
 
@@ -162,7 +162,7 @@ class OpenSearchStorageFilterTest extends FilterStorageTestBase
     {
         return new OpensearchLiveStorage(
             $this->getClient(),
-            new OpenSearchStorage(
+            new OpenSStorage(
                 new AggregationCaster(),
                 $this->getClient(),
                 $this->getSchema()
