@@ -1280,7 +1280,7 @@ abstract class AggregationStorageTestBase extends TestCase
     /**
      * @param array<string, mixed> $expected
      */
-    #[DataProvider('translatedBoolCases')]
+    #[DataProvider('translatedIntCases')]
     public function testDebug(
         Aggregation $aggregations,
         Documents $input,

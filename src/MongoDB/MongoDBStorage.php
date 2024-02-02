@@ -98,7 +98,15 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
         $result = [];
         foreach ($response as $value) {
-            $key = array_key_first($value);
+            if (!is_array($value)) {
+                throw new \RuntimeException('Invalid aggregation result');
+            }
+
+            $key = (string) array_key_first($value);
+
+            if (!isset($value[$key])) {
+                throw new \RuntimeException('Invalid aggregation result');
+            }
 
             $aggregation = $this->getAggregation(name: $key, aggregations: $aggregations);
 
@@ -195,12 +203,23 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         if ($type == FieldType::OBJECT_LIST) {
             $parsed[] = ['$unwind' => '$' . $property];
         }
+        $field = '$' . $aggregation->field;
+
+        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+
+        if ($translated) {
+            $field = array_map(function (string $language) use ($field) {
+                return $field . '.' . $language;
+            }, $context->languages);
+
+            $field = ['$ifNull' => $field];
+        }
 
         if ($aggregation instanceof Min) {
             $parsed[] = [
                 '$group' => [
                     '_id' => 0,
-                    'min' => ['$min' => '$' . $aggregation->field],
+                    'min' => ['$min' => $field],
                 ]
             ];
             return $parsed;
@@ -209,7 +228,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             $parsed[] = [
                 '$group' => [
                     '_id' => 0,
-                    'max' => ['$max' => '$' . $aggregation->field],
+                    'max' => ['$max' => $field],
                 ]
             ];
             return $parsed;
@@ -218,7 +237,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             $parsed[] = [
                 '$group' => [
                     '_id' => 0,
-                    'sum' => ['$sum' => '$' . $aggregation->field],
+                    'sum' => ['$sum' => $field],
                 ]
             ];
             return $parsed;
@@ -227,7 +246,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             $parsed[] = [
                 '$group' => [
                     '_id' => 0,
-                    'avg' => ['$avg' => '$' . $aggregation->field],
+                    'avg' => ['$avg' => $field],
                 ]
             ];
             return $parsed;
@@ -235,7 +254,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         if ($aggregation instanceof Count) {
             $parsed[] = [
                 '$group' => [
-                    '_id' => '$' . $aggregation->field,
+                    '_id' => $field,
                     'count' => ['$sum' => 1],
                 ]
             ];
@@ -244,7 +263,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         if ($aggregation instanceof Distinct) {
             $parsed[] = [
                 '$group' => [
-                    '_id' => '$' . $aggregation->field
+                    '_id' => $field
                 ]
             ];
 
