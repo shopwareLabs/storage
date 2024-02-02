@@ -4,6 +4,7 @@ namespace Shopware\StorageTests\Opensearch;
 
 use OpenSearch\Client;
 use OpenSearch\ClientBuilder;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Opensearch\OpenSearchStorage;
@@ -12,7 +13,7 @@ use Shopware\StorageTests\Common\FilterStorageTestBase;
 /**
  * @covers \Shopware\Storage\Opensearch\OpenSearchStorage
  */
-class OpenSearchStorageTest extends FilterStorageTestBase
+class OpenSearchStorageFilterTest extends FilterStorageTestBase
 {
     private ?Client $client = null;
 
@@ -54,36 +55,45 @@ class OpenSearchStorageTest extends FilterStorageTestBase
                     'properties' => [
                         'key' => ['type' => 'keyword'],
                         'stringField' => ['type' => 'keyword'],
+                        'intField' => ['type' => 'integer'],
+                        'floatField' => ['type' => 'double'],
+                        'boolField' => ['type' => 'boolean'],
+                        'dateField' => [
+                            'type' => 'date',
+                            'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
+                            'ignore_malformed' => true,
+                        ],
+                        'listField' => ['type' => 'keyword'],
                         'translatedString' => [
-                            'type' => 'nested',
+                            'type' => 'object',
                             'properties' => [
                                 'de' => ['type' => 'keyword'],
                                 'en' => ['type' => 'keyword'],
                             ]
                         ],
                         'translatedInt' => [
-                            'type' => 'nested',
+                            'type' => 'object',
                             'properties' => [
                                 'de' => ['type' => 'integer'],
                                 'en' => ['type' => 'integer'],
                             ]
                         ],
                         'translatedFloat' => [
-                            'type' => 'nested',
+                            'type' => 'object',
                             'properties' => [
-                                'de' => ['type' => 'float'],
-                                'en' => ['type' => 'float'],
+                                'de' => ['type' => 'double'],
+                                'en' => ['type' => 'double'],
                             ]
                         ],
                         'translatedBool' => [
-                            'type' => 'nested',
+                            'type' => 'object',
                             'properties' => [
                                 'de' => ['type' => 'boolean'],
                                 'en' => ['type' => 'boolean'],
                             ]
                         ],
                         'translatedDate' => [
-                            'type' => 'nested',
+                            'type' => 'object',
                             'properties' => [
                                 'de' => [
                                     'type' => 'date',
@@ -97,23 +107,14 @@ class OpenSearchStorageTest extends FilterStorageTestBase
                                 ],
                             ]
                         ],
-                        'intField' => ['type' => 'integer'],
-                        'floatField' => ['type' => 'float'],
-                        'boolField' => ['type' => 'boolean'],
-                        'dateField' => [
-                            'type' => 'date',
-                            'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
-                            'ignore_malformed' => true,
-                        ],
-                        'listField' => ['type' => 'keyword'],
                         'objectField' => [
                             'type' => 'nested',
                             'properties' => [
-                                'foo' => ['type' => 'keyword'],
-                                'fooInt' => ['type' => 'integer'],
-                                'fooFloat' => ['type' => 'float'],
-                                'fooBool' => ['type' => 'boolean'],
-                                'fooDate' => [
+                                'stringField' => ['type' => 'keyword'],
+                                'intField' => ['type' => 'integer'],
+                                'floatField' => ['type' => 'double'],
+                                'boolField' => ['type' => 'boolean'],
+                                'dateField' => [
                                     'type' => 'date',
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
@@ -123,11 +124,11 @@ class OpenSearchStorageTest extends FilterStorageTestBase
                         'objectListField' => [
                             'type' => 'nested',
                             'properties' => [
-                                'foo' => ['type' => 'keyword'],
-                                'fooInt' => ['type' => 'integer'],
-                                'fooFloat' => ['type' => 'float'],
-                                'fooBool' => ['type' => 'boolean'],
-                                'fooDate' => [
+                                'stringField' => ['type' => 'keyword'],
+                                'intField' => ['type' => 'integer'],
+                                'floatField' => ['type' => 'double'],
+                                'boolField' => ['type' => 'boolean'],
+                                'dateField' => [
                                     'type' => 'date',
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
@@ -149,11 +150,11 @@ class OpenSearchStorageTest extends FilterStorageTestBase
         $client = $builder->build();
 
         $exists = $client->indices()
-            ->exists(['index' => FilterStorageTestBase::TEST_STORAGE]);
+            ->exists(['index' => 'test_storage']);
 
         if ($exists) {
             $client->indices()
-                ->delete(['index' => FilterStorageTestBase::TEST_STORAGE]);
+                ->delete(['index' => 'test_storage']);
         }
     }
 
@@ -162,6 +163,7 @@ class OpenSearchStorageTest extends FilterStorageTestBase
         return new OpensearchLiveStorage(
             $this->getClient(),
             new OpenSearchStorage(
+                new AggregationCaster(),
                 $this->getClient(),
                 $this->getSchema()
             ),

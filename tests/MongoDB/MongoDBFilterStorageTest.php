@@ -3,6 +3,7 @@
 namespace Shopware\StorageTests\MongoDB;
 
 use MongoDB\Client;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MongoDB\MongoDBStorage;
@@ -39,6 +40,7 @@ class MongoDBFilterStorageTest extends FilterStorageTestBase
     public function getStorage(): FilterAware&Storage
     {
         return new MongoDBStorage(
+            caster: new AggregationCaster(),
             database: 'test',
             schema: $this->getSchema(),
             client: $this->getClient(),

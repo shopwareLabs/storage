@@ -4,13 +4,8 @@ namespace Shopware\StorageTests\MySQL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use PHPUnit\Framework\Attributes\DataProvider;
-use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Filter\Criteria;
-use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
-use Shopware\Storage\Common\Filter\Type\Equals;
-use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MySQL\MySQLStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
@@ -36,6 +31,7 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
     public function getStorage(): FilterAware&Storage
     {
         return new MySQLStorage(
+            caster: new AggregationCaster(),
             connection: $this->getConnection(),
             schema: $this->getSchema()
         );
