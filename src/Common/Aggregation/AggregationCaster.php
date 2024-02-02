@@ -23,28 +23,20 @@ class AggregationCaster
                 break;
             case 'bool':
                 $caster = function ($value) {
-                    if (is_bool($value)) {
-                        return $value;
-                    }
-
-                    if (is_string($value)) {
-                        return $value === 'true';
-                    }
-
-                    return (bool) $value;
+                    return match (true) {
+                        $value === '1', $value === 'true' => true,
+                        $value === '0', $value === 'false' => false,
+                        default => (bool) $value
+                    };
                 };
                 break;
             case 'datetime':
                 $caster = function ($value) {
-                    if (is_string($value)) {
-                        return (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v');
-                    }
-
-                    if (is_int($value)) {
-                        return (new \DateTimeImmutable('@' . $value))->format('Y-m-d H:i:s.v');
-                    }
-
-                    return $value;
+                    return match (true) {
+                        is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),
+                        is_int($value) => (new \DateTimeImmutable('@' . $value))->format('Y-m-d H:i:s.v'),
+                        default => $value
+                    };
                 };
                 break;
             default:

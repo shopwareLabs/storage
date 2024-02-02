@@ -305,15 +305,6 @@ abstract class AggregationStorageTestBase extends TestCase
 
     public static function dateCases(): \Generator
     {
-        //        yield 'Avg, date field' => [
-        //            new Avg(name: 'avg', field: 'dateField'),
-        //            new Documents([
-        //                self::document(key: 'key1', dateField: '2021-01-01 00:00:00.000'),
-        //                self::document(key: 'key2', dateField: '2021-01-02 00:00:00.000'),
-        //                self::document(key: 'key3', dateField: '2021-01-03 00:00:00.000'),
-        //            ]),
-        //            ['avg' => '2021-01-02 00:00:00.000'],
-        //        ];
         yield 'Min, date field' => [
             new Min(name: 'min', field: 'dateField'),
             new Documents([
@@ -1280,7 +1271,7 @@ abstract class AggregationStorageTestBase extends TestCase
     /**
      * @param array<string, mixed> $expected
      */
-    #[DataProvider('translatedIntCases')]
+    #[DataProvider('dateCases')]
     public function testDebug(
         Aggregation $aggregations,
         Documents $input,
