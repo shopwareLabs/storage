@@ -4,6 +4,15 @@ namespace Shopware\Storage\MongoDB;
 
 use MongoDB\Client;
 use MongoDB\Collection;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
+use Shopware\Storage\Common\Aggregation\Type\Aggregation;
+use Shopware\Storage\Common\Aggregation\Type\Avg;
+use Shopware\Storage\Common\Aggregation\Type\Count;
+use Shopware\Storage\Common\Aggregation\Type\Distinct;
+use Shopware\Storage\Common\Aggregation\Type\Max;
+use Shopware\Storage\Common\Aggregation\Type\Min;
+use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\Criteria;
@@ -29,22 +38,220 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
+use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class MongoDBStorage implements Storage, FilterAware
+class MongoDBStorage implements Storage, FilterAware, AggregationAware
 {
+    private const TYPE_MAP = [
+        'root' => 'array',
+        'document' => 'array',
+        'array' => 'array',
+    ];
+
     public function __construct(
-        private readonly string $database,
-        private readonly Schema $schema,
-        private readonly Client $client
+        private readonly AggregationCaster $caster,
+        private readonly string            $database,
+        private readonly Schema            $schema,
+        private readonly Client            $client
     ) {}
 
     public function setup(): void
     {
         // todo@o.skroblin auto setup feature
+    }
+
+    public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
+    {
+        $query = [];
+
+        $options = ['typeMap' => self::TYPE_MAP];
+
+        $filters = $criteria->filters;
+        if ($criteria->primaries) {
+            $filters[] = new Any('key', $criteria->primaries);
+        }
+
+        if (!empty($filters)) {
+            $filters = $this->parseFilters($filters, $context);
+
+            $query[] = ['$match' => $filters];
+        }
+
+        $parsed = [];
+        foreach ($aggregations as $aggregation) {
+            $parsed[$aggregation->name] = $this->parseAggregation(
+                aggregation: $aggregation,
+                context: $context
+            );
+        }
+
+        $query[] = ['$facet' => $parsed];
+
+        $response = $this->collection()->aggregate(
+            pipeline: $query,
+            options: $options
+        );
+
+        $result = [];
+        foreach ($response as $value) {
+            $key = array_key_first($value);
+
+            $aggregation = $this->getAggregation(name: $key, aggregations: $aggregations);
+
+            if ($aggregation instanceof Min) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $value[$key][0]['min']
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Max) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $value[$key][0]['max']
+                );
+                continue;
+            }
+            if ($aggregation instanceof Sum) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $value[$key][0]['sum']
+                );
+                continue;
+            }
+            if ($aggregation instanceof Avg) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $value[$key][0]['avg']
+                );
+                continue;
+            }
+            if ($aggregation instanceof Distinct) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: array_column($value[$key], '_id')
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Count) {
+                $values = array_map(function (array $item) {
+                    return ['key' => $item['_id'], 'count' => $item['count']];
+                }, $value[$key]);
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $values
+                );
+                continue;
+            }
+
+            throw new \RuntimeException(sprintf('Unsupported aggregation type %s', $aggregation::class));
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param Aggregation[] $aggregations
+     */
+    private function getAggregation(string $name, array $aggregations): Aggregation
+    {
+        foreach ($aggregations as $aggregation) {
+            if ($aggregation->name === $name) {
+                return $aggregation;
+            }
+        }
+
+        throw new \RuntimeException(sprintf('Aggregation %s not found', $name));
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function parseAggregation(Aggregation $aggregation, StorageContext $context): array
+    {
+        $parsed = [];
+
+        if (!empty($aggregation->filter)) {
+            $parsed[] = ['$match' => $this->parseFilters($aggregation->filter, $context)];
+        }
+
+        $property = SchemaUtil::property(accessor: $aggregation->field);
+
+        $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
+
+        if ($type == FieldType::OBJECT_LIST) {
+            $parsed[] = ['$unwind' => '$' . $property];
+        }
+
+        if ($aggregation instanceof Min) {
+            $parsed[] = [
+                '$group' => [
+                    '_id' => 0,
+                    'min' => ['$min' => '$' . $aggregation->field],
+                ]
+            ];
+            return $parsed;
+        }
+        if ($aggregation instanceof Max) {
+            $parsed[] = [
+                '$group' => [
+                    '_id' => 0,
+                    'max' => ['$max' => '$' . $aggregation->field],
+                ]
+            ];
+            return $parsed;
+        }
+        if ($aggregation instanceof Sum) {
+            $parsed[] = [
+                '$group' => [
+                    '_id' => 0,
+                    'sum' => ['$sum' => '$' . $aggregation->field],
+                ]
+            ];
+            return $parsed;
+        }
+        if ($aggregation instanceof Avg) {
+            $parsed[] = [
+                '$group' => [
+                    '_id' => 0,
+                    'avg' => ['$avg' => '$' . $aggregation->field],
+                ]
+            ];
+            return $parsed;
+        }
+        if ($aggregation instanceof Count) {
+            $parsed[] = [
+                '$group' => [
+                    '_id' => '$' . $aggregation->field,
+                    'count' => ['$sum' => 1],
+                ]
+            ];
+            return $parsed;
+        }
+        if ($aggregation instanceof Distinct) {
+            $parsed[] = [
+                '$group' => [
+                    '_id' => '$' . $aggregation->field
+                ]
+            ];
+
+            return $parsed;
+        }
+
+        throw new \RuntimeException(sprintf('Unsupported aggregation type %s', $aggregation::class));
     }
 
     public function remove(array $keys): void
@@ -93,6 +300,7 @@ class MongoDBStorage implements Storage, FilterAware
         if ($criteria->primaries) {
             $query['_key'] = ['$in' => $criteria->primaries];
         }
+
         if ($criteria->filters) {
             $filters = $this->parseFilters($criteria->filters, $context);
 
@@ -101,11 +309,7 @@ class MongoDBStorage implements Storage, FilterAware
 
         $cursor = $this->collection()->find($query, $options);
 
-        $cursor->setTypeMap([
-            'root' => 'array',
-            'document' => 'array',
-            'array' => 'array',
-        ]);
+        $cursor->setTypeMap(self::TYPE_MAP);
 
         $result = [];
         foreach ($cursor as $item) {
