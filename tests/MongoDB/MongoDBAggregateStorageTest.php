@@ -3,16 +3,18 @@
 namespace Shopware\StorageTests\MongoDB;
 
 use MongoDB\Client;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MongoDB\MongoDBStorage;
+use Shopware\StorageTests\Common\AggregationStorageTestBase;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
 
 /**
  * @covers \Shopware\Storage\MongoDB\MongoDBStorage
  */
-class MongoDBFilterStorageTest extends FilterStorageTestBase
+class MongoDBAggregateStorageTest extends AggregationStorageTestBase
 {
     private ?Client $client = null;
 
@@ -37,7 +39,7 @@ class MongoDBFilterStorageTest extends FilterStorageTestBase
         $this->getClient()->dropDatabase('test');
     }
 
-    public function getStorage(): FilterAware&Storage
+    public function getStorage(): AggregationAware&Storage
     {
         return new MongoDBStorage(
             caster: new AggregationCaster(),

@@ -4,6 +4,14 @@ namespace Shopware\Storage\Meilisearch;
 
 use Meilisearch\Client;
 use Meilisearch\Endpoints\Indexes;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
+use Shopware\Storage\Common\Aggregation\AggregationCaster;
+use Shopware\Storage\Common\Aggregation\Type\Avg;
+use Shopware\Storage\Common\Aggregation\Type\Count;
+use Shopware\Storage\Common\Aggregation\Type\Distinct;
+use Shopware\Storage\Common\Aggregation\Type\Max;
+use Shopware\Storage\Common\Aggregation\Type\Min;
+use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
@@ -28,17 +36,221 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
+use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class MeilisearchStorage implements Storage, FilterAware
+class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 {
     public function __construct(
+        private readonly AggregationCaster $caster,
         private readonly Client $client,
         private readonly Schema $schema
     ) {}
+
+    public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
+    {
+        $params = [
+            'page' => 0,
+            'hitsPerPage' => 0,
+        ];
+
+        $filters = $criteria->filters;
+        if ($criteria->primaries !== null) {
+            $filters[] = new Any(field: 'key', value: $criteria->primaries);
+        }
+        if (!empty($filters)) {
+            $params['filter'] = $this->parse($filters, $context);
+        }
+
+        $facets = [];
+        foreach ($aggregations as $aggregation) {
+            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+            if ($translated) {
+                throw new NotSupportedByEngine('', 'Meilisearch does not support aggregations on translated fields.');
+            }
+
+            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+            if (in_array($type, [FieldType::TEXT, FieldType::STRING], true)) {
+                if ($aggregation instanceof Sum || $aggregation instanceof Avg) {
+                    throw new NotSupportedByEngine('', 'Meilisearch does not support sum/avg aggregations on string/text fields.');
+                }
+            }
+
+            $facets[] = $aggregation->field;
+        }
+
+        $params['facets'] = $facets;
+
+        $response = $this->index()->search(
+            query: null,
+            searchParams: $params
+        );
+
+        /** @var array<string, array{min: mixed, max: mixed}> $stats */
+        $stats = $response->getFacetStats();
+
+        /** @var array<string, array<string, mixed>> $distributions */
+        $distributions = $response->getFacetDistribution();
+
+        $result = [];
+        foreach ($aggregations as $aggregation) {
+            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+
+            if ($type === FieldType::BOOL && $aggregation instanceof Min) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: !array_key_exists('false', self::distribution($distributions, $aggregation->field))
+                );
+                continue;
+            }
+
+            if ($type === FieldType::BOOL && $aggregation instanceof Max) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: array_key_exists('true', self::distribution($distributions, $aggregation->field))
+                );
+                continue;
+            }
+
+            if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::DATETIME], true) && $aggregation instanceof Min) {
+                $values = array_keys(self::distribution($distributions, $aggregation->field));
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: min($values)
+                );
+
+                continue;
+            }
+
+            if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::DATETIME], true) && $aggregation instanceof Max) {
+                $values = array_keys(self::distribution($distributions, $aggregation->field));
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: max($values)
+                );
+
+                continue;
+            }
+
+            if ($aggregation instanceof Min) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: self::stats($stats, $aggregation->field, 'min')
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Max) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: self::stats($stats, $aggregation->field, 'max')
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Distinct) {
+                $values = self::distribution($distributions, $aggregation->field);
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: array_keys($values)
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Count) {
+                $values = self::distribution($distributions, $aggregation->field);
+
+                $values = array_map(fn($value) => ['key' => $value, 'count' => $values[$value]], array_keys($values));
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $values
+                );
+
+                continue;
+            }
+
+            if ($aggregation instanceof Sum) {
+                $values = self::distribution($distributions, $aggregation->field);
+
+                $sum = 0;
+                foreach ($values as $key => $value) {
+                    if (!is_numeric($key) || !is_numeric($value)) {
+                        throw new \RuntimeException('Meilisearch does not return a numeric value for aggregation field ' . $aggregation->field);
+                    }
+                    $sum += (float) $key * (float) $value;
+                }
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $sum
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Avg) {
+                $values = self::distribution($distributions, $aggregation->field);
+
+                $sum = 0;
+                $count = 0;
+                foreach ($values as $key => $value) {
+                    if (!is_numeric($key) || !is_numeric($value)) {
+                        throw new \RuntimeException('Meilisearch does not return a numeric value for aggregation field ' . $aggregation->field);
+                    }
+                    $sum += (float) $key * (float) $value;
+                    $count += $value;
+                }
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    schema: $this->schema,
+                    aggregation: $aggregation,
+                    data: $sum / $count
+                );
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, array{min: mixed, max: mixed}> $stats
+     */
+    private static function stats(array $stats, string $field, string $key): mixed
+    {
+        if (!isset($stats[$field])) {
+            throw new \RuntimeException(sprintf('Meilisearch does not return a stats value for aggregation field %s', $field));
+        }
+
+        return $stats[$field][$key];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $distributions
+     * @return array<string, mixed>
+     */
+    private static function distribution(array $distributions, string $field): array
+    {
+        if (!isset($distributions[$field])) {
+            throw new \RuntimeException(sprintf('Meilisearch does not return a distribution value for aggregation field %s', $field));
+        }
+
+        return $distributions[$field];
+    }
 
     public function filter(Criteria $criteria, StorageContext $context): Result
     {

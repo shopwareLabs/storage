@@ -97,7 +97,9 @@ class SchemaUtil
             $field = $field->fields[$part] ?? null;
 
             if (!$field instanceof Field) {
-                throw new \RuntimeException(sprintf('Field %s not found in schema', $part));
+                throw new \RuntimeException(
+                    sprintf('Unable to get nested field part %s of accessor %s in schema', $part, $accessor)
+                );
             }
         }
 

@@ -4,16 +4,13 @@ namespace Shopware\StorageTests\MySQL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
-use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MySQL\MySQLStorage;
-use Shopware\StorageTests\Common\FilterStorageTestBase;
+use Shopware\StorageTests\Common\AggregationStorageTestBase;
 
-/**
- * @covers \Shopware\Storage\MySQL\MySQLStorage
- */
-class MySQLFilterStorageTest extends FilterStorageTestBase
+class MySQLAggregationStorageTest extends AggregationStorageTestBase
 {
     private static ?Connection $connection = null;
 
@@ -28,7 +25,7 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
             ->executeStatement((string) file_get_contents(__DIR__ . '/test_storage.sql'));
     }
 
-    public function getStorage(): FilterAware&Storage
+    public function getStorage(): AggregationAware&Storage
     {
         return new MySQLStorage(
             caster: new AggregationCaster(),
