@@ -13,6 +13,7 @@ class Media
     public function __construct(
         #[Field(type: FieldType::STRING)]
         public ?string $url = null,
+
         #[Field(type: FieldType::STRING, translated: true)]
         public ?string $alt = null
     ) {}

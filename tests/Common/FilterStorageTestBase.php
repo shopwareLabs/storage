@@ -33,7 +33,7 @@ abstract class FilterStorageTestBase extends TestCase
 {
     abstract public function getStorage(): FilterAware&Storage;
 
-    #[DataProvider('objectListIntCases')]
+    #[DataProvider('stringCases')]
     public function testDebug(
         Documents $input,
         Criteria $criteria,

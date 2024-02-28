@@ -495,7 +495,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         $field = $filter->field;
 
         foreach ($context->languages as $index => $language) {
-            if (arraykey_first($context->languages) === $index) {
+            if (array_key_first($context->languages) === $index) {
                 $queries[] = ['$and' => [
                     [$field . '.' . $language => ['$ne' => null]],
                     $gen($field . '.' . $language, $value),
