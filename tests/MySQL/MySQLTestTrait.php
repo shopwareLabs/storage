@@ -8,7 +8,6 @@ use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\MySQL\MySQLAccessorBuilder;
-use Shopware\Storage\MySQL\MySQLMatchInterpreter;
 use Shopware\Storage\MySQL\MySQLParser;
 use Shopware\Storage\MySQL\MySQLStorage;
 
@@ -30,13 +29,10 @@ trait MySQLTestTrait
 
         $parser = new MySQLParser(accessor: $accessor);
 
-        $interpreter = new MySQLMatchInterpreter(accessor: $accessor, parser: $parser);
-
         return new MySQLStorage(
             parser: $parser,
             hydrator: new Hydrator(),
             accessor: $accessor,
-            interpreter: $interpreter,
             caster: new AggregationCaster(),
             connection: $this->getConnection(),
             collection: $collection
