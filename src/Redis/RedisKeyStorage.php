@@ -4,12 +4,18 @@ namespace Shopware\Storage\Redis;
 
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
 
 class RedisKeyStorage implements Storage, KeyAware
 {
-    public function __construct(private readonly \Redis $client) {}
+    public function __construct(
+        private readonly Collection $collection,
+        private readonly \Redis $client,
+        private readonly Hydrator $hydrator
+    ) {}
 
     public function setup(): void
     {
@@ -25,7 +31,7 @@ class RedisKeyStorage implements Storage, KeyAware
     {
         $mapped = [];
         foreach ($documents as $document) {
-            $mapped[$document->key] = json_encode($document->data, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_IGNORE);
+            $mapped[$document->key] = json_encode($document->encode(), Document::JSON_OPTIONS);
         }
 
         if (empty($mapped)) {
@@ -55,7 +61,10 @@ class RedisKeyStorage implements Storage, KeyAware
                 throw new \RuntimeException(sprintf('Invalid data type for key %s', $key));
             }
 
-            $documents[] = new Document($key, $data);
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $data
+            );
         }
 
         return new Documents($documents);
@@ -74,6 +83,9 @@ class RedisKeyStorage implements Storage, KeyAware
             throw new \RuntimeException(sprintf('Invalid data type for key %s', $key));
         }
 
-        return new Document($key, $data);
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $data
+        );
     }
 }
