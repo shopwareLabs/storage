@@ -33,6 +33,7 @@ use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Paging\Limit;
@@ -56,8 +57,8 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
-use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
@@ -68,7 +69,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     public function __construct(
         private readonly AggregationCaster $caster,
         private readonly Client $client,
-        private readonly Schema $schema
+        private readonly Hydrator $hydrator,
+        private readonly Collection $collection
     ) {}
 
     public function setup(): void
@@ -83,7 +85,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }, $keys);
 
         $arguments = [
-            'index' => $this->schema->source,
+            'index' => $this->collection->name,
             'body' => $documents,
         ];
 
@@ -96,12 +98,12 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         foreach ($documents as $document) {
             $body[] = [
                 'index' => [
-                    '_index' => $this->schema->source,
+                    '_index' => $this->collection->name,
                     '_id' => $document->key,
                 ]
             ];
 
-            $body[] = $document->data;
+            $body[] = $document->encode();
         }
 
         if (empty($body)) {
@@ -111,7 +113,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $response = $this->client->bulk(['body' => $body]);
 
         if ($response['errors'] === true) {
-            dump($response);
+            dd($response);
         }
     }
 
@@ -130,7 +132,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $parsed = $search->toArray();
 
         $params = [
-            'index' => $this->schema->source,
+            'index' => $this->collection->name,
             'body' => $parsed
         ];
 
@@ -144,9 +146,9 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $result = [];
 
         foreach ($aggregations as $aggregation) {
-            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+            $type = SchemaUtil::type(collection: $this->collection, accessor: $aggregation->field);
 
-            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+            $translated = SchemaUtil::translated(collection: $this->collection, accessor: $aggregation->field);
 
             $value = $response['aggregations'][$aggregation->name];
 
@@ -155,7 +157,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
             if ($aggregation instanceof Avg) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $value['value_as_string'] ?? $value['value']
                 );
@@ -170,7 +172,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 }
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $data
                 );
@@ -185,7 +187,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 }
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $data
                 );
@@ -194,7 +196,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
             if ($aggregation instanceof Sum) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $value['value_as_string'] ?? $value['value']
                 );
@@ -210,7 +212,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 }, $value['buckets']);
 
                 $values = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $values
                 );
@@ -227,7 +229,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 }, $value['buckets']);
 
                 $values = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $values
                 );
@@ -260,7 +262,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $parsed = $search->toArray();
 
         $params = [
-            'index' => $this->schema->source,
+            'index' => $this->collection->name,
             '_source' => true,
             'track_total_hits' => $criteria->total !== Total::NONE,
             'body' => $parsed
@@ -270,9 +272,9 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         $documents = [];
         foreach ($result['hits']['hits'] as $hit) {
-            $documents[] = new Document(
-                key: $hit['_id'],
-                data: $hit['_source'],
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit['_source']
             );
         }
 
@@ -486,7 +488,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     {
         $value = $filter->value;
 
-        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $filter->field);
+        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $filter->field);
 
         // create an inline function which generates me a BuilderInterface, based on the given filter
         $factory = function (\Closure $factory) use ($filter) {
@@ -621,7 +623,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
     private function parseAggregation(Aggregation $aggregation, StorageContext $context): AbstractAggregation
     {
-        $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+        $type = SchemaUtil::type(collection: $this->collection, accessor: $aggregation->field);
 
         if ($aggregation instanceof Max) {
             if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::LIST], true)) {
@@ -706,7 +708,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 context: $context
             );
 
-            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+            $translated = SchemaUtil::translated(collection: $this->collection, accessor: $aggregation->field);
 
             $path = $this->getNestedPath($aggregation->field);
 
@@ -754,7 +756,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     {
         $property = SchemaUtil::property($field);
 
-        $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
+        $type = SchemaUtil::type(collection: $this->collection, accessor: $property);
 
         // object field? created nested
         if (in_array($type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
