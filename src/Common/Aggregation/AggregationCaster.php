@@ -5,15 +5,16 @@ namespace Shopware\Storage\Common\Aggregation;
 use Shopware\Storage\Common\Aggregation\Type\Aggregation;
 use Shopware\Storage\Common\Aggregation\Type\Count;
 use Shopware\Storage\Common\Aggregation\Type\Distinct;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 
 class AggregationCaster
 {
-    public function cast(Schema $schema, Aggregation $aggregation, mixed $data): mixed
+    public function cast(Collection $collection, Aggregation $aggregation, mixed $data): mixed
     {
-        $type = SchemaUtil::type(schema: $schema, accessor: $aggregation->field);
+        $type = SchemaUtil::type(collection: $collection, accessor: $aggregation->field);
 
         switch ($type) {
             case FieldType::INT:
