@@ -35,8 +35,8 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
-use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
@@ -50,7 +50,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
     public function __construct(
         private readonly AggregationCaster $caster,
-        private readonly Schema            $schema
+        private readonly Collection $collection
     ) {}
 
     public function setup(): void
@@ -120,7 +120,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
             );
 
             $result[$aggregation->name] = $this->caster->cast(
-                schema: $this->schema,
+                collection: $this->collection,
                 aggregation: $aggregation,
                 data: $value
             );
@@ -255,11 +255,11 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
     {
         try {
             $docValue = $this->getDocValue($document, $filter->field, $context);
-        } catch (\LogicException) {
+        } catch (NoValueCase) {
             return false;
         }
 
-        $value = SchemaUtil::cast($this->schema, $filter->field, $filter->value);
+        $value = SchemaUtil::cast($this->collection, $filter->field, $filter->value);
 
         if ($filter instanceof Equals) {
             return $this->equals($docValue, $value);
@@ -267,7 +267,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
         if ($filter instanceof Any) {
             if (!is_array($value)) {
-                throw new \LogicException('Value must be an array');
+                throw new \LogicException(sprintf('Value for field %s must be an array', $filter->field));
             }
 
             return $this->equalsAny($docValue, $value);
@@ -279,7 +279,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
         if ($filter instanceof Neither) {
             if (!is_array($value)) {
-                throw new \LogicException('Value must be an array');
+                throw new \LogicException(sprintf('Value for field %s must be an array', $filter->field));
             }
 
             return !$this->equalsAny($docValue, $value);
@@ -287,10 +287,10 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
         if ($filter instanceof Contains) {
             if (!is_array($docValue) && !is_string($docValue)) {
-                throw new \LogicException('Doc value must be an array or string');
+                throw new \LogicException(sprintf('Doc value, for field %s, must be an array or string, got %s', $filter->field, gettype($docValue)));
             }
             if (!is_string($value)) {
-                throw new \LogicException('Value must be a string');
+                throw new \LogicException(sprintf('Value for field %s must be a string', $filter->field));
             }
 
             return $this->contains($docValue, $value);
@@ -298,10 +298,10 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
         if ($filter instanceof Prefix) {
             if (!is_array($docValue) && !is_string($docValue)) {
-                throw new \LogicException('Doc value must be an array or string');
+                throw new \LogicException(sprintf('Doc value, for field %s, must be an array or string, got %s', $filter->field, gettype($docValue)));
             }
             if (!is_string($value)) {
-                throw new \LogicException('Value must be a string');
+                throw new \LogicException(sprintf('Value for field %s must be a string', $filter->field));
             }
 
             return $this->startsWith($docValue, $value);
@@ -309,10 +309,10 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
         if ($filter instanceof Suffix) {
             if (!is_array($docValue) && !is_string($docValue)) {
-                throw new \LogicException('Doc value must be an array or string');
+                throw new \LogicException(sprintf('Doc value, for field %s, must be an array or string, got %s', $filter->field, gettype($docValue)));
             }
             if (!is_string($value)) {
-                throw new \LogicException('Value must be a string');
+                throw new \LogicException(sprintf('Value for field %s must be a string', $filter->field));
             }
 
             return $this->endsWith($docValue, $value);
@@ -334,7 +334,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
             return $this->lt($docValue, $value);
         }
 
-        throw new \LogicException('Unknown filter type');
+        throw new \LogicException(sprintf('Unknown filter type %s', $filter::class));
     }
 
     private function parseOperator(Document $document, Operator $operator, StorageContext $context): bool
@@ -376,30 +376,29 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
     private function getDocValue(Document $document, string $accessor, StorageContext $context): mixed
     {
+        $data = $document->encode();
+
         $property = SchemaUtil::property($accessor);
 
-        $translated = SchemaUtil::translated($this->schema, $property);
+        $translated = SchemaUtil::translated($this->collection, $property);
 
-        $value = $document->data[$property];
+        $value = $data[$property];
 
         if ($translated) {
             if ($value === null) {
-                throw new \LogicException('Null accessor accessor');
+                throw new NoValueCase();
             }
 
             foreach ($context->languages as $language) {
-                if (!is_array($value)) {
-                    throw new \LogicException('Translated field value is not an array');
-                }
                 if (isset($value[$language])) {
-                    return SchemaUtil::cast($this->schema, $accessor, $value[$language]);
+                    return SchemaUtil::cast($this->collection, $accessor, $value[$language]);
                 }
             }
 
             return null;
         }
 
-        $type = SchemaUtil::type($this->schema, $property);
+        $type = SchemaUtil::type($this->collection, $property);
 
         if ($type === FieldType::OBJECT) {
             return $this->resolveAccessor($accessor, $value);
@@ -426,10 +425,10 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
         }
 
         if ($value === null) {
-            throw new \LogicException('Null accessor accessor');
+            throw new NoValueCase();
         }
         if (!is_array($value)) {
-            throw new \LogicException('Accessor is not an array');
+            throw new \LogicException(sprintf('Accessor %s is not an array', $accessor));
         }
 
         foreach ($parts as $part) {
@@ -440,7 +439,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
             }
         }
 
-        return SchemaUtil::cast($this->schema, $accessor, $value);
+        return SchemaUtil::cast($this->collection, $accessor, $value);
     }
 
     /**
@@ -457,13 +456,13 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
                 try {
                     $aValue = $this->getDocValue($a, $sorting->field, $context);
-                } catch (\LogicException) {
+                } catch (NoValueCase) {
                     $aValue = null;
                 }
 
                 try {
                     $bValue = $this->getDocValue($b, $sorting->field, $context);
-                } catch (\LogicException) {
+                } catch (NoValueCase) {
                     $bValue = null;
                 }
 
