@@ -6,29 +6,13 @@ use Meilisearch\Client;
 use Meilisearch\Contracts\TasksQuery;
 use Meilisearch\Endpoints\Indexes;
 use Meilisearch\Exceptions\ApiException;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
-use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\Exception\NotSupportedByEngine;
-use Shopware\Storage\Common\Filter\Criteria;
-use Shopware\Storage\Common\Filter\Result;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Filter\FilterAware;
-use Shopware\Storage\Common\Filter\Paging\Page;
-use Shopware\Storage\Common\Filter\Type\Any;
-use Shopware\Storage\Common\Filter\Type\Contains;
-use Shopware\Storage\Common\Filter\Type\Equals;
-use Shopware\Storage\Common\Filter\Type\Gt;
-use Shopware\Storage\Common\Filter\Type\Gte;
-use Shopware\Storage\Common\Filter\Type\Lt;
-use Shopware\Storage\Common\Filter\Type\Lte;
-use Shopware\Storage\Common\Filter\Type\Neither;
-use Shopware\Storage\Common\Filter\Type\Not;
-use Shopware\Storage\Common\Filter\Type\Prefix;
-use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Storage;
-use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Meilisearch\MeilisearchStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
+use Shopware\StorageTests\Common\TestSchema;
 
 class MeilisearchStorageTest extends FilterStorageTestBase
 {
@@ -37,7 +21,7 @@ class MeilisearchStorageTest extends FilterStorageTestBase
     private function exists(): bool
     {
         try {
-            $this->getClient()->getIndex($this->getSchema()->source);
+            $this->getClient()->getIndex(TestSchema::getCollection()->name);
         } catch (ApiException) {
             return false;
         }
@@ -57,16 +41,16 @@ class MeilisearchStorageTest extends FilterStorageTestBase
             return;
         }
 
-        $this->getClient()->deleteIndex($this->getSchema()->source);
+        $this->getClient()->deleteIndex(TestSchema::getCollection()->name);
 
         $this->wait();
 
         $this->getClient()->createIndex(
-            uid: $this->getSchema()->source,
+            uid: TestSchema::getCollection()->name,
             options: ['primaryKey' => 'key']
         );
 
-        $fields = array_map(fn($field) => $field->name, $this->getSchema()->fields);
+        $fields = array_map(fn($field) => $field->name, TestSchema::getCollection()->getFields());
 
         $fields[] = 'key';
 
@@ -98,8 +82,9 @@ class MeilisearchStorageTest extends FilterStorageTestBase
         return new MeilisearchLiveStorage(
             storage: new MeilisearchStorage(
                 caster: new AggregationCaster(),
+                hydrator: new Hydrator(),
                 client: $this->getClient(),
-                schema: $this->getSchema()
+                collection: TestSchema::getCollection()
             ),
             client: $this->getClient(),
         );
@@ -107,7 +92,7 @@ class MeilisearchStorageTest extends FilterStorageTestBase
 
     private function index(): Indexes
     {
-        return $this->getClient()->index($this->getSchema()->source);
+        return $this->getClient()->index(TestSchema::getCollection()->name);
     }
 
     private function wait(): void
