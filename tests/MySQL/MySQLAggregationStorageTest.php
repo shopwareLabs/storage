@@ -5,7 +5,6 @@ namespace Shopware\StorageTests\MySQL;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\StorageTests\Common\AggregationStorageTestBase;
-use Shopware\StorageTests\Common\TestSchema;
 
 class MySQLAggregationStorageTest extends AggregationStorageTestBase
 {
@@ -13,8 +12,6 @@ class MySQLAggregationStorageTest extends AggregationStorageTestBase
 
     public function getStorage(): AggregationAware&Storage
     {
-        return $this->createStorage(
-            collection: TestSchema::getCollection(),
-        );
+        return $this->createStorage();
     }
 }

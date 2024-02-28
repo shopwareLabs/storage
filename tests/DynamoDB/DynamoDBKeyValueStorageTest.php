@@ -36,7 +36,7 @@ class DynamoDBKeyValueStorageTest extends KeyValueStorageTestBase
             ],
             'ProvisionedThroughput' => new ProvisionedThroughput([
                 'ReadCapacityUnits' => 5,
-                'WriteCapacityUnits' => 5
+                'WriteCapacityUnits' => 5,
             ]),
         ]);
 

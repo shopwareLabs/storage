@@ -3,16 +3,11 @@
 namespace Shopware\Storage\Common\Schema;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
-class Collection
+class Collection implements FieldsAware
 {
-    public string $class;
-
     use FieldsTrait;
 
-    public function __construct(public string $name) {}
+    public string $class;
 
-    public function getFields(): array
-    {
-        return $this->fields;
-    }
+    public function __construct(public string $name) {}
 }

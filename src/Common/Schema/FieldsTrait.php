@@ -22,4 +22,9 @@ trait FieldsTrait
         }
         return $this->fields[$field];
     }
+
+    public function fields(): array
+    {
+        return $this->fields;
+    }
 }

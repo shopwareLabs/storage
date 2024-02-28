@@ -47,7 +47,7 @@ trait MeilisearchTestTrait
             options: ['primaryKey' => 'key']
         );
 
-        $fields = array_map(fn($field) => $field->name, TestSchema::getCollection()->getFields());
+        $fields = array_map(fn($field) => $field->name, TestSchema::getCollection()->fields());
 
         $fields[] = 'key';
 

@@ -221,7 +221,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'min' => ['$min' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -230,7 +230,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'max' => ['$max' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -239,7 +239,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'sum' => ['$sum' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -248,7 +248,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'avg' => ['$avg' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -257,15 +257,15 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => $field,
                     'count' => ['$sum' => 1],
-                ]
+                ],
             ];
             return $parsed;
         }
         if ($aggregation instanceof Distinct) {
             $parsed[] = [
                 '$group' => [
-                    '_id' => $field
-                ]
+                    '_id' => $field,
+                ],
             ];
 
             return $parsed;
@@ -277,7 +277,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
     public function remove(array $keys): void
     {
         $this->collection()->deleteMany([
-            'key' => ['$in' => $keys]
+            'key' => ['$in' => $keys],
         ]);
     }
 
@@ -310,7 +310,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         if ($criteria->sorting) {
             $options['sort'] = array_map(function (Sorting $sort) {
                 return [
-                    $sort->field => $sort->order === 'ASC' ? 1 : -1
+                    $sort->field => $sort->order === 'ASC' ? 1 : -1,
                 ];
             }, $criteria->sorting);
         }
@@ -498,7 +498,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             if (arraykey_first($context->languages) === $index) {
                 $queries[] = ['$and' => [
                     [$field . '.' . $language => ['$ne' => null]],
-                    $gen($field . '.' . $language, $value)
+                    $gen($field . '.' . $language, $value),
                 ]];
                 $before[] = $language;
                 continue;

@@ -55,7 +55,7 @@ class MongoDBKeyStorage implements KeyAware, Storage
                 'root' => 'array',
                 'document' => 'array',
                 'array' => 'array',
-            ]
+            ],
         ];
 
         $cursor = $this->collection()->findOne(['key' => $key], $options);
@@ -77,7 +77,7 @@ class MongoDBKeyStorage implements KeyAware, Storage
     public function remove(array $keys): void
     {
         $this->collection()->deleteMany([
-            'key' => ['$in' => $keys]
+            'key' => ['$in' => $keys],
         ]);
     }
 

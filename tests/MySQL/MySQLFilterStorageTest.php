@@ -5,7 +5,6 @@ namespace Shopware\StorageTests\MySQL;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
-use Shopware\StorageTests\Common\TestSchema;
 
 /**
  * @covers \Shopware\Storage\MySQL\MySQLStorage
@@ -16,8 +15,6 @@ class MySQLFilterStorageTest extends FilterStorageTestBase
 
     public function getStorage(): FilterAware&Storage
     {
-        return $this->createStorage(
-            collection: TestSchema::getCollection(),
-        );
+        return $this->createStorage();
     }
 }

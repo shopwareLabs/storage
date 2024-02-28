@@ -7,7 +7,6 @@ use Shopware\Storage\Common\Aggregation\Type\Count;
 use Shopware\Storage\Common\Aggregation\Type\Distinct;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
-use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 
 class AggregationCaster
@@ -60,7 +59,7 @@ class AggregationCaster
 
             $values = array_map(fn($value) => [
                 'key' => $caster($value['key']),
-                'count' => (int) $value['count']
+                'count' => (int) $value['count'],
             ], $data);
 
             usort($values, fn($a, $b) => $a['key'] <=> $b['key']);

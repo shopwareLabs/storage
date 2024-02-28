@@ -170,7 +170,7 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         if ($aggregation instanceof Count) {
             $query->select([
                 $accessor . ' as `key`',
-                'COUNT(' . $accessor . ') as count'
+                'COUNT(' . $accessor . ') as count',
             ]);
             $query->groupBy($accessor);
 

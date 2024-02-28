@@ -6,10 +6,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\MySQL\MySQLAccessorBuilder;
 use Shopware\Storage\MySQL\MySQLParser;
 use Shopware\Storage\MySQL\MySQLStorage;
+use Shopware\StorageTests\Common\TestSchema;
 
 trait MySQLTestTrait
 {
@@ -23,7 +23,7 @@ trait MySQLTestTrait
             ->executeStatement((string) file_get_contents(__DIR__ . '/test_storage.sql'));
     }
 
-    public function createStorage(Collection $collection): MySQLStorage
+    public function createStorage(): MySQLStorage
     {
         $accessor = new MySQLAccessorBuilder();
 
@@ -35,7 +35,7 @@ trait MySQLTestTrait
             accessor: $accessor,
             caster: new AggregationCaster(),
             connection: $this->getConnection(),
-            collection: $collection
+            collection: TestSchema::getCollection()
         );
     }
 

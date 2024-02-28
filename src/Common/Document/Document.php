@@ -9,9 +9,8 @@ use Shopware\Storage\Common\Util\JsonSerializableTrait;
 #[\AllowDynamicProperties]
 abstract class Document implements \JsonSerializable
 {
-    public const JSON_OPTIONS = \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_IGNORE;
-
     use JsonSerializableTrait;
+    public const JSON_OPTIONS = \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_IGNORE;
 
     public function __construct(
         #[Field(type: FieldType::STRING)]

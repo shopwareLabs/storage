@@ -2,8 +2,6 @@
 
 namespace Shopware\Storage\Common\Schema;
 
-use PHPStan\Reflection\PropertyReflection;
-
 class Schema
 {
     /**

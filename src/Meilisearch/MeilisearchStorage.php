@@ -461,7 +461,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
             foreach ($before as $id) {
                 $nested[] = self::or([
                     $filter->field . '.' . $id . ' NOT EXISTS',
-                    $filter->field . '.' . $id . ' IS NULL'
+                    $filter->field . '.' . $id . ' IS NULL',
                 ]);
             }
 

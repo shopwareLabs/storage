@@ -44,18 +44,18 @@ abstract class AggregationStorageTestBase extends TestCase
             new Documents([
                 new Product(key: 'key1', ean: 'a'),
                 new Product(key: 'key2', ean: 'b'),
-                new Product(key: 'key3', ean: 'c')
+                new Product(key: 'key3', ean: 'c'),
             ]),
-            ['min' => 'a']
+            ['min' => 'a'],
         ];
         yield 'Max, string field' => [
             new Max(name: 'max', field: 'ean'),
             new Documents([
                 new Product(key: 'key1', ean: 'a'),
                 new Product(key: 'key2', ean: 'b'),
-                new Product(key: 'key3', ean: 'c')
+                new Product(key: 'key3', ean: 'c'),
             ]),
-            ['max' => 'c']
+            ['max' => 'c'],
         ];
         yield 'Distinct, string field' => [
             new Distinct(name: 'distinct', field: 'ean'),
@@ -63,9 +63,9 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key1', ean: 'a'),
                 new Product(key: 'key2', ean: 'b'),
                 new Product(key: 'key3', ean: 'c'),
-                new Product(key: 'key4', ean: 'c')
+                new Product(key: 'key4', ean: 'c'),
             ]),
-            ['distinct' => ['a', 'b', 'c']]
+            ['distinct' => ['a', 'b', 'c']],
         ];
         yield 'Count, string field' => [
             new Count(name: 'count', field: 'ean'),
@@ -77,9 +77,9 @@ abstract class AggregationStorageTestBase extends TestCase
             [
                 'count' => [
                     ['key' => 'a', 'count' => 1],
-                    ['key' => 'b', 'count' => 2]
-                ]
-            ]
+                    ['key' => 'b', 'count' => 2],
+                ],
+            ],
         ];
     }
 
@@ -90,18 +90,18 @@ abstract class AggregationStorageTestBase extends TestCase
             new Documents([
                 new Product(key: 'key1', comment: 'a'),
                 new Product(key: 'key2', comment: 'b'),
-                new Product(key: 'key3', comment: 'c')
+                new Product(key: 'key3', comment: 'c'),
             ]),
-            ['min' => 'a']
+            ['min' => 'a'],
         ];
         yield 'Max, text field' => [
             new Max(name: 'max', field: 'comment'),
             new Documents([
                 new Product(key: 'key1', comment: 'a'),
                 new Product(key: 'key2', comment: 'b'),
-                new Product(key: 'key3', comment: 'c')
+                new Product(key: 'key3', comment: 'c'),
             ]),
-            ['max' => 'c']
+            ['max' => 'c'],
         ];
         yield 'Distinct, text field' => [
             new Distinct(name: 'distinct', field: 'comment'),
@@ -109,9 +109,9 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key1', comment: 'a'),
                 new Product(key: 'key2', comment: 'b'),
                 new Product(key: 'key3', comment: 'c'),
-                new Product(key: 'key4', comment: 'c')
+                new Product(key: 'key4', comment: 'c'),
             ]),
-            ['distinct' => ['a', 'b', 'c']]
+            ['distinct' => ['a', 'b', 'c']],
         ];
         yield 'Count, text field' => [
             new Count(name: 'count', field: 'comment'),
@@ -123,9 +123,9 @@ abstract class AggregationStorageTestBase extends TestCase
             [
                 'count' => [
                     ['key' => 'a', 'count' => 1],
-                    ['key' => 'b', 'count' => 2]
-                ]
-            ]
+                    ['key' => 'b', 'count' => 2],
+                ],
+            ],
         ];
     }
 
@@ -180,8 +180,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => 1, 'count' => 1],
                     ['key' => 2, 'count' => 3],
-                    ['key' => 3, 'count' => 1]
-                ]
+                    ['key' => 3, 'count' => 1],
+                ],
             ],
         ];
         yield 'Distinct, int field' => [
@@ -247,8 +247,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => 1.1, 'count' => 1],
                     ['key' => 2.2, 'count' => 3],
-                    ['key' => 3.3, 'count' => 1]
-                ]
+                    ['key' => 3.3, 'count' => 1],
+                ],
             ],
         ];
         yield 'Distinct, float field' => [
@@ -308,7 +308,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => false, 'count' => 3],
                     ['key' => true, 'count' => 2],
-                ]
+                ],
             ],
         ];
     }
@@ -346,8 +346,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => '2021-01-01 00:00:00.000', 'count' => 1],
                     ['key' => '2021-01-02 00:00:00.000', 'count' => 3],
-                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1]
-                ]
+                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1],
+                ],
             ],
         ];
         yield 'Distinct, date field' => [
@@ -456,7 +456,7 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => 3, 'count' => 3],
                     ['key' => 4, 'count' => 1],
                     ['key' => 5, 'count' => 1],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, list int field' => [
@@ -487,18 +487,18 @@ abstract class AggregationStorageTestBase extends TestCase
             new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'a')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'b')),
-                new Product(key: 'key3', mainCategory: new Category(ean: 'c'))
+                new Product(key: 'key3', mainCategory: new Category(ean: 'c')),
             ]),
-            ['min' => 'a']
+            ['min' => 'a'],
         ];
         yield 'Max, object string field' => [
             new Max(name: 'max', field: 'mainCategory.ean'),
             new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'a')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'b')),
-                new Product(key: 'key3', mainCategory: new Category(ean: 'c'))
+                new Product(key: 'key3', mainCategory: new Category(ean: 'c')),
             ]),
-            ['max' => 'c']
+            ['max' => 'c'],
         ];
         yield 'Count, object string field' => [
             new Count(name: 'count', field: 'mainCategory.ean'),
@@ -510,9 +510,9 @@ abstract class AggregationStorageTestBase extends TestCase
             [
                 'count' => [
                     ['key' => 'a', 'count' => 1],
-                    ['key' => 'b', 'count' => 2]
-                ]
-            ]
+                    ['key' => 'b', 'count' => 2],
+                ],
+            ],
         ];
         yield 'Distinct, object string field' => [
             new Distinct(name: 'distinct', field: 'mainCategory.ean'),
@@ -520,9 +520,9 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key1', mainCategory: new Category(ean: 'a')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'b')),
                 new Product(key: 'key3', mainCategory: new Category(ean: 'c')),
-                new Product(key: 'key4', mainCategory: new Category(ean: 'c'))
+                new Product(key: 'key4', mainCategory: new Category(ean: 'c')),
             ]),
-            ['distinct' => ['a', 'b', 'c']]
+            ['distinct' => ['a', 'b', 'c']],
         ];
     }
 
@@ -577,8 +577,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => 1.1, 'count' => 1],
                     ['key' => 2.2, 'count' => 3],
-                    ['key' => 3.3, 'count' => 1]
-                ]
+                    ['key' => 3.3, 'count' => 1],
+                ],
             ],
         ];
         yield 'Distinct, object float field' => [
@@ -644,8 +644,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => 1, 'count' => 1],
                     ['key' => 2, 'count' => 3],
-                    ['key' => 3, 'count' => 1]
-                ]
+                    ['key' => 3, 'count' => 1],
+                ],
             ],
         ];
         yield 'Distinct, object int field' => [
@@ -693,7 +693,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => false, 'count' => 3],
                     ['key' => true, 'count' => 2],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, object bool field' => [
@@ -743,8 +743,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => '2021-01-01 00:00:00.000', 'count' => 1],
                     ['key' => '2021-01-02 00:00:00.000', 'count' => 3],
-                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1]
-                ]
+                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1],
+                ],
             ],
         ];
         yield 'Distinct, object date field' => [
@@ -769,7 +769,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key2', categories: [new Category(ean: 'a'), new Category(ean: 'd')]),
                 new Product(key: 'key3', categories: [new Category(ean: 'e'), new Category(ean: 'f')]),
             ]),
-            ['min' => 'a']
+            ['min' => 'a'],
         ];
         yield 'Max, object list string field' => [
             new Max(name: 'max', field: 'categories.ean'),
@@ -778,7 +778,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key2', categories: [new Category(ean: 'a'), new Category(ean: 'd')]),
                 new Product(key: 'key3', categories: [new Category(ean: 'e'), new Category(ean: 'f')]),
             ]),
-            ['max' => 'f']
+            ['max' => 'f'],
         ];
         yield 'Count, object list string field' => [
             new Count(name: 'count', field: 'categories.ean'),
@@ -792,9 +792,9 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => 'a', 'count' => 2],
                     ['key' => 'b', 'count' => 1],
                     ['key' => 'c', 'count' => 2],
-                    ['key' => 'd', 'count' => 1]
-                ]
-            ]
+                    ['key' => 'd', 'count' => 1],
+                ],
+            ],
         ];
         yield 'Distinct, object list string field' => [
             new Distinct(name: 'distinct', field: 'categories.ean'),
@@ -803,7 +803,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key2', categories: [new Category(ean: 'a'), new Category(ean: 'c')]),
                 new Product(key: 'key3', categories: [new Category(ean: 'c'), new Category(ean: 'd')]),
             ]),
-            ['distinct' => ['a', 'b', 'c', 'd']]
+            ['distinct' => ['a', 'b', 'c', 'd']],
         ];
     }
 
@@ -860,7 +860,7 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => 4.4, 'count' => 1],
                     ['key' => 5.5, 'count' => 1],
                     ['key' => 6.6, 'count' => 1],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, object list float field' => [
@@ -924,7 +924,7 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => 2, 'count' => 3],
                     ['key' => 3, 'count' => 1],
                     ['key' => 4, 'count' => 2],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, object list int field' => [
@@ -969,7 +969,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => false, 'count' => 2],
                     ['key' => true, 'count' => 2],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, object list bool field' => [
@@ -1015,7 +1015,7 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => '2021-01-01 00:00:00.000', 'count' => 2],
                     ['key' => '2021-01-02 00:00:00.000', 'count' => 1],
                     ['key' => '2021-01-03 00:00:00.000', 'count' => 3],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, object list date field' => [
@@ -1036,18 +1036,18 @@ abstract class AggregationStorageTestBase extends TestCase
             new Documents([
                 new Product(key: 'key1', name: new Translation(['en' => 'b', 'de' => 'b'])),
                 new Product(key: 'key2', name: new Translation(['en' => null, 'de' => 'd'])),
-                new Product(key: 'key3', name: new Translation(['de' => 'a']))
+                new Product(key: 'key3', name: new Translation(['de' => 'a'])),
             ]),
-            ['min' => 'a']
+            ['min' => 'a'],
         ];
         yield 'Max, translated string field' => [
             new Max(name: 'max', field: 'name'),
             new Documents([
                 new Product(key: 'key1', name: new Translation(['en' => 'b', 'de' => 'b'])),
                 new Product(key: 'key2', name: new Translation(['en' => null, 'de' => 'd'])),
-                new Product(key: 'key3', name: new Translation(['de' => 'a']))
+                new Product(key: 'key3', name: new Translation(['de' => 'a'])),
             ]),
-            ['max' => 'd']
+            ['max' => 'd'],
         ];
         yield 'Count, translated string field' => [
             new Count(name: 'count', field: 'name'),
@@ -1062,8 +1062,8 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => 'a', 'count' => 2],
                     ['key' => 'b', 'count' => 1],
                     ['key' => 'c', 'count' => 1],
-                ]
-            ]
+                ],
+            ],
         ];
         yield 'Distinct, translated string field' => [
             new Distinct(name: 'distinct', field: 'name'),
@@ -1073,7 +1073,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key3', name: new Translation(['en' => 'b', 'de' => 'a'])),
                 new Product(key: 'key4', name: new Translation(['de' => 'c'])),
             ]),
-            ['distinct' => ['a', 'b', 'c']]
+            ['distinct' => ['a', 'b', 'c']],
         ];
     }
 
@@ -1127,7 +1127,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => 1, 'count' => 2],
                     ['key' => 5, 'count' => 2],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, translated int field' => [
@@ -1137,7 +1137,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 3])),
                 new Product(key: 'key3', position: new Translation(['de' => 5])),
             ]),
-            ['distinct' => [1, 3, 5]]
+            ['distinct' => [1, 3, 5]],
         ];
     }
 
@@ -1191,7 +1191,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => 1.1, 'count' => 2],
                     ['key' => 5.5, 'count' => 2],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, translated float field' => [
@@ -1201,7 +1201,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 3.3])),
                 new Product(key: 'key3', weight: new Translation(['de' => 5.5])),
             ]),
-            ['distinct' => [1.1, 3.3, 5.5]]
+            ['distinct' => [1.1, 3.3, 5.5]],
         ];
     }
 
@@ -1212,18 +1212,18 @@ abstract class AggregationStorageTestBase extends TestCase
             new Documents([
                 new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
                 new Product(key: 'key2', highlight: new Translation(['en' => null, 'de' => true])),
-                new Product(key: 'key3', highlight: new Translation(['de' => false]))
+                new Product(key: 'key3', highlight: new Translation(['de' => false])),
             ]),
-            ['min' => false]
+            ['min' => false],
         ];
         yield 'Max, translated bool field' => [
             new Max(name: 'max', field: 'highlight'),
             new Documents([
                 new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
                 new Product(key: 'key2', highlight: new Translation(['en' => null, 'de' => true])),
-                new Product(key: 'key3', highlight: new Translation(['de' => false]))
+                new Product(key: 'key3', highlight: new Translation(['de' => false])),
             ]),
-            ['max' => true]
+            ['max' => true],
         ];
         yield 'Count, translated bool field' => [
             new Count(name: 'count', field: 'highlight'),
@@ -1237,8 +1237,8 @@ abstract class AggregationStorageTestBase extends TestCase
                 'count' => [
                     ['key' => false, 'count' => 2],
                     ['key' => true, 'count' => 2],
-                ]
-            ]
+                ],
+            ],
         ];
         yield 'Distinct, translated bool field' => [
             new Distinct(name: 'distinct', field: 'highlight'),
@@ -1248,7 +1248,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key3', highlight: new Translation(['en' => false, 'de' => true])),
                 new Product(key: 'key4', highlight: new Translation(['de' => false])),
             ]),
-            ['distinct' => [false, true]]
+            ['distinct' => [false, true]],
         ];
     }
 
@@ -1285,7 +1285,7 @@ abstract class AggregationStorageTestBase extends TestCase
                     ['key' => '2021-01-01 00:00:00.000', 'count' => 1],
                     ['key' => '2021-01-03 00:00:00.000', 'count' => 1],
                     ['key' => '2021-01-04 00:00:00.000', 'count' => 2],
-                ]
+                ],
             ],
         ];
         yield 'Distinct, translated date field' => [
@@ -1295,7 +1295,7 @@ abstract class AggregationStorageTestBase extends TestCase
                 new Product(key: 'key2', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
                 new Product(key: 'key3', release: new Translation(['de' => '2021-01-04 00:00:00.000'])),
             ]),
-            ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-03 00:00:00.000', '2021-01-04 00:00:00.000']]
+            ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-03 00:00:00.000', '2021-01-04 00:00:00.000']],
         ];
     }
 

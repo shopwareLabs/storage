@@ -41,7 +41,7 @@ class DynamoDBKeyStorage implements KeyAware, Storage
 
         $this->client->batchWriteItem([
             'RequestItems' => [
-                $this->collection->name => $mapped
+                $this->collection->name => $mapped,
             ],
         ]);
     }
@@ -63,7 +63,7 @@ class DynamoDBKeyStorage implements KeyAware, Storage
 
         $this->client->batchWriteItem([
             'RequestItems' => [
-                $this->collection->name => $mapped
+                $this->collection->name => $mapped,
             ],
         ]);
     }
@@ -74,7 +74,7 @@ class DynamoDBKeyStorage implements KeyAware, Storage
             new BatchGetItemInput([
                 'RequestItems' => [
                     $this->collection->name => new KeysAndAttributes([
-                        'Keys' => array_map(fn(string $key) => ['key' => new AttributeValue(['S' => $key])], $keys)
+                        'Keys' => array_map(fn(string $key) => ['key' => new AttributeValue(['S' => $key])], $keys),
                     ]),
                 ],
             ])

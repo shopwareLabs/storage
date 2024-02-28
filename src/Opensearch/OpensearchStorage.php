@@ -19,7 +19,6 @@ use OpenSearchDSL\Query\TermLevel\RangeQuery;
 use OpenSearchDSL\Query\TermLevel\TermQuery;
 use OpenSearchDSL\Query\TermLevel\TermsQuery;
 use OpenSearchDSL\Query\TermLevel\WildcardQuery;
-use OpenSearchDSL\ScriptAwareTrait;
 use OpenSearchDSL\Search;
 use OpenSearchDSL\Sort\FieldSort;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
@@ -31,7 +30,6 @@ use Shopware\Storage\Common\Aggregation\Type\Distinct;
 use Shopware\Storage\Common\Aggregation\Type\Max;
 use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
-use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
@@ -100,7 +98,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 'index' => [
                     '_index' => $this->collection->name,
                     '_id' => $document->key,
-                ]
+                ],
             ];
 
             $body[] = $document->encode();
@@ -133,7 +131,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         $params = [
             'index' => $this->collection->name,
-            'body' => $parsed
+            'body' => $parsed,
         ];
 
         try {
@@ -207,7 +205,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 $values = array_map(function ($bucket) {
                     return [
                         'key' => $bucket['key_as_string'] ?? $bucket['key'],
-                        'count' => $bucket['doc_count']
+                        'count' => $bucket['doc_count'],
                     ];
                 }, $value['buckets']);
 
@@ -265,7 +263,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             'index' => $this->collection->name,
             '_source' => true,
             'track_total_hits' => $criteria->total !== Total::NONE,
-            'body' => $parsed
+            'body' => $parsed,
         ];
 
         $result = $this->client->search($params);
@@ -375,8 +373,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                         $factory(
                             $filter->field . '.' . $languageId,
                             $filter->value
-                        )
-                    ]
+                        ),
+                    ],
                 ]);
 
                 $before[] = $languageId;
@@ -402,7 +400,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         $source = new BoolQuery([
-            BoolQuery::SHOULD => $queries
+            BoolQuery::SHOULD => $queries,
         ]);
 
         $source->addParameter('minimum_should_match', 1);
@@ -451,13 +449,13 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($operator instanceof AndOperator) {
             return new BoolQuery([
-                BoolQuery::MUST => $nested
+                BoolQuery::MUST => $nested,
             ]);
         }
 
         if ($operator instanceof OrOperator) {
             $bool = new BoolQuery([
-                BoolQuery::SHOULD => $nested
+                BoolQuery::SHOULD => $nested,
             ]);
 
             $bool->addParameter('minimum_should_match', 1);
@@ -467,13 +465,13 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($operator instanceof NandOperator) {
             return new BoolQuery([
-                BoolQuery::MUST_NOT => $nested
+                BoolQuery::MUST_NOT => $nested,
             ]);
         }
 
         if ($operator instanceof NorOperator) {
             $bool = new BoolQuery([
-                BoolQuery::MUST_NOT => $nested
+                BoolQuery::MUST_NOT => $nested,
             ]);
 
             $bool->addParameter('minimum_should_match', 1);
@@ -504,7 +502,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         if ($value === null && $filter instanceof Equals) {
             return $factory(function (string $field) {
                 return new BoolQuery([
-                    BoolQuery::MUST_NOT => new ExistsQuery(field: $field)
+                    BoolQuery::MUST_NOT => new ExistsQuery(field: $field),
                 ]);
             });
         }
@@ -530,7 +528,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                     BoolQuery::MUST_NOT => new TermsQuery(
                         field: $field,
                         terms: [$value]
-                    )
+                    ),
                 ]);
             });
         }
@@ -550,7 +548,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                     BoolQuery::MUST_NOT => new TermsQuery(
                         field: $field,
                         terms: $value
-                    )
+                    ),
                 ]);
             });
         }
@@ -721,8 +719,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                     'params' => [
                         'languages' => $context->languages,
                         'field' => $aggregation->field,
-                        'fallback' => 0
-                    ]
+                        'fallback' => 0,
+                    ],
                 ]);
             } elseif ($path !== null) {
                 $parsed = (new NestedAggregation($aggregation->name, $path))
@@ -742,7 +740,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             $filter = new FilterAggregation(
                 name: $aggregation->name . '.filter',
                 filter: new BoolQuery([
-                    BoolQuery::FILTER => $queries
+                    BoolQuery::FILTER => $queries,
                 ])
             );
 

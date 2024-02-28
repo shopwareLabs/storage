@@ -64,63 +64,63 @@ abstract class KeyValueStorageTestBase extends TestCase
     {
         yield 'Test store with single document' => [
             new Documents([
-                new Product(key: 'document-1', ean: 'bar')
-            ])
+                new Product(key: 'document-1', ean: 'bar'),
+            ]),
         ];
 
         yield 'Test multiple documents' => [
             new Documents([
                 new Product(key: 'document-1', ean: 'bar'),
-                new Product(key: 'document-2', ean: 'baz')
-            ])
+                new Product(key: 'document-2', ean: 'baz'),
+            ]),
         ];
 
         yield 'Test document with empty data' => [
             new Documents([
-                new Product(key: 'document-1')
-            ])
+                new Product(key: 'document-1'),
+            ]),
         ];
 
         yield 'Test document with float zero' => [
             new Documents([
-                new Product(key: 'document-1', price: 0.0)
-            ])
+                new Product(key: 'document-1', price: 0.0),
+            ]),
         ];
 
         yield 'Test document with int zero' => [
             new Documents([
-                new Product(key: 'document-1', stock: 0)
-            ])
+                new Product(key: 'document-1', stock: 0),
+            ]),
         ];
 
         yield 'Test document with null' => [
             new Documents([
-                new Product(key: 'document-1', stock: null)
-            ])
+                new Product(key: 'document-1', stock: null),
+            ]),
         ];
 
         yield 'Test document with string zero' => [
             new Documents([
-                new Product(key: 'document-1', ean: '0')
-            ])
+                new Product(key: 'document-1', ean: '0'),
+            ]),
         ];
 
         yield 'Test document nested data' => [
             new Documents([
-                new Product(key: 'document-1', mainCategory: new Category(ean: 'bar'))
-            ])
+                new Product(key: 'document-1', mainCategory: new Category(ean: 'bar')),
+            ]),
         ];
 
         yield 'Test document with unicode' => [
             new Documents([
-                new Product(key: 'document-1', ean: '👍')
-            ])
+                new Product(key: 'document-1', ean: '👍'),
+            ]),
         ];
 
         yield 'Test document with json' => [
             new Documents([
-                new Product(key: 'document-1', ean: '{"bar":"baz"}')
-            ])
+                new Product(key: 'document-1', ean: '{"bar":"baz"}'),
+            ]),
         ];
     }
 

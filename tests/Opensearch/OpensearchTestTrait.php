@@ -47,8 +47,8 @@ trait OpensearchTestTrait
             $this->getClient()->deleteByQuery([
                 'index' => TestSchema::getCollection()->name,
                 'body' => [
-                    'query' => ['match_all' => new \stdClass()]
-                ]
+                    'query' => ['match_all' => new \stdClass()],
+                ],
             ]);
 
             return;
@@ -75,28 +75,28 @@ trait OpensearchTestTrait
                             'properties' => [
                                 'de' => ['type' => 'keyword'],
                                 'en' => ['type' => 'keyword'],
-                            ]
+                            ],
                         ],
                         'position' => [
                             'type' => 'object',
                             'properties' => [
                                 'de' => ['type' => 'integer'],
                                 'en' => ['type' => 'integer'],
-                            ]
+                            ],
                         ],
                         'weight' => [
                             'type' => 'object',
                             'properties' => [
                                 'de' => ['type' => 'double'],
                                 'en' => ['type' => 'double'],
-                            ]
+                            ],
                         ],
                         'highlight' => [
                             'type' => 'object',
                             'properties' => [
                                 'de' => ['type' => 'boolean'],
                                 'en' => ['type' => 'boolean'],
-                            ]
+                            ],
                         ],
                         'release' => [
                             'type' => 'object',
@@ -111,7 +111,7 @@ trait OpensearchTestTrait
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
                                 ],
-                            ]
+                            ],
                         ],
                         'mainCategory' => [
                             'type' => 'nested',
@@ -124,8 +124,8 @@ trait OpensearchTestTrait
                                     'type' => 'date',
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
-                                ]
-                            ]
+                                ],
+                            ],
                         ],
                         'categories' => [
                             'type' => 'nested',
@@ -138,12 +138,12 @@ trait OpensearchTestTrait
                                     'type' => 'date',
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
-                                ]
-                            ]
+                                ],
+                            ],
                         ],
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ]);
     }
 
@@ -154,9 +154,9 @@ trait OpensearchTestTrait
             'body' => [
                 'script' => [
                     'lang' => 'painless',
-                    'source' => file_get_contents(__DIR__ . '/../../src/Opensearch/scripts/translated.groovy')
-                ]
-            ]
+                    'source' => file_get_contents(__DIR__ . '/../../src/Opensearch/scripts/translated.groovy'),
+                ],
+            ],
         ]);
     }
 

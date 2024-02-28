@@ -3,7 +3,7 @@
 namespace Shopware\Storage\Common\Schema;
 
 #[\Attribute(\Attribute::TARGET_PROPERTY)]
-class ListField extends Field
+class ListField extends Field implements FieldsAware
 {
     use FieldsTrait;
 
