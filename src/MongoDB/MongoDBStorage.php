@@ -65,6 +65,64 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         // todo@o.skroblin auto setup feature
     }
 
+
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $query['key'] = ['$in' => $keys];
+
+        $cursor = $this->collection()->find($query);
+
+        $cursor->setTypeMap([
+            'root' => 'array',
+            'document' => 'array',
+            'array' => 'array',
+        ]);
+
+        $result = [];
+        foreach ($cursor as $item) {
+            $data = $item;
+
+            if (!is_array($data)) {
+                throw new \RuntimeException('Mongodb returned invalid data type');
+            }
+
+            $result[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $data,
+                context: $context
+            );
+        }
+
+        return new Documents($result);
+    }
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        $options = [
+            'typeMap' => [
+                'root' => 'array',
+                'document' => 'array',
+                'array' => 'array',
+            ],
+        ];
+
+        $cursor = $this->collection()->findOne(['key' => $key], $options);
+
+        if ($cursor === null) {
+            return null;
+        }
+
+        if (!is_array($cursor)) {
+            throw new \RuntimeException('Mongodb returned invalid data type');
+        }
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $cursor,
+            context: $context
+        );
+    }
+
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
     {
         $query = [];

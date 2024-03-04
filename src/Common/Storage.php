@@ -2,10 +2,18 @@
 
 namespace Shopware\Storage\Common;
 
+use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 
 interface Storage
 {
+    /**
+     * @param array<string> $keys
+     */
+    public function mget(array $keys, StorageContext $context): Documents;
+
+    public function get(string $key, StorageContext $context): ?Document;
+
     /**
      * @param array<string> $keys
      * @return void

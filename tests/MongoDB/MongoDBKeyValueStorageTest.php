@@ -4,7 +4,6 @@ namespace Shopware\StorageTests\MongoDB;
 
 use MongoDB\Client;
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MongoDB\MongoDBKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
@@ -28,7 +27,7 @@ class MongoDBKeyValueStorageTest extends KeyValueStorageTestBase
         return $this->client;
     }
 
-    public function getStorage(): KeyAware&Storage
+    public function getStorage(): Storage
     {
         return new MongoDBKeyStorage(
             database: 'test',

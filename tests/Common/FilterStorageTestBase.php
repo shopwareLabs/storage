@@ -3,7 +3,6 @@
 namespace Shopware\StorageTests\Common;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Translator;
@@ -34,7 +33,7 @@ use Shopware\StorageTests\Common\Schema\Category;
 use Shopware\StorageTests\Common\Schema\Media;
 use Shopware\StorageTests\Common\Schema\Product;
 
-abstract class FilterStorageTestBase extends TestCase
+abstract class FilterStorageTestBase extends KeyValueStorageTestBase
 {
     abstract public function getStorage(): FilterAware&Storage;
 

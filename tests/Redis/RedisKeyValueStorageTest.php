@@ -3,7 +3,6 @@
 namespace Shopware\StorageTests\Redis;
 
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Redis\RedisKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
@@ -22,7 +21,7 @@ class RedisKeyValueStorageTest extends KeyValueStorageTestBase
         return $client;
     }
 
-    public function getStorage(): KeyAware&Storage
+    public function getStorage(): Storage
     {
         return new RedisKeyStorage(
             collection: TestSchema::getCollection(),

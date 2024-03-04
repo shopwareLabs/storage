@@ -5,12 +5,11 @@ namespace Shopware\Storage\Redis;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class RedisKeyStorage implements Storage, KeyAware
+class RedisKeyStorage implements Storage
 {
     public function __construct(
         private readonly Collection $collection,

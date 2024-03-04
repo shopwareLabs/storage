@@ -30,6 +30,7 @@ use Shopware\Storage\Common\Aggregation\Type\Distinct;
 use Shopware\Storage\Common\Aggregation\Type\Max;
 use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
+use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
@@ -76,6 +77,49 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         // todo@o.skroblin auto setup feature
     }
 
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $data = $this->client->mget([
+            'index' => $this->collection->name,
+            'body' => [
+                'ids' => $keys,
+            ],
+        ]);
+
+        $documents = [];
+        foreach ($data['docs'] as $doc) {
+            if (!array_key_exists('_source', $doc)) {
+                continue;
+            }
+
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $doc['_source'],
+                context: $context
+            );
+        }
+
+        return new Documents($documents);
+    }
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        $data = $this->client->get([
+            'index' => $this->collection->name,
+            'id' => $key,
+        ]);
+
+        if (!array_key_exists('_source', $data)) {
+            return null;
+        }
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $data['_source'],
+            context: $context
+        );
+    }
+
     public function remove(array $keys): void
     {
         $documents = array_map(function ($key) {
@@ -113,6 +157,46 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         if ($response['errors'] === true) {
             dd($response);
         }
+    }
+
+    public function filter(
+        Criteria $criteria,
+        StorageContext $context
+    ): Result {
+        $search = new Search();
+
+        $this->handlePaging(criteria: $criteria, search: $search);
+
+        $this->handlePrimaries(criteria: $criteria, search: $search);
+
+        $this->handleFilters(criteria: $criteria, search: $search, context: $context);
+
+        $this->handleSorting(criteria: $criteria, search: $search);
+
+        $parsed = $search->toArray();
+
+        $params = [
+            'index' => $this->collection->name,
+            '_source' => true,
+            'track_total_hits' => $criteria->total !== Total::NONE,
+            'body' => $parsed,
+        ];
+
+        $result = $this->client->search($params);
+
+        $documents = [];
+        foreach ($result['hits']['hits'] as $hit) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit['_source'],
+                context: $context
+            );
+        }
+
+        return new Result(
+            elements: $documents,
+            total: $this->getTotal($criteria, $result),
+        );
     }
 
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
@@ -241,46 +325,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         return $result;
-    }
-
-    public function filter(
-        Criteria $criteria,
-        StorageContext $context
-    ): Result {
-        $search = new Search();
-
-        $this->handlePaging(criteria: $criteria, search: $search);
-
-        $this->handlePrimaries(criteria: $criteria, search: $search);
-
-        $this->handleFilters(criteria: $criteria, search: $search, context: $context);
-
-        $this->handleSorting(criteria: $criteria, search: $search);
-
-        $parsed = $search->toArray();
-
-        $params = [
-            'index' => $this->collection->name,
-            '_source' => true,
-            'track_total_hits' => $criteria->total !== Total::NONE,
-            'body' => $parsed,
-        ];
-
-        $result = $this->client->search($params);
-
-        $documents = [];
-        foreach ($result['hits']['hits'] as $hit) {
-            $documents[] = $this->hydrator->hydrate(
-                collection: $this->collection,
-                data: $hit['_source'],
-                context: $context
-            );
-        }
-
-        return new Result(
-            elements: $documents,
-            total: $this->getTotal($criteria, $result),
-        );
     }
 
     private function handlePrimaries(Criteria $criteria, Search $search): void

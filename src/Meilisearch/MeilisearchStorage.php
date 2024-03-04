@@ -12,6 +12,7 @@ use Shopware\Storage\Common\Aggregation\Type\Distinct;
 use Shopware\Storage\Common\Aggregation\Type\Max;
 use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
+use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
@@ -50,6 +51,39 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         private readonly Client $client,
         private readonly Collection $collection
     ) {}
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        $result = $this->client->index($this->collection->name)->getDocument($key);
+
+        if ($result === null) {
+            return null;
+        }
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $result,
+            context: $context
+        );
+    }
+
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $result = $this->client->index($this->collection->name)->getDocument($keys);
+
+        $documents = [];
+        foreach ($result->getHits() as $hit) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit,
+                context: $context
+            );
+        }
+
+        return new Result(
+            elements: $documents
+        );
+    }
 
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
     {

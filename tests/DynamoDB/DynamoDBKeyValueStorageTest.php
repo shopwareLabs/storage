@@ -9,7 +9,6 @@ use AsyncAws\DynamoDb\ValueObject\AttributeDefinition;
 use AsyncAws\DynamoDb\ValueObject\KeySchemaElement;
 use AsyncAws\DynamoDb\ValueObject\ProvisionedThroughput;
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\DynamoDB\DynamoDBKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
@@ -47,7 +46,7 @@ class DynamoDBKeyValueStorageTest extends KeyValueStorageTestBase
         }
     }
 
-    public function getStorage(): KeyAware&Storage
+    public function getStorage(): Storage
     {
         return new DynamoDBKeyStorage(
             client: $this->getClient(),

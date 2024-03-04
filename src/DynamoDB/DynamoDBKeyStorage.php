@@ -9,12 +9,11 @@ use AsyncAws\DynamoDb\ValueObject\KeysAndAttributes;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class DynamoDBKeyStorage implements KeyAware, Storage
+class DynamoDBKeyStorage implements Storage
 {
     public function __construct(
         private readonly DynamoDbClient $client,

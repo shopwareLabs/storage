@@ -6,7 +6,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\StorageTests\Common\Schema\Category;
@@ -14,10 +13,10 @@ use Shopware\StorageTests\Common\Schema\Product;
 
 abstract class KeyValueStorageTestBase extends TestCase
 {
-    abstract public function getStorage(): KeyAware&Storage;
+    abstract public function getStorage(): Storage;
 
     #[DataProvider('storeProvider')]
-    final public function testSingle(Documents $input): void
+    final public function testGet(Documents $input): void
     {
         $storage = $this->getStorage();
 
@@ -40,7 +39,7 @@ abstract class KeyValueStorageTestBase extends TestCase
     }
 
     #[DataProvider('storeProvider')]
-    final public function testBatch(Documents $input): void
+    final public function getMGet(Documents $input): void
     {
         $storage = $this->getStorage();
 

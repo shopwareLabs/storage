@@ -7,13 +7,12 @@ use Doctrine\DBAL\Connection;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-class MySQLKeyStorage implements KeyAware, Storage
+class MySQLKeyStorage implements Storage
 {
     public function __construct(
         private readonly Connection $connection,

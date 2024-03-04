@@ -14,6 +14,7 @@ use Shopware\Storage\Common\Aggregation\Type\Distinct;
 use Shopware\Storage\Common\Aggregation\Type\Max;
 use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
+use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Filter\Criteria;
@@ -21,6 +22,8 @@ use Shopware\Storage\Common\Filter\Paging\Limit;
 use Shopware\Storage\Common\Filter\Result;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Paging\Page;
+use Shopware\Storage\Common\Filter\Type\Any;
+use Shopware\Storage\Common\Filter\Type\Equals;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
@@ -48,6 +51,44 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         // todo@o.skroblin auto setup feature
     }
 
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $criteria = new Criteria();
+        $criteria->filters = [new Any('key', $keys)];
+
+        $query = $this->buildQuery($criteria, $context);
+
+        /** @var array<array<string, mixed>> $data */
+        $data = $query->executeQuery()->fetchAllAssociative();
+
+        $documents = [];
+        foreach ($data as $row) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $row,
+                context: $context
+            );
+        }
+
+        return new Documents($documents);
+    }
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        $criteria = new Criteria();
+        $criteria->filters = [new Equals('key', $key)];
+
+        $query = $this->buildQuery($criteria, $context);
+
+        /** @var array<array<string, mixed>> $data */
+        $data = $query->executeQuery()->fetchAssociative();
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $data,
+            context: $context
+        );
+    }
 
     public function remove(array $keys): void
     {

@@ -4,6 +4,7 @@ namespace Shopware\StorageTests\Opensearch;
 
 use OpenSearch\Client;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
+use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Result;
@@ -18,6 +19,16 @@ class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware
         private readonly FilterAware&AggregationAware&Storage $decorated,
         private readonly \Shopware\Storage\Common\Schema\Collection $collection
     ) {}
+
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        return $this->decorated->mget($keys, $context);
+    }
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        return $this->decorated->get($key, $context);
+    }
 
     public function remove(array $keys): void
     {
