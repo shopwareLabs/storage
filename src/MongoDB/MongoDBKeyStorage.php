@@ -9,6 +9,7 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 
 class MongoDBKeyStorage implements KeyAware, Storage
 {
@@ -19,7 +20,7 @@ class MongoDBKeyStorage implements KeyAware, Storage
         private readonly Client $client
     ) {}
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
         $query['key'] = ['$in' => $keys];
 
@@ -41,14 +42,15 @@ class MongoDBKeyStorage implements KeyAware, Storage
 
             $result[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: $data
+                data: $data,
+                context: $context
             );
         }
 
         return new Documents($result);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         $options = [
             'typeMap' => [
@@ -70,7 +72,8 @@ class MongoDBKeyStorage implements KeyAware, Storage
 
         return $this->hydrator->hydrate(
             collection: $this->collection,
-            data: $cursor
+            data: $cursor,
+            context: $context
         );
     }
 

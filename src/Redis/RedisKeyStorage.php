@@ -8,6 +8,7 @@ use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 
 class RedisKeyStorage implements Storage, KeyAware
 {
@@ -41,7 +42,7 @@ class RedisKeyStorage implements Storage, KeyAware
         $this->client->mSet($mapped);
     }
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
         $values = $this->client->mGet($keys);
 
@@ -63,14 +64,15 @@ class RedisKeyStorage implements Storage, KeyAware
 
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: $data
+                data: $data,
+                context: $context
             );
         }
 
         return new Documents($documents);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         $value = $this->client->get($key);
 
@@ -85,7 +87,8 @@ class RedisKeyStorage implements Storage, KeyAware
 
         return $this->hydrator->hydrate(
             collection: $this->collection,
-            data: $data
+            data: $data,
+            context: $context
         );
     }
 }

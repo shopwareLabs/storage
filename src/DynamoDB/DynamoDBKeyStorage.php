@@ -12,6 +12,7 @@ use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 
 class DynamoDBKeyStorage implements KeyAware, Storage
 {
@@ -68,7 +69,7 @@ class DynamoDBKeyStorage implements KeyAware, Storage
         ]);
     }
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
         $data = $this->client->batchGetItem(
             new BatchGetItemInput([
@@ -84,13 +85,13 @@ class DynamoDBKeyStorage implements KeyAware, Storage
 
         /** @var array{value: AttributeValue, key: AttributeValue} $row */
         foreach ($data->getResponses()[$this->collection->name] as $row) {
-            $documents[] = $this->hydrate($row);
+            $documents[] = $this->hydrate(item: $row, context: $context);
         }
 
         return new Documents($documents);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         $data = $this->client->getItem([
             'TableName' => $this->collection->name,
@@ -104,13 +105,13 @@ class DynamoDBKeyStorage implements KeyAware, Storage
         /** @var array{key: AttributeValue, value: AttributeValue} $item */
         $item = $data->getItem();
 
-        return $this->hydrate($item);
+        return $this->hydrate($item, $context);
     }
 
     /**
      * @param array{key: AttributeValue, value: AttributeValue} $item
      */
-    private function hydrate(array $item): Document
+    private function hydrate(array $item, StorageContext $context): Document
     {
         if ($item['value']->getS() === null) {
             throw new \LogicException('Value is null');
@@ -126,7 +127,8 @@ class DynamoDBKeyStorage implements KeyAware, Storage
 
         return $this->hydrator->hydrate(
             collection: $this->collection,
-            data: $data
+            data: $data,
+            context: $context
         );
     }
 
