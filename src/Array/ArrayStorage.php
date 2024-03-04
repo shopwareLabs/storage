@@ -13,6 +13,7 @@ use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Translator;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Paging\Limit;
@@ -58,12 +59,12 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
         $this->storage = [];
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         return $this->storage[$key] ?? null;
     }
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
         $documents = new Documents();
 
@@ -162,6 +163,12 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
                 break;
         }
 
+        Translator::translate(
+            collection: $this->collection,
+            documents: $filtered,
+            context: $context
+        );
+
         return new Result(elements: $filtered, total: $total);
     }
 
@@ -253,11 +260,7 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
 
     private function parseFilter(Document $document, Filter $filter, StorageContext $context): bool
     {
-        try {
-            $docValue = $this->getDocValue($document, $filter->field, $context);
-        } catch (NoValueCase) {
-            return false;
-        }
+        $docValue = $this->getDocValue($document, $filter->field, $context);
 
         $value = SchemaUtil::cast($this->collection, $filter->field, $filter->value);
 
@@ -385,57 +388,59 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
         $value = $data[$property];
 
         if ($translated) {
-            if ($value === null) {
-                throw new NoValueCase();
-            }
-
-            foreach ($context->languages as $language) {
-                if (isset($value[$language])) {
-                    return SchemaUtil::cast($this->collection, $accessor, $value[$language]);
-                }
-            }
-
-            return null;
+            return $this->resolveTranslation($value, $context, $accessor);
         }
 
         $type = SchemaUtil::type($this->collection, $property);
 
         if ($type === FieldType::OBJECT) {
-            return $this->resolveAccessor($accessor, $value);
+            return $this->resolveAccessor($accessor, $value, $context);
         }
 
         if ($type === FieldType::OBJECT_LIST) {
-            if (!is_array($value)) {
-                throw new \LogicException('Accessor is not an array');
+            if ($value === null) {
+                return null;
             }
-            return array_map(fn($item) => $this->resolveAccessor($accessor, $item), $value);
+            $value = array_map(fn($item) => $this->resolveAccessor($accessor, $item, $context), $value);
+
+            $type = SchemaUtil::type($this->collection, $accessor);
+
+            if ($type === FieldType::LIST) {
+                return array_merge(...$value);
+            }
+
+            return $value;
         }
 
         return $value;
     }
 
-    private function resolveAccessor(string $accessor, mixed $value): mixed
+    private function resolveAccessor(string $accessor, mixed $value, StorageContext $context): mixed
     {
         $parts = explode('.', $accessor);
 
         array_shift($parts);
 
-        if (empty($parts) && $value === null) {
-            return null;
-        }
+        $translated = SchemaUtil::translated($this->collection, $accessor);
 
         if ($value === null) {
-            throw new NoValueCase();
+            return null;
         }
         if (!is_array($value)) {
             throw new \LogicException(sprintf('Accessor %s is not an array', $accessor));
         }
 
-        foreach ($parts as $part) {
+        foreach ($parts as $index => $part) {
             $value = $value[$part];
 
+            $last = $index === count($parts) - 1;
+
+            if ($last && $translated) {
+                return $this->resolveTranslation($value, $context, $accessor);
+            }
+
             if ($value === null) {
-                throw new \LogicException('Null accessor accessor');
+                return null;
             }
         }
 
@@ -454,17 +459,9 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
             foreach ($criteria->sorting as $sorting) {
                 $direction = $sorting->order;
 
-                try {
-                    $aValue = $this->getDocValue($a, $sorting->field, $context);
-                } catch (NoValueCase) {
-                    $aValue = null;
-                }
+                $aValue = $this->getDocValue($a, $sorting->field, $context);
 
-                try {
-                    $bValue = $this->getDocValue($b, $sorting->field, $context);
-                } catch (NoValueCase) {
-                    $bValue = null;
-                }
+                $bValue = $this->getDocValue($b, $sorting->field, $context);
 
                 if ($aValue === $bValue) {
                     continue;
@@ -563,5 +560,20 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
             is_array($docValue) => !empty(array_filter($docValue, fn($item) => $item <= $value)),
             default => $docValue <= $value,
         };
+    }
+
+    private function resolveTranslation(?array $value, StorageContext $context, string $accessor): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        foreach ($context->languages as $language) {
+            if (isset($value[$language])) {
+                return SchemaUtil::cast($this->collection, $accessor, $value[$language]);
+            }
+        }
+
+        return null;
     }
 }

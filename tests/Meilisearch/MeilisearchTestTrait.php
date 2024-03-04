@@ -13,7 +13,7 @@ use Shopware\StorageTests\Common\TestSchema;
 
 trait MeilisearchTestTrait
 {
-    private ?Client $client = null;
+    private static ?Client $client = null;
 
     private function exists(): bool
     {
@@ -32,9 +32,7 @@ trait MeilisearchTestTrait
 
         if ($this->exists()) {
             $this->index()->deleteAllDocuments();
-
             $this->wait();
-
             return;
         }
 
@@ -64,14 +62,14 @@ trait MeilisearchTestTrait
 
     private function getClient(): Client
     {
-        if ($this->client === null) {
-            $this->client = new Client(
+        if (self::$client === null) {
+            self::$client = new Client(
                 url: 'http://localhost:7700',
                 apiKey: 'UTbXxcv5T5Hq-nCYAjgPJ5lsBxf7PdhgiNexmoTByJk'
             );
         }
 
-        return $this->client;
+        return self::$client;
     }
 
     public function createStorage(): MeilisearchLiveStorage
