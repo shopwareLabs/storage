@@ -33,28 +33,45 @@ class MySQLAccessorBuilder
         $type = SchemaUtil::type(collection: $collection, accessor: $root);
 
         if ($translated) {
-            $selects = [];
-
-            $template = 'JSON_VALUE(`#field#`, "$.#property#" ' . $cast . ')';
-
-            foreach ($context->languages as $language) {
-                $selects[] = str_replace(['#field#', '#property#'], [$accessor, $language], $template);
-            }
-
-            return 'COALESCE(' . implode(', ', $selects) . ')';
+            return $this->translated(root: '`' . $root . '`', cast: $cast, context: $context);
         }
 
+        $translated = SchemaUtil::translated(collection: $collection, accessor: $accessor);
         if ($type === FieldType::OBJECT && !empty($property)) {
-            return 'JSON_VALUE(`' . $field . '`, "$.' . $property . '"' . $cast . ')';
+            if (!$translated) {
+                return 'JSON_VALUE(`' . $field . '`, "$.' . $property . '"' . $cast . ')';
+            }
+
+            return $this->translated(root: '`' . $field . '`', cast: $cast, context: $context, path: $property);
         }
 
         if ($type === FieldType::OBJECT_LIST) {
             $alias = $this->buildObjectListTable($collection, $query, $accessor);
 
+            if ($translated) {
+                return $this->translated(root: $alias . '.column_value', cast: $cast, context: $context);
+            }
+
             return '`' . $alias . '`' . '.column_value';
         }
 
         return '`' . $accessor . '`';
+    }
+
+    private function translated(string $root, string $cast, StorageContext $context, string $path = ''): string
+    {
+        if (!empty($path)) {
+            $path = '.' . $path;
+        }
+
+        $selects = [];
+
+        $template = '   JSON_VALUE(#field#, "$#path#.#language#"' . $cast . ')';
+        foreach ($context->languages as $language) {
+            $selects[] = str_replace(['#field#', '#path#', '#language#'], [$root, $path, $language], $template);
+        }
+
+        return PHP_EOL . 'COALESCE(' . PHP_EOL . implode(', ' . PHP_EOL, $selects) . PHP_EOL . ')';
     }
 
     private function buildObjectListTable(Collection $collection, QueryBuilder $query, string $accessor): string
@@ -66,7 +83,7 @@ class MySQLAccessorBuilder
         $alias = 'jt_' . Uuid::randomHex();
 
         $sql = <<<SQL
-JSON_TABLE(#field#, '$[*]' COLUMNS (
+JSON_TABLE(IFNULL(`#field#`, '[{}]'), '$[*]' COLUMNS (
     `column_value` #type# PATH '$.#property#'
 ))
 SQL;
@@ -92,11 +109,17 @@ SQL;
             return 'VARCHAR(255)';
         }
 
+        $translated = SchemaUtil::translated(collection: $collection, accessor: $accessor);
+        if ($translated) {
+            return 'JSON';
+        }
+
         return match ($type) {
             FieldType::INT => 'INT(11)',
             FieldType::FLOAT => 'DECIMAL(10, 2)',
             FieldType::BOOL => 'TINYINT(1)',
             FieldType::DATETIME => 'DATETIME(3)',
+            FieldType::LIST => 'JSON',
             default => 'VARCHAR(255)',
         };
     }

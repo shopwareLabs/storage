@@ -10,6 +10,7 @@ use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
 class MySQLKeyStorage implements KeyAware, Storage
@@ -56,7 +57,7 @@ class MySQLKeyStorage implements KeyAware, Storage
         $insert->execute();
     }
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
         $data = $this->connection->fetchFirstColumn(
             query: 'SELECT `value` FROM ' . $this->table() . ' WHERE `key` IN (:keys)',
@@ -68,14 +69,15 @@ class MySQLKeyStorage implements KeyAware, Storage
         foreach ($data as $row) {
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: json_decode($row, true)
+                data: json_decode($row, true),
+                context: $context
             );
         }
 
         return new Documents($documents);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         $data = $this->connection->fetchOne(
             query: 'SELECT `value` FROM ' . $this->table() . ' WHERE `key` = :key',
@@ -88,7 +90,8 @@ class MySQLKeyStorage implements KeyAware, Storage
 
         return $this->hydrator->hydrate(
             collection: $this->collection,
-            data: json_decode((string) $data, true)
+            data: json_decode((string) $data, true),
+            context: $context
         );
     }
 }

@@ -59,12 +59,10 @@ class MySQLParser
 
         $value = SchemaUtil::cast(collection: $collection, accessor: $filter->field, value: $filter->value);
 
-        $property = SchemaUtil::property(accessor: $filter->field);
-
-        $type = SchemaUtil::type(collection: $collection, accessor: $property);
+        $type = SchemaUtil::type(collection: $collection, accessor: $filter->field);
 
         if ($type === FieldType::LIST) {
-            return $this->handleListField($query, $filter);
+            return $this->handleListField(query: $query, filter: $filter, accessor: $accessor);
         }
 
         if ($filter instanceof Equals && $filter->value === null) {
@@ -183,30 +181,37 @@ class MySQLParser
         return ArrayParameterType::STRING;
     }
 
-    private function handleListField(QueryBuilder $query, Filter $filter): string
+    private function handleListField(QueryBuilder $query, Filter $filter, string $accessor): string
     {
         $key = 'key' . Uuid::randomHex();
 
         $keyValue = is_string($filter->value) ? 'JSON_QUOTE(:' . $key . ')' : ':' . $key;
 
+        $property = SchemaUtil::property(accessor: $filter->field);
+
         if ($filter->value === null && $filter instanceof Not) {
-            return $filter->field . ' IS NOT NULL';
+            return $accessor . ' IS NOT NULL';
         }
 
         if ($filter->value === null && $filter instanceof Equals) {
-            return $filter->field . ' IS NULL';
+            if ($property !== $filter->field) {
+                // property is null or accessor is null
+                return '(' . $accessor . ' IS NULL OR `' . $property . '` IS NULL)';
+            }
+
+            return $accessor . ' IS NULL';
         }
 
         if ($filter instanceof Equals) {
             $query->setParameter($key, $filter->value);
 
-            return 'JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+            return 'JSON_CONTAINS(' . $accessor . ', ' . $keyValue . ')';
         }
 
         if ($filter instanceof Not) {
             $query->setParameter($key, $filter->value);
 
-            return 'NOT JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+            return 'NOT JSON_CONTAINS(' . $accessor . ', ' . $keyValue . ')';
         }
 
         if ($filter instanceof Any) {
@@ -222,7 +227,7 @@ class MySQLParser
 
                 $query->setParameter($key, $value);
 
-                $where[] = 'JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+                $where[] = 'JSON_CONTAINS(' . $accessor . ', ' . $keyValue . ')';
             }
             return '(' . implode(' OR ', $where) . ')';
         }
@@ -241,7 +246,7 @@ class MySQLParser
 
                 $query->setParameter($key, $value);
 
-                $where[] = 'JSON_CONTAINS(`' . $filter->field . '`, ' . $keyValue . ')';
+                $where[] = 'JSON_CONTAINS(' . $accessor . ', ' . $keyValue . ')';
             }
 
             return 'NOT (' . implode(' OR ', $where) . ')';
@@ -250,25 +255,25 @@ class MySQLParser
         if ($filter instanceof Contains && is_int($filter->value)) {
             $query->setParameter($key, $filter->value);
 
-            return "JSON_CONTAINS(`" . $filter->field . "`, :" . $key . ")";
+            return "JSON_CONTAINS(" . $accessor . ", :" . $key . ")";
         }
 
         if ($filter instanceof Contains) {
             $query->setParameter($key, '%' . $filter->value . '%');
 
-            return "JSON_SEARCH(`" . $filter->field . "`, 'one', :" . $key . ", NULL, '$[*]')";
+            return "JSON_SEARCH(" . $accessor . ", 'one', :" . $key . ", NULL, '$[*]')";
         }
 
         if ($filter instanceof Prefix) {
             $query->setParameter($key, $filter->value . '%');
 
-            return "JSON_SEARCH(`" . $filter->field . "`, 'one', :" . $key . ", NULL, '$[*]')";
+            return "JSON_SEARCH(" . $accessor . ", 'one', :" . $key . ", NULL, '$[*]')";
         }
 
         if ($filter instanceof Suffix) {
             $query->setParameter($key, '%' . $filter->value);
 
-            return "JSON_SEARCH(`" . $filter->field . "`, 'one', :" . $key . ", NULL, '$[*]')";
+            return "JSON_SEARCH(" . $accessor . ", 'one', :" . $key . ", NULL, '$[*]')";
         }
 
         throw new \LogicException(sprintf('Unsupported filter type %s', $filter::class));
