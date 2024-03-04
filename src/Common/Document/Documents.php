@@ -18,4 +18,17 @@ class Documents extends Collection
     {
         $this->elements[$element->key] = $element;
     }
+
+    /**
+     * @param array<string> $expected
+     * @return array<array-key, Document>
+     */
+    public function list(array $expected): array
+    {
+        $result = [];
+        foreach ($expected as $key) {
+            $result[$key] = $this->elements[$key];
+        }
+        return $result;
+    }
 }
