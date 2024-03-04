@@ -2,7 +2,7 @@
 
 namespace Shopware\Storage\Common\Schema;
 
-class Schema
+class Registry
 {
     /**
      * @var array<string, \ReflectionClass>

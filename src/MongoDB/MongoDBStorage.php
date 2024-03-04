@@ -333,7 +333,8 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         foreach ($cursor as $item) {
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: $item
+                data: $item,
+                context: $context
             );
         }
 

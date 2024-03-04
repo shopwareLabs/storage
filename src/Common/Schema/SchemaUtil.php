@@ -60,9 +60,13 @@ class SchemaUtil
         return $schema->translated;
     }
 
-    public static function type(Collection $collection, string $accessor): string
+    public static function type(Collection $collection, string $accessor, bool $innerType = false): string
     {
         $schema = self::field(collection: $collection, accessor: $accessor);
+
+        if ($schema instanceof ListField && $innerType) {
+            return $schema->innerType;
+        }
 
         return $schema->type;
     }
