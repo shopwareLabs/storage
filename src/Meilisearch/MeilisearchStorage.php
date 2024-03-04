@@ -4,6 +4,7 @@ namespace Shopware\Storage\Meilisearch;
 
 use Meilisearch\Client;
 use Meilisearch\Endpoints\Indexes;
+use Meilisearch\Exceptions\ApiException;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Aggregation\Type\Avg;
@@ -14,6 +15,7 @@ use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Result;
@@ -36,8 +38,8 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
-use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
@@ -46,9 +48,47 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 {
     public function __construct(
         private readonly AggregationCaster $caster,
+        private readonly Hydrator $hydrator,
         private readonly Client $client,
-        private readonly Schema $schema
+        private readonly Collection $collection
     ) {}
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        try {
+            $result = $this->client->index($this->collection->name)->getDocument($key);
+        } catch (ApiException $e) {
+            if ($e->getCode() === 404) {
+                return null;
+            }
+
+            throw $e;
+        }
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $result,
+            context: $context
+        );
+    }
+
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $result = $this->client->index($this->collection->name)->getDocument($keys);
+
+        $documents = [];
+        foreach ($result->getHits() as $hit) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit,
+                context: $context
+            );
+        }
+
+        return new Result(
+            elements: $documents
+        );
+    }
 
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
     {
@@ -67,12 +107,12 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
         $facets = [];
         foreach ($aggregations as $aggregation) {
-            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+            $translated = SchemaUtil::translated(collection: $this->collection, accessor: $aggregation->field);
             if ($translated) {
                 throw new NotSupportedByEngine('', 'Meilisearch does not support aggregations on translated fields.');
             }
 
-            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+            $type = SchemaUtil::type(collection: $this->collection, accessor: $aggregation->field);
             if (in_array($type, [FieldType::TEXT, FieldType::STRING], true)) {
                 if ($aggregation instanceof Sum || $aggregation instanceof Avg) {
                     throw new NotSupportedByEngine('', 'Meilisearch does not support sum/avg aggregations on string/text fields.');
@@ -97,11 +137,11 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
         $result = [];
         foreach ($aggregations as $aggregation) {
-            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+            $type = SchemaUtil::type(collection: $this->collection, accessor: $aggregation->field);
 
             if ($type === FieldType::BOOL && $aggregation instanceof Min) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: !array_key_exists('false', self::distribution($distributions, $aggregation->field))
                 );
@@ -110,7 +150,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
             if ($type === FieldType::BOOL && $aggregation instanceof Max) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: array_key_exists('true', self::distribution($distributions, $aggregation->field))
                 );
@@ -121,7 +161,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
                 $values = array_keys(self::distribution($distributions, $aggregation->field));
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: min($values)
                 );
@@ -133,7 +173,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
                 $values = array_keys(self::distribution($distributions, $aggregation->field));
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: max($values)
                 );
@@ -143,7 +183,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
             if ($aggregation instanceof Min) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: self::stats($stats, $aggregation->field, 'min')
                 );
@@ -152,7 +192,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
             if ($aggregation instanceof Max) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: self::stats($stats, $aggregation->field, 'max')
                 );
@@ -163,7 +203,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
                 $values = self::distribution($distributions, $aggregation->field);
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: array_keys($values)
                 );
@@ -176,7 +216,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
                 $values = array_map(fn($value) => ['key' => $value, 'count' => $values[$value]], array_keys($values));
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $values
                 );
@@ -196,7 +236,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
                 }
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $sum
                 );
@@ -217,7 +257,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
                 }
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $sum / $count
                 );
@@ -225,31 +265,6 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         return $result;
-    }
-
-    /**
-     * @param array<string, array{min: mixed, max: mixed}> $stats
-     */
-    private static function stats(array $stats, string $field, string $key): mixed
-    {
-        if (!isset($stats[$field])) {
-            throw new \RuntimeException(sprintf('Meilisearch does not return a stats value for aggregation field %s', $field));
-        }
-
-        return $stats[$field][$key];
-    }
-
-    /**
-     * @param array<string, array<string, mixed>> $distributions
-     * @return array<string, mixed>
-     */
-    private static function distribution(array $distributions, string $field): array
-    {
-        if (!isset($distributions[$field])) {
-            throw new \RuntimeException(sprintf('Meilisearch does not return a distribution value for aggregation field %s', $field));
-        }
-
-        return $distributions[$field];
     }
 
     public function filter(Criteria $criteria, StorageContext $context): Result
@@ -277,10 +292,11 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
         $documents = [];
         foreach ($result->getHits() as $hit) {
-            $key = $hit['key'];
-            unset($hit['key']);
-
-            $documents[] = new Document(key: $key, data: $hit);
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit,
+                context: $context
+            );
         }
 
         return new Result(
@@ -297,9 +313,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
     {
         $data = [];
         foreach ($documents as $document) {
-            $record = $document->data;
-            $record['key'] = $document->key;
-            $data[] = $record;
+            $data[] = $document->encode();
         }
 
         $this->index()->addDocuments($data);
@@ -309,7 +323,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
     public function index(): Indexes
     {
-        return $this->client->index($this->schema->source);
+        return $this->client->index($this->collection->name);
     }
 
     /**
@@ -357,9 +371,9 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
     {
         $property = SchemaUtil::property($filter->field);
 
-        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $property);
+        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $filter->field);
 
-        $value = SchemaUtil::cast($this->schema, $filter->field, $filter->value);
+        $value = SchemaUtil::cast(collection: $this->collection, accessor: $filter->field, value: $filter->value);
 
         $value = self::cast($value);
 
@@ -388,11 +402,19 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($filter->value === null) {
             if ($filter instanceof Equals) {
-                return $factory(fn($field, $value) => $field . ' IS NULL');
+                return $this->equalsNull(
+                    factory: $factory,
+                    property: $property,
+                    field: $filter->field
+                );
             }
 
             if ($filter instanceof Not) {
-                return $factory(fn($field, $value) => $field . ' IS NOT NULL');
+                return $this->notNull(
+                    factory: $factory,
+                    property: $property,
+                    field: $filter->field
+                );
             }
 
             throw new \RuntimeException('Null filter values are only supported for Equals and Not filters');
@@ -413,7 +435,6 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($filter instanceof Neither) {
-
             return $factory(function (string $field, mixed $value) {
                 return $field . ' NOT IN [' . implode(',', $value) . ']';
             });
@@ -436,6 +457,30 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         throw new \RuntimeException('Unknown filter: ' . get_class($filter));
+    }
+
+    private function equalsNull(\Closure $factory, string $property, string $field): string
+    {
+        if ($property === $field) {
+            return $factory(fn($field, $value) => $field . ' IS NULL');
+        }
+
+        return self::or([
+            $property . ' IS NULL',
+            $factory(fn($field, $value) => $field . ' IS NULL'),
+        ]);
+    }
+
+    private function notNull(\Closure $factory, string $property, string $field): string
+    {
+        if ($property === $field) {
+            return $factory(fn($field, $value) => $field . ' IS NOT NULL');
+        }
+
+        return self::and([
+            $property . ' IS NOT NULL',
+            $factory(fn($field, $value) => $field . ' IS NOT NULL'),
+        ]);
     }
 
     private function parseOperator(Operator $operator, StorageContext $context): string
@@ -487,7 +532,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
             foreach ($before as $id) {
                 $nested[] = self::or([
                     $filter->field . '.' . $id . ' NOT EXISTS',
-                    $filter->field . '.' . $id . ' IS NULL'
+                    $filter->field . '.' . $id . ' IS NULL',
                 ]);
             }
 
@@ -519,5 +564,31 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
     private static function and(array $elements): string
     {
         return '(' . implode(' AND ', $elements) . ')';
+    }
+
+
+    /**
+     * @param array<string, array{min: mixed, max: mixed}> $stats
+     */
+    private static function stats(array $stats, string $field, string $key): mixed
+    {
+        if (!isset($stats[$field])) {
+            throw new \RuntimeException(sprintf('Meilisearch does not return a stats value for aggregation field %s', $field));
+        }
+
+        return $stats[$field][$key];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $distributions
+     * @return array<string, mixed>
+     */
+    private static function distribution(array $distributions, string $field): array
+    {
+        if (!isset($distributions[$field])) {
+            throw new \RuntimeException(sprintf('Meilisearch does not return a distribution value for aggregation field %s', $field));
+        }
+
+        return $distributions[$field];
     }
 }

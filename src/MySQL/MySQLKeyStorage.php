@@ -6,20 +6,23 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Document\Hydrator;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-class MySQLKeyStorage implements KeyAware, Storage
+class MySQLKeyStorage implements Storage
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly string $source
+        private readonly Hydrator $hydrator,
+        private readonly Collection $collection
     ) {}
 
     private function table(): string
     {
-        return '`' . $this->source . '`';
+        return '`' . $this->collection->name . '`';
     }
 
     public function setup(): void
@@ -45,74 +48,58 @@ class MySQLKeyStorage implements KeyAware, Storage
 
         foreach ($documents as $document) {
             $insert->add(
-                table: $this->source,
-                data: [
-                    'key' => $document->key,
-                    'value' => json_encode($document->data, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_IGNORE),
-                ]
+                table: $this->collection->name,
+                data: ['key' => $document->key, 'value' => $document->encode()]
             );
         }
 
         $insert->execute();
     }
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
-        $data = $this->connection->fetchAllAssociative(
-            query: 'SELECT `key`, `value` FROM ' . $this->table() . ' WHERE `key` IN (:keys)',
+        $data = $this->connection->fetchFirstColumn(
+            query: 'SELECT `value` FROM ' . $this->table() . ' WHERE `key` IN (:keys)',
             params: ['keys' => $keys],
             types: ['keys' => ArrayParameterType::STRING]
         );
 
         $documents = [];
         foreach ($data as $row) {
-            if (!isset($row['key']) || !is_string($row['key'])) {
-                throw new \LogicException('Invalid data, missing key for document');
+            if (!is_string($row)) {
+                continue;
             }
+            /** @var array<string, mixed> $decoded */
+            $decoded = json_decode($row, true, 512, \JSON_THROW_ON_ERROR);
 
-            $key = $row['key'];
-            $documents[] = new Document(
-                key: $key,
-                data: $this->decode($key, $row)
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $decoded,
+                context: $context
             );
         }
 
         return new Documents($documents);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
-        $data = $this->connection->fetchAssociative(
-            query: 'SELECT `key`, `value` FROM ' . $this->table() . ' WHERE `key` = :key',
+        $data = $this->connection->fetchOne(
+            query: 'SELECT `value` FROM ' . $this->table() . ' WHERE `key` = :key',
             params: ['key' => $key]
         );
 
-        if (!$data) {
+        if (!is_string($data)) {
             return null;
         }
 
-        return new Document(
-            key: $key,
-            data: $this->decode($key, $data)
+        /** @var array<string, mixed> $decoded */
+        $decoded = json_decode($data, true, 512, \JSON_THROW_ON_ERROR);
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $decoded,
+            context: $context
         );
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function decode(string $key, array $data): array
-    {
-        if (!is_string($data['value'])) {
-            throw new \RuntimeException(sprintf('Stored data, for key "%s" is invalid, expected type of string', $key));
-        }
-
-        $value = json_decode($data['value'], true, 512, \JSON_THROW_ON_ERROR);
-
-        if (!is_array($value)) {
-            throw new \RuntimeException(sprintf('Invalid data type for key "%s"', $key));
-        }
-
-        return $value;
     }
 }

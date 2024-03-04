@@ -2,25 +2,26 @@
 
 namespace Shopware\Storage\MongoDB;
 
-use MongoDB\BSON\ObjectId;
 use MongoDB\Client;
 use MongoDB\Collection;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 
-class MongoDBKeyStorage implements KeyAware, Storage
+class MongoDBKeyStorage implements Storage
 {
     public function __construct(
         private readonly string $database,
-        private readonly string $collection,
+        private readonly Hydrator $hydrator,
+        private readonly \Shopware\Storage\Common\Schema\Collection $collection,
         private readonly Client $client
     ) {}
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
-        $query['_key'] = ['$in' => $keys];
+        $query['key'] = ['$in' => $keys];
 
         $cursor = $this->collection()->find($query);
 
@@ -38,33 +39,27 @@ class MongoDBKeyStorage implements KeyAware, Storage
                 throw new \RuntimeException('Mongodb returned invalid data type');
             }
 
-            if (!isset($data['_key'])) {
-                throw new \RuntimeException('Missing _key property in mongodb result');
-            }
-
-            $key = $data['_key'];
-            unset($data['_key'], $data['_id']);
-
-            $result[] = new Document(
-                key: $key,
-                data: $data
+            $result[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $data,
+                context: $context
             );
         }
 
         return new Documents($result);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         $options = [
             'typeMap' => [
                 'root' => 'array',
                 'document' => 'array',
                 'array' => 'array',
-            ]
+            ],
         ];
 
-        $cursor = $this->collection()->findOne(['_key' => $key], $options);
+        $cursor = $this->collection()->findOne(['key' => $key], $options);
 
         if ($cursor === null) {
             return null;
@@ -74,29 +69,24 @@ class MongoDBKeyStorage implements KeyAware, Storage
             throw new \RuntimeException('Mongodb returned invalid data type');
         }
 
-        $key = $cursor['_key'];
-
-        unset($cursor['_key'], $cursor['_id']);
-
-        return new Document(
-            key: $key,
-            data: $cursor
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $cursor,
+            context: $context
         );
     }
 
     public function remove(array $keys): void
     {
         $this->collection()->deleteMany([
-            '_key' => ['$in' => $keys]
+            'key' => ['$in' => $keys],
         ]);
     }
 
     public function store(Documents $documents): void
     {
         $items = $documents->map(function (Document $document) {
-            return array_merge($document->data, [
-                '_key' => $document->key
-            ]);
+            return $document->encode();
         });
 
         if (empty($items)) {
@@ -115,6 +105,6 @@ class MongoDBKeyStorage implements KeyAware, Storage
     {
         return $this->client
             ->selectDatabase($this->database)
-            ->selectCollection($this->collection);
+            ->selectCollection($this->collection->name);
     }
 }

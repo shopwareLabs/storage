@@ -3,7 +3,6 @@
 namespace Shopware\StorageTests\Array;
 
 use Shopware\Storage\Array\ArrayKeyStorage;
-use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
 
@@ -12,7 +11,7 @@ use Shopware\StorageTests\Common\KeyValueStorageTestBase;
  */
 class ArrayKeyValueStorageTest extends KeyValueStorageTestBase
 {
-    public function getStorage(): KeyAware&Storage
+    public function getStorage(): Storage
     {
         return new ArrayKeyStorage();
     }

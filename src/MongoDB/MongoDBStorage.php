@@ -15,6 +15,7 @@ use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Paging\Limit;
 use Shopware\Storage\Common\Filter\Result;
@@ -39,7 +40,6 @@ use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
-use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
@@ -54,14 +54,73 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
     public function __construct(
         private readonly AggregationCaster $caster,
-        private readonly string            $database,
-        private readonly Schema            $schema,
-        private readonly Client            $client
+        private readonly Hydrator $hydrator,
+        private readonly string $database,
+        private readonly \Shopware\Storage\Common\Schema\Collection $collection,
+        private readonly Client $client
     ) {}
 
     public function setup(): void
     {
         // todo@o.skroblin auto setup feature
+    }
+
+
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $query['key'] = ['$in' => $keys];
+
+        $cursor = $this->collection()->find($query);
+
+        $cursor->setTypeMap([
+            'root' => 'array',
+            'document' => 'array',
+            'array' => 'array',
+        ]);
+
+        $result = [];
+        foreach ($cursor as $item) {
+            $data = $item;
+
+            if (!is_array($data)) {
+                throw new \RuntimeException('Mongodb returned invalid data type');
+            }
+
+            $result[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $data,
+                context: $context
+            );
+        }
+
+        return new Documents($result);
+    }
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        $options = [
+            'typeMap' => [
+                'root' => 'array',
+                'document' => 'array',
+                'array' => 'array',
+            ],
+        ];
+
+        $cursor = $this->collection()->findOne(['key' => $key], $options);
+
+        if ($cursor === null) {
+            return null;
+        }
+
+        if (!is_array($cursor)) {
+            throw new \RuntimeException('Mongodb returned invalid data type');
+        }
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $cursor,
+            context: $context
+        );
     }
 
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
@@ -112,7 +171,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
             if ($aggregation instanceof Min) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $value[$key][0]['min']
                 );
@@ -121,7 +180,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
             if ($aggregation instanceof Max) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $value[$key][0]['max']
                 );
@@ -129,7 +188,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             }
             if ($aggregation instanceof Sum) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $value[$key][0]['sum']
                 );
@@ -137,7 +196,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             }
             if ($aggregation instanceof Avg) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $value[$key][0]['avg']
                 );
@@ -145,7 +204,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             }
             if ($aggregation instanceof Distinct) {
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: array_column($value[$key], '_id')
                 );
@@ -158,7 +217,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 }, $value[$key]);
 
                 $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
+                    collection: $this->collection,
                     aggregation: $aggregation,
                     data: $values
                 );
@@ -198,14 +257,14 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
         $property = SchemaUtil::property(accessor: $aggregation->field);
 
-        $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
+        $type = SchemaUtil::type(collection: $this->collection, accessor: $property);
 
         if (in_array($type, [FieldType::OBJECT_LIST, FieldType::LIST], true)) {
             $parsed[] = ['$unwind' => '$' . $property];
         }
         $field = '$' . $aggregation->field;
 
-        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $aggregation->field);
 
         if ($translated) {
             $field = array_map(function (string $language) use ($field) {
@@ -220,7 +279,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'min' => ['$min' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -229,7 +288,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'max' => ['$max' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -238,7 +297,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'sum' => ['$sum' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -247,7 +306,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => 0,
                     'avg' => ['$avg' => $field],
-                ]
+                ],
             ];
             return $parsed;
         }
@@ -256,15 +315,15 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
                 '$group' => [
                     '_id' => $field,
                     'count' => ['$sum' => 1],
-                ]
+                ],
             ];
             return $parsed;
         }
         if ($aggregation instanceof Distinct) {
             $parsed[] = [
                 '$group' => [
-                    '_id' => $field
-                ]
+                    '_id' => $field,
+                ],
             ];
 
             return $parsed;
@@ -276,16 +335,14 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
     public function remove(array $keys): void
     {
         $this->collection()->deleteMany([
-            '_key' => ['$in' => $keys]
+            'key' => ['$in' => $keys],
         ]);
     }
 
     public function store(Documents $documents): void
     {
         $items = $documents->map(function (Document $document) {
-            return array_merge($document->data, [
-                '_key' => $document->key
-            ]);
+            return $document->encode();
         });
 
         if (empty($items)) {
@@ -311,13 +368,13 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         if ($criteria->sorting) {
             $options['sort'] = array_map(function (Sorting $sort) {
                 return [
-                    $sort->field => $sort->order === 'ASC' ? 1 : -1
+                    $sort->field => $sort->order === 'ASC' ? 1 : -1,
                 ];
             }, $criteria->sorting);
         }
 
         if ($criteria->primaries) {
-            $query['_key'] = ['$in' => $criteria->primaries];
+            $query['key'] = ['$in' => $criteria->primaries];
         }
 
         if ($criteria->filters) {
@@ -330,35 +387,27 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
         $cursor->setTypeMap(self::TYPE_MAP);
 
-        $result = [];
+        $documents = [];
         foreach ($cursor as $item) {
-            $data = $item;
-
-            if (!is_array($data)) {
-                throw new \RuntimeException('Mongodb returned invalid data type');
+            if (!is_array($item)) {
+                throw new \RuntimeException('Invalid document');
             }
 
-            if (!isset($data['_key'])) {
-                throw new \RuntimeException('Missing _key property in mongodb result');
-            }
-
-            $key = $data['_key'];
-            unset($data['_key'], $data['_id']);
-
-            $result[] = new Document(
-                key: $key,
-                data: $data
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $item,
+                context: $context
             );
         }
 
-        return new Result($result, null);
+        return new Result($documents, null);
     }
 
     private function collection(): Collection
     {
         return $this->client
             ->selectDatabase($this->database)
-            ->selectCollection($this->schema->source);
+            ->selectCollection($this->collection->name);
     }
 
     /**
@@ -386,10 +435,10 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
      */
     private function parseFilter(Filter $filter, StorageContext $context): array
     {
-        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $filter->field);
+        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $filter->field);
 
         $value = SchemaUtil::cast(
-            schema: $this->schema,
+            collection: $this->collection,
             accessor: $filter->field,
             value: $filter->value
         );
@@ -512,7 +561,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
             if (array_key_first($context->languages) === $index) {
                 $queries[] = ['$and' => [
                     [$field . '.' . $language => ['$ne' => null]],
-                    $gen($field . '.' . $language, $value)
+                    $gen($field . '.' . $language, $value),
                 ]];
                 $before[] = $language;
                 continue;

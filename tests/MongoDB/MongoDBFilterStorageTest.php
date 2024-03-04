@@ -4,10 +4,12 @@ namespace Shopware\StorageTests\MongoDB;
 
 use MongoDB\Client;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MongoDB\MongoDBStorage;
 use Shopware\StorageTests\Common\FilterStorageTestBase;
+use Shopware\StorageTests\Common\TestSchema;
 
 /**
  * @covers \Shopware\Storage\MongoDB\MongoDBStorage
@@ -42,7 +44,8 @@ class MongoDBFilterStorageTest extends FilterStorageTestBase
         return new MongoDBStorage(
             caster: new AggregationCaster(),
             database: 'test',
-            schema: $this->getSchema(),
+            hydrator: new Hydrator(),
+            collection: TestSchema::getCollection(),
             client: $this->getClient(),
         );
     }

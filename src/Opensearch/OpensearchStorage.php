@@ -3,6 +3,7 @@
 namespace Shopware\Storage\Opensearch;
 
 use OpenSearch\Client;
+use OpenSearch\Common\Exceptions\Missing404Exception;
 use OpenSearchDSL\Aggregation\AbstractAggregation;
 use OpenSearchDSL\Aggregation\Bucketing\FilterAggregation;
 use OpenSearchDSL\Aggregation\Bucketing\NestedAggregation;
@@ -19,7 +20,6 @@ use OpenSearchDSL\Query\TermLevel\RangeQuery;
 use OpenSearchDSL\Query\TermLevel\TermQuery;
 use OpenSearchDSL\Query\TermLevel\TermsQuery;
 use OpenSearchDSL\Query\TermLevel\WildcardQuery;
-use OpenSearchDSL\ScriptAwareTrait;
 use OpenSearchDSL\Search;
 use OpenSearchDSL\Sort\FieldSort;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
@@ -33,6 +33,7 @@ use Shopware\Storage\Common\Aggregation\Type\Min;
 use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Paging\Limit;
@@ -56,8 +57,8 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
-use Shopware\Storage\Common\Schema\Schema;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
@@ -68,12 +69,56 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     public function __construct(
         private readonly AggregationCaster $caster,
         private readonly Client $client,
-        private readonly Schema $schema
+        private readonly Hydrator $hydrator,
+        private readonly Collection $collection
     ) {}
 
     public function setup(): void
     {
         // todo@o.skroblin auto setup feature
+    }
+
+    public function mget(array $keys, StorageContext $context): Documents
+    {
+        $data = $this->client->mget([
+            'index' => $this->collection->name,
+            'body' => [
+                'ids' => $keys,
+            ],
+        ]);
+
+        $documents = [];
+        foreach ($data['docs'] as $doc) {
+            if (!array_key_exists('_source', $doc)) {
+                continue;
+            }
+
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $doc['_source'],
+                context: $context
+            );
+        }
+
+        return new Documents($documents);
+    }
+
+    public function get(string $key, StorageContext $context): ?Document
+    {
+        try {
+            $result = $this->client->get([
+                'index' => $this->collection->name,
+                'id' => $key,
+            ]);
+        } catch (Missing404Exception) {
+            return null;
+        }
+
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $result['_source'],
+            context: $context
+        );
     }
 
     public function remove(array $keys): void
@@ -83,7 +128,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }, $keys);
 
         $arguments = [
-            'index' => $this->schema->source,
+            'index' => $this->collection->name,
             'body' => $documents,
         ];
 
@@ -96,12 +141,12 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         foreach ($documents as $document) {
             $body[] = [
                 'index' => [
-                    '_index' => $this->schema->source,
+                    '_index' => $this->collection->name,
                     '_id' => $document->key,
-                ]
+                ],
             ];
 
-            $body[] = $document->data;
+            $body[] = $document->encode();
         }
 
         if (empty($body)) {
@@ -111,136 +156,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $response = $this->client->bulk(['body' => $body]);
 
         if ($response['errors'] === true) {
-            dump($response);
+            dd($response);
         }
-    }
-
-    public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
-    {
-        $search = new Search();
-
-        $search->setSize(0);
-
-        $this->handlePrimaries(criteria: $criteria, search: $search);
-
-        $this->handleFilters(criteria: $criteria, search: $search, context: $context);
-
-        $this->handleAggregations(aggregations: $aggregations, search: $search, context: $context);
-
-        $parsed = $search->toArray();
-
-        $params = [
-            'index' => $this->schema->source,
-            'body' => $parsed
-        ];
-
-        try {
-            $response = $this->client->search($params);
-        } catch (\Throwable $e) {
-            dump(json_decode($e->getMessage(), true));
-            throw $e;
-        }
-
-        $result = [];
-
-        foreach ($aggregations as $aggregation) {
-            $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
-
-            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
-
-            $value = $response['aggregations'][$aggregation->name];
-
-            // nested aggregation? get the value from the nested path
-            $value = $value[$aggregation->name] ?? $value;
-
-            if ($aggregation instanceof Avg) {
-                $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
-                    aggregation: $aggregation,
-                    data: $value['value_as_string'] ?? $value['value']
-                );
-                continue;
-            }
-
-            if ($aggregation instanceof Min) {
-                $data = $value['value_as_string'] ?? $value['value'];
-
-                if ($type === FieldType::DATETIME && $translated) {
-                    $data = date('Y-m-d H:i:s.000', $data / 1000);
-                }
-
-                $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
-                    aggregation: $aggregation,
-                    data: $data
-                );
-                continue;
-            }
-
-            if ($aggregation instanceof Max) {
-                $data = $value['value_as_string'] ?? $value['value'];
-
-                if ($type === FieldType::DATETIME && $translated) {
-                    $data = date('Y-m-d H:i:s.000', $data / 1000);
-                }
-
-                $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
-                    aggregation: $aggregation,
-                    data: $data
-                );
-                continue;
-            }
-
-            if ($aggregation instanceof Sum) {
-                $result[$aggregation->name] = $this->caster->cast(
-                    schema: $this->schema,
-                    aggregation: $aggregation,
-                    data: $value['value_as_string'] ?? $value['value']
-                );
-                continue;
-            }
-
-            if ($aggregation instanceof Count) {
-                $values = array_map(function ($bucket) {
-                    return [
-                        'key' => $bucket['key_as_string'] ?? $bucket['key'],
-                        'count' => $bucket['doc_count']
-                    ];
-                }, $value['buckets']);
-
-                $values = $this->caster->cast(
-                    schema: $this->schema,
-                    aggregation: $aggregation,
-                    data: $values
-                );
-
-                $result[$aggregation->name] = $values;
-
-                continue;
-            }
-
-            if ($aggregation instanceof Distinct) {
-
-                $values = array_map(function ($bucket) {
-                    return $bucket['key_as_string'] ?? $bucket['key'];
-                }, $value['buckets']);
-
-                $values = $this->caster->cast(
-                    schema: $this->schema,
-                    aggregation: $aggregation,
-                    data: $values
-                );
-
-                $result[$aggregation->name] = $values;
-
-                continue;
-            }
-
-            throw new \LogicException(sprintf('Unsupported aggregation type %s', $aggregation::class));
-        }
-
-        return $result;
     }
 
     public function filter(
@@ -260,19 +177,20 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $parsed = $search->toArray();
 
         $params = [
-            'index' => $this->schema->source,
+            'index' => $this->collection->name,
             '_source' => true,
             'track_total_hits' => $criteria->total !== Total::NONE,
-            'body' => $parsed
+            'body' => $parsed,
         ];
 
         $result = $this->client->search($params);
 
         $documents = [];
         foreach ($result['hits']['hits'] as $hit) {
-            $documents[] = new Document(
-                key: $hit['_id'],
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
                 data: $hit['_source'],
+                context: $context
             );
         }
 
@@ -280,6 +198,134 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             elements: $documents,
             total: $this->getTotal($criteria, $result),
         );
+    }
+
+    public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
+    {
+        $search = new Search();
+
+        $search->setSize(0);
+
+        $this->handlePrimaries(criteria: $criteria, search: $search);
+
+        $this->handleFilters(criteria: $criteria, search: $search, context: $context);
+
+        $this->handleAggregations(aggregations: $aggregations, search: $search, context: $context);
+
+        $parsed = $search->toArray();
+
+        $params = [
+            'index' => $this->collection->name,
+            'body' => $parsed,
+        ];
+
+        try {
+            $response = $this->client->search($params);
+        } catch (\Throwable $e) {
+            dump(json_decode($e->getMessage(), true));
+            throw $e;
+        }
+
+        $result = [];
+
+        foreach ($aggregations as $aggregation) {
+            $type = SchemaUtil::type(collection: $this->collection, accessor: $aggregation->field);
+
+            $translated = SchemaUtil::translated(collection: $this->collection, accessor: $aggregation->field);
+
+            $value = $response['aggregations'][$aggregation->name];
+
+            // nested aggregation? get the value from the nested path
+            $value = $value[$aggregation->name] ?? $value;
+
+            if ($aggregation instanceof Avg) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    collection: $this->collection,
+                    aggregation: $aggregation,
+                    data: $value['value_as_string'] ?? $value['value']
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Min) {
+                $data = $value['value_as_string'] ?? $value['value'];
+
+                if ($type === FieldType::DATETIME && $translated) {
+                    $data = date('Y-m-d H:i:s.000', $data / 1000);
+                }
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    collection: $this->collection,
+                    aggregation: $aggregation,
+                    data: $data
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Max) {
+                $data = $value['value_as_string'] ?? $value['value'];
+
+                if ($type === FieldType::DATETIME && $translated) {
+                    $data = date('Y-m-d H:i:s.000', $data / 1000);
+                }
+
+                $result[$aggregation->name] = $this->caster->cast(
+                    collection: $this->collection,
+                    aggregation: $aggregation,
+                    data: $data
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Sum) {
+                $result[$aggregation->name] = $this->caster->cast(
+                    collection: $this->collection,
+                    aggregation: $aggregation,
+                    data: $value['value_as_string'] ?? $value['value']
+                );
+                continue;
+            }
+
+            if ($aggregation instanceof Count) {
+                $values = array_map(function ($bucket) {
+                    return [
+                        'key' => $bucket['key_as_string'] ?? $bucket['key'],
+                        'count' => $bucket['doc_count'],
+                    ];
+                }, $value['buckets']);
+
+                $values = $this->caster->cast(
+                    collection: $this->collection,
+                    aggregation: $aggregation,
+                    data: $values
+                );
+
+                $result[$aggregation->name] = $values;
+
+                continue;
+            }
+
+            if ($aggregation instanceof Distinct) {
+
+                $values = array_map(function ($bucket) {
+                    return $bucket['key_as_string'] ?? $bucket['key'];
+                }, $value['buckets']);
+
+                $values = $this->caster->cast(
+                    collection: $this->collection,
+                    aggregation: $aggregation,
+                    data: $values
+                );
+
+                $result[$aggregation->name] = $values;
+
+                continue;
+            }
+
+            throw new \LogicException(sprintf('Unsupported aggregation type %s', $aggregation::class));
+        }
+
+        return $result;
     }
 
     private function handlePrimaries(Criteria $criteria, Search $search): void
@@ -362,7 +408,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     private function translatedQuery(\Closure $factory, Filter $filter, StorageContext $context): BuilderInterface
     {
         $queries = [];
-
         $before = [];
 
         foreach ($context->languages as $index => $languageId) {
@@ -373,8 +418,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                         $factory(
                             $filter->field . '.' . $languageId,
                             $filter->value
-                        )
-                    ]
+                        ),
+                    ],
                 ]);
 
                 $before[] = $languageId;
@@ -400,7 +445,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         $source = new BoolQuery([
-            BoolQuery::SHOULD => $queries
+            BoolQuery::SHOULD => $queries,
         ]);
 
         $source->addParameter('minimum_should_match', 1);
@@ -449,13 +494,13 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($operator instanceof AndOperator) {
             return new BoolQuery([
-                BoolQuery::MUST => $nested
+                BoolQuery::MUST => $nested,
             ]);
         }
 
         if ($operator instanceof OrOperator) {
             $bool = new BoolQuery([
-                BoolQuery::SHOULD => $nested
+                BoolQuery::SHOULD => $nested,
             ]);
 
             $bool->addParameter('minimum_should_match', 1);
@@ -465,13 +510,13 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($operator instanceof NandOperator) {
             return new BoolQuery([
-                BoolQuery::MUST_NOT => $nested
+                BoolQuery::MUST_NOT => $nested,
             ]);
         }
 
         if ($operator instanceof NorOperator) {
             $bool = new BoolQuery([
-                BoolQuery::MUST_NOT => $nested
+                BoolQuery::MUST_NOT => $nested,
             ]);
 
             $bool->addParameter('minimum_should_match', 1);
@@ -486,7 +531,13 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     {
         $value = $filter->value;
 
-        $translated = SchemaUtil::translated(schema: $this->schema, accessor: $filter->field);
+        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $filter->field);
+
+        $inner = SchemaUtil::type(collection: $this->collection, accessor: $filter->field, innerType: true);
+
+        if ($inner === FieldType::DATETIME && $filter instanceof Contains) {
+            throw new NotSupportedByEngine('', sprintf('Can only use wildcard queries on keyword and text fields - not on [%s] which is of type [date]', $filter->field));
+        }
 
         // create an inline function which generates me a BuilderInterface, based on the given filter
         $factory = function (\Closure $factory) use ($filter) {
@@ -502,7 +553,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         if ($value === null && $filter instanceof Equals) {
             return $factory(function (string $field) {
                 return new BoolQuery([
-                    BoolQuery::MUST_NOT => new ExistsQuery(field: $field)
+                    BoolQuery::MUST_NOT => [new ExistsQuery(field: $field)],
                 ]);
             });
         }
@@ -528,7 +579,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                     BoolQuery::MUST_NOT => new TermsQuery(
                         field: $field,
                         terms: [$value]
-                    )
+                    ),
                 ]);
             });
         }
@@ -548,7 +599,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                     BoolQuery::MUST_NOT => new TermsQuery(
                         field: $field,
                         terms: $value
-                    )
+                    ),
                 ]);
             });
         }
@@ -621,7 +672,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
     private function parseAggregation(Aggregation $aggregation, StorageContext $context): AbstractAggregation
     {
-        $type = SchemaUtil::type(schema: $this->schema, accessor: $aggregation->field);
+        $type = SchemaUtil::type(collection: $this->collection, accessor: $aggregation->field);
 
         if ($aggregation instanceof Max) {
             if (in_array($type, [FieldType::STRING, FieldType::TEXT, FieldType::LIST], true)) {
@@ -706,7 +757,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 context: $context
             );
 
-            $translated = SchemaUtil::translated(schema: $this->schema, accessor: $aggregation->field);
+            $translated = SchemaUtil::translated(collection: $this->collection, accessor: $aggregation->field);
 
             $path = $this->getNestedPath($aggregation->field);
 
@@ -719,8 +770,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                     'params' => [
                         'languages' => $context->languages,
                         'field' => $aggregation->field,
-                        'fallback' => 0
-                    ]
+                        'fallback' => 0,
+                    ],
                 ]);
             } elseif ($path !== null) {
                 $parsed = (new NestedAggregation($aggregation->name, $path))
@@ -740,7 +791,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             $filter = new FilterAggregation(
                 name: $aggregation->name . '.filter',
                 filter: new BoolQuery([
-                    BoolQuery::FILTER => $queries
+                    BoolQuery::FILTER => $queries,
                 ])
             );
 
@@ -754,10 +805,10 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     {
         $property = SchemaUtil::property($field);
 
-        $type = SchemaUtil::type(schema: $this->schema, accessor: $property);
+        $type = SchemaUtil::type(collection: $this->collection, accessor: $property);
 
         // object field? created nested
-        if (in_array($type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
+        if ($type === FieldType::OBJECT_LIST) {
             return $property;
         }
 

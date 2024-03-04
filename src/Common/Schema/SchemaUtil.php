@@ -4,13 +4,13 @@ namespace Shopware\Storage\Common\Schema;
 
 class SchemaUtil
 {
-    public static function cast(Schema $schema, string $accessor, mixed $value): mixed
+    public static function cast(Collection $collection, string $accessor, mixed $value): mixed
     {
         if ($value === null) {
             return null;
         }
 
-        $type = self::type(schema: $schema, accessor: $accessor);
+        $type = self::type(collection: $collection, accessor: $accessor);
 
         if ($type === FieldType::INT) {
             return match (true) {
@@ -53,21 +53,25 @@ class SchemaUtil
         return $parts[0];
     }
 
-    public static function translated(Schema $schema, string $accessor): bool
+    public static function translated(Collection $collection, string $accessor): bool
     {
-        $schema = self::fieldSchema(schema: $schema, accessor: $accessor);
+        $schema = self::field(collection: $collection, accessor: $accessor);
 
-        return $schema->options['translated'] ?? false;
+        return $schema->translated;
     }
 
-    public static function type(Schema $schema, string $accessor): string
+    public static function type(Collection $collection, string $accessor, bool $innerType = false): string
     {
-        $schema = self::fieldSchema(schema: $schema, accessor: $accessor);
+        $schema = self::field(collection: $collection, accessor: $accessor);
+
+        if ($schema instanceof ListField && $innerType) {
+            return $schema->innerType;
+        }
 
         return $schema->type;
     }
 
-    public static function fieldSchema(Schema $schema, string $accessor): Field
+    private static function field(Collection $collection, string $accessor): Field
     {
         $property = self::property(accessor: $accessor);
 
@@ -75,15 +79,7 @@ class SchemaUtil
             return new Field(name: 'key', type: FieldType::STRING);
         }
 
-        $field = $schema->fields[$property] ?? null;
-
-        if (!$field) {
-            throw new \RuntimeException(sprintf('Field %s not found in schema', $property));
-        }
-
-        if (!$field->type) {
-            throw new \RuntimeException(sprintf('Field %s not found in schema', $accessor));
-        }
+        $field = $collection->get($property);
 
         if (!in_array($field->type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
             return $field;
@@ -94,13 +90,13 @@ class SchemaUtil
         array_shift($parts);
 
         foreach ($parts as $part) {
-            $field = $field->fields[$part] ?? null;
-
-            if (!$field instanceof Field) {
+            if (!$field instanceof FieldsAware) {
                 throw new \RuntimeException(
                     sprintf('Unable to get nested field part %s of accessor %s in schema', $part, $accessor)
                 );
             }
+
+            $field = $field->get($part);
         }
 
         return $field;

@@ -8,14 +8,17 @@ use AsyncAws\DynamoDb\ValueObject\AttributeValue;
 use AsyncAws\DynamoDb\ValueObject\KeysAndAttributes;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
-use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Document\Hydrator;
+use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 
-class DynamoDBKeyStorage implements KeyAware, Storage
+class DynamoDBKeyStorage implements Storage
 {
     public function __construct(
         private readonly DynamoDbClient $client,
-        private readonly string $source
+        private readonly Hydrator $hydrator,
+        private readonly Collection $collection
     ) {}
 
 
@@ -38,7 +41,7 @@ class DynamoDBKeyStorage implements KeyAware, Storage
 
         $this->client->batchWriteItem([
             'RequestItems' => [
-                $this->source => $mapped
+                $this->collection->name => $mapped,
             ],
         ]);
     }
@@ -52,7 +55,7 @@ class DynamoDBKeyStorage implements KeyAware, Storage
                 'PutRequest' => [
                     'Item' => [
                         'key' => ['S' => $document->key],
-                        'value' => ['S' => json_encode($document->data, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_IGNORE)],
+                        'value' => ['S' => json_encode($document->encode(), Document::JSON_OPTIONS)],
                     ],
                 ],
             ];
@@ -60,18 +63,18 @@ class DynamoDBKeyStorage implements KeyAware, Storage
 
         $this->client->batchWriteItem([
             'RequestItems' => [
-                $this->source => $mapped
+                $this->collection->name => $mapped,
             ],
         ]);
     }
 
-    public function mget(array $keys): Documents
+    public function mget(array $keys, StorageContext $context): Documents
     {
         $data = $this->client->batchGetItem(
             new BatchGetItemInput([
                 'RequestItems' => [
-                    $this->source => new KeysAndAttributes([
-                        'Keys' => array_map(fn(string $key) => ['key' => new AttributeValue(['S' => $key])], $keys)
+                    $this->collection->name => new KeysAndAttributes([
+                        'Keys' => array_map(fn(string $key) => ['key' => new AttributeValue(['S' => $key])], $keys),
                     ]),
                 ],
             ])
@@ -80,17 +83,17 @@ class DynamoDBKeyStorage implements KeyAware, Storage
         $documents = [];
 
         /** @var array{value: AttributeValue, key: AttributeValue} $row */
-        foreach ($data->getResponses()[$this->source] as $row) {
-            $documents[] = $this->hydrate($row);
+        foreach ($data->getResponses()[$this->collection->name] as $row) {
+            $documents[] = $this->hydrate(item: $row, context: $context);
         }
 
         return new Documents($documents);
     }
 
-    public function get(string $key): ?Document
+    public function get(string $key, StorageContext $context): ?Document
     {
         $data = $this->client->getItem([
-            'TableName' => $this->source,
+            'TableName' => $this->collection->name,
             'Key' => self::key($key),
         ]);
 
@@ -101,13 +104,13 @@ class DynamoDBKeyStorage implements KeyAware, Storage
         /** @var array{key: AttributeValue, value: AttributeValue} $item */
         $item = $data->getItem();
 
-        return $this->hydrate($item);
+        return $this->hydrate($item, $context);
     }
 
     /**
      * @param array{key: AttributeValue, value: AttributeValue} $item
      */
-    private function hydrate(array $item): Document
+    private function hydrate(array $item, StorageContext $context): Document
     {
         if ($item['value']->getS() === null) {
             throw new \LogicException('Value is null');
@@ -121,7 +124,11 @@ class DynamoDBKeyStorage implements KeyAware, Storage
             throw new \RuntimeException('Invalid data type');
         }
 
-        return new Document($item['key']->getS(), $data);
+        return $this->hydrator->hydrate(
+            collection: $this->collection,
+            data: $data,
+            context: $context
+        );
     }
 
     /**

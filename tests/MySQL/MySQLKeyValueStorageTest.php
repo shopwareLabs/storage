@@ -4,10 +4,11 @@ namespace Shopware\StorageTests\MySQL;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Shopware\Storage\Common\KeyValue\KeyAware;
+use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\MySQL\MySQLKeyStorage;
 use Shopware\StorageTests\Common\KeyValueStorageTestBase;
+use Shopware\StorageTests\Common\TestSchema;
 
 /**
  * @covers \Shopware\Storage\MySQL\MySQLKeyStorage
@@ -21,7 +22,10 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
         parent::setUp();
 
         $this->getConnection()
-            ->executeStatement('CREATE TABLE IF NOT EXISTS `test_key_value` (`key` VARCHAR(255) NOT NULL, `value` JSON NOT NULL, PRIMARY KEY (`key`))');
+            ->executeStatement('DROP TABLE IF EXISTS `' . TestSchema::getCollection()->name . '`');
+
+        $this->getConnection()
+            ->executeStatement('CREATE TABLE IF NOT EXISTS `' . TestSchema::getCollection()->name . '` (`key` VARCHAR(255) NOT NULL, `value` JSON NOT NULL, PRIMARY KEY (`key`))');
     }
 
     protected function tearDown(): void
@@ -29,14 +33,15 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
         parent::tearDown();
 
         $this->getConnection()
-            ->executeStatement('DROP TABLE IF EXISTS `test_key_value`');
+            ->executeStatement('DROP TABLE IF EXISTS `' . TestSchema::getCollection()->name . '`');
     }
 
-    public function getStorage(): KeyAware&Storage
+    public function getStorage(): Storage
     {
         return new MySQLKeyStorage(
             connection: $this->getConnection(),
-            source: 'test_key_value'
+            hydrator: new Hydrator(),
+            collection: TestSchema::getCollection()
         );
     }
 

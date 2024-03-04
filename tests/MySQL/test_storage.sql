@@ -1,18 +1,26 @@
-CREATE TABLE `test_storage` (
+DROP TABLE IF EXISTS `product`;
+
+CREATE TABLE `product` (
     `key` varchar(255) NOT NULL,
-    `stringField` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-    `textField` longtext COLLATE utf8mb4_unicode_ci,
-    `dateField` datetime(3) DEFAULT NULL,
-    `intField` int DEFAULT NULL,
-    `boolField` tinyint(1) DEFAULT NULL,
-    `floatField` decimal(10, 4) DEFAULT NULL,
-    `objectField` json DEFAULT NULL,
-    `listField` json DEFAULT NULL,
-    `objectListField` json DEFAULT NULL,
-    `translatedString` json DEFAULT NULL,
-    `translatedInt` json DEFAULT NULL,
-    `translatedFloat` json DEFAULT NULL,
-    `translatedBool` json DEFAULT NULL,
-    `translatedDate` json DEFAULT NULL
+    `ean` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `comment` longtext COLLATE utf8mb4_unicode_ci,
+    `changed` datetime(3) DEFAULT NULL,
+    `stock` int DEFAULT NULL,
+    `active` tinyint(1) DEFAULT NULL,
+    `price` decimal(10, 4) DEFAULT NULL,
+    `mainCategory` json DEFAULT NULL,
+    `keywords` json DEFAULT NULL,
+    `states` json DEFAULT NULL,
+    `dimensions` json DEFAULT NULL,
+    `timestamps` json DEFAULT NULL,
+    `categories` json DEFAULT NULL,
+    `name` json DEFAULT NULL,
+    `description` json DEFAULT NULL,
+    `position` json DEFAULT NULL,
+    `weight` json DEFAULT NULL,
+    `highlight` json DEFAULT NULL,
+    `release` json DEFAULT NULL,
+    `tags` json DEFAULT NULL,
+    FULLTEXT KEY `ean` (`ean`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 
