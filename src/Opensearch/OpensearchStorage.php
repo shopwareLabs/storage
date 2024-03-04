@@ -272,7 +272,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         foreach ($result['hits']['hits'] as $hit) {
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: $hit['_source']
+                data: $hit['_source'],
+                context: $context
             );
         }
 
@@ -362,7 +363,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     private function translatedQuery(\Closure $factory, Filter $filter, StorageContext $context): BuilderInterface
     {
         $queries = [];
-
         $before = [];
 
         foreach ($context->languages as $index => $languageId) {
@@ -488,6 +488,12 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         $translated = SchemaUtil::translated(collection: $this->collection, accessor: $filter->field);
 
+        $inner = SchemaUtil::type(collection: $this->collection, accessor: $filter->field, innerType: true);
+
+        if ($inner === FieldType::DATETIME && $filter instanceof Contains) {
+            throw new NotSupportedByEngine('', sprintf('Can only use wildcard queries on keyword and text fields - not on [%s] which is of type [date]', $filter->field));
+        }
+
         // create an inline function which generates me a BuilderInterface, based on the given filter
         $factory = function (\Closure $factory) use ($filter) {
             return $factory($filter->field, $filter->value);
@@ -502,7 +508,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         if ($value === null && $filter instanceof Equals) {
             return $factory(function (string $field) {
                 return new BoolQuery([
-                    BoolQuery::MUST_NOT => new ExistsQuery(field: $field),
+                    BoolQuery::MUST_NOT => [new ExistsQuery(field: $field)],
                 ]);
             });
         }
@@ -757,7 +763,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         $type = SchemaUtil::type(collection: $this->collection, accessor: $property);
 
         // object field? created nested
-        if (in_array($type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
+        if ($type === FieldType::OBJECT_LIST) {
             return $property;
         }
 
