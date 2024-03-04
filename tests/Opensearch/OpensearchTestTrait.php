@@ -12,18 +12,18 @@ use Shopware\StorageTests\Common\TestSchema;
 
 trait OpensearchTestTrait
 {
-    private ?Client $client = null;
+    private static ?Client $client = null;
 
     private function getClient(): Client
     {
-        if ($this->client === null) {
+        if (self::$client === null) {
             $builder = ClientBuilder::create();
             $builder->setHosts(['http://localhost:9200']);
 
-            $this->client = $builder->build();
+            self::$client = $builder->build();
         }
 
-        return $this->client;
+        return self::$client;
     }
 
     protected function setUp(): void
@@ -114,7 +114,7 @@ trait OpensearchTestTrait
                             ],
                         ],
                         'mainCategory' => [
-                            'type' => 'nested',
+                            'type' => 'object',
                             'properties' => [
                                 'ean' => ['type' => 'keyword'],
                                 'stock' => ['type' => 'integer'],
@@ -124,6 +124,50 @@ trait OpensearchTestTrait
                                     'type' => 'date',
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
+                                ],
+                                'keywords' => ['type' => 'keyword'],
+                                'name' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'keyword'],
+                                        'en' => ['type' => 'keyword'],
+                                    ],
+                                ],
+                                'position' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'integer'],
+                                        'en' => ['type' => 'integer'],
+                                    ],
+                                ],
+                                'weight' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'double'],
+                                        'en' => ['type' => 'double'],
+                                    ],
+                                ],
+                                'highlight' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'boolean'],
+                                        'en' => ['type' => 'boolean'],
+                                    ],
+                                ],
+                                'release' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => [
+                                            'type' => 'date',
+                                            'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
+                                            'ignore_malformed' => true,
+                                        ],
+                                        'en' => [
+                                            'type' => 'date',
+                                            'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
+                                            'ignore_malformed' => true,
+                                        ],
+                                    ],
                                 ],
                             ],
                         ],
@@ -138,6 +182,50 @@ trait OpensearchTestTrait
                                     'type' => 'date',
                                     'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
                                     'ignore_malformed' => true,
+                                ],
+                                'keywords' => ['type' => 'keyword'],
+                                'name' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'keyword'],
+                                        'en' => ['type' => 'keyword'],
+                                    ],
+                                ],
+                                'position' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'integer'],
+                                        'en' => ['type' => 'integer'],
+                                    ],
+                                ],
+                                'weight' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'double'],
+                                        'en' => ['type' => 'double'],
+                                    ],
+                                ],
+                                'highlight' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => ['type' => 'boolean'],
+                                        'en' => ['type' => 'boolean'],
+                                    ],
+                                ],
+                                'release' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'de' => [
+                                            'type' => 'date',
+                                            'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
+                                            'ignore_malformed' => true,
+                                        ],
+                                        'en' => [
+                                            'type' => 'date',
+                                            'format' => 'yyyy-MM-dd HH:mm:ss.000||strict_date_optional_time||epoch_millis',
+                                            'ignore_malformed' => true,
+                                        ],
+                                    ],
                                 ],
                             ],
                         ],
