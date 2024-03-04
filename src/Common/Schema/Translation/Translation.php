@@ -1,32 +1,26 @@
 <?php
 
-namespace Shopware\Storage\Common\Schema;
+namespace Shopware\Storage\Common\Schema\Translation;
+
+use Shopware\Storage\Common\StorageContext;
 
 /**
- * @template T
+ * @template Type
  */
 class Translation implements \JsonSerializable, \ArrayAccess
 {
     /**
-     * @var null|T $resolved
-     */
-    public mixed $resolved;
-
-    /**
-     * @param array<string, T> $translations
+     * @param array<string, Type> $translations
+     * @param Type|null $resolved
      */
     public function __construct(
-        public array $translations = []
+        public array $translations = [],
+        public mixed $resolved = null
     ) {}
 
     public function __toString(): string
     {
         return (string) $this->resolved;
-    }
-
-    public function __invoke(): mixed
-    {
-        return $this->resolved;
     }
 
     public function offsetExists(mixed $offset): bool
@@ -52,5 +46,15 @@ class Translation implements \JsonSerializable, \ArrayAccess
     public function jsonSerialize(): mixed
     {
         return $this->translations;
+    }
+
+    public function resolve(StorageContext $context): mixed
+    {
+        foreach ($context->languages as $language) {
+            if (isset($this->translations[$language])) {
+                return $this->resolved = $this->translations[$language];
+            }
+        }
+        return null;
     }
 }
