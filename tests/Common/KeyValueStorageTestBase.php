@@ -27,13 +27,11 @@ abstract class KeyValueStorageTestBase extends TestCase
         foreach ($input as $expected) {
             $document = $storage->get(key: $expected->key, context: $context);
             static::assertInstanceOf(Document::class, $document);
-
             static::assertEquals($expected, $document);
 
             $storage->remove([$expected->key]);
 
             $document = $storage->get($expected->key, context: $context);
-
             static::assertNull($document);
         }
     }

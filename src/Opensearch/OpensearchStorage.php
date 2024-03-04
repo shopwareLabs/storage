@@ -3,6 +3,7 @@
 namespace Shopware\Storage\Opensearch;
 
 use OpenSearch\Client;
+use OpenSearch\Common\Exceptions\Missing404Exception;
 use OpenSearchDSL\Aggregation\AbstractAggregation;
 use OpenSearchDSL\Aggregation\Bucketing\FilterAggregation;
 use OpenSearchDSL\Aggregation\Bucketing\NestedAggregation;
@@ -104,18 +105,18 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
     public function get(string $key, StorageContext $context): ?Document
     {
-        $data = $this->client->get([
-            'index' => $this->collection->name,
-            'id' => $key,
-        ]);
-
-        if (!array_key_exists('_source', $data)) {
+        try {
+            $result = $this->client->get([
+                'index' => $this->collection->name,
+                'id' => $key,
+            ]);
+        } catch (Missing404Exception) {
             return null;
         }
 
         return $this->hydrator->hydrate(
             collection: $this->collection,
-            data: $data['_source'],
+            data: $result['_source'],
             context: $context
         );
     }

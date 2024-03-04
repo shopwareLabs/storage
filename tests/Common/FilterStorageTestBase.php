@@ -43,7 +43,7 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
         Criteria $criteria,
         Result $expected
     ): void {
-        $this->testStorage(
+        $this->testFilter(
             input: $input,
             criteria: $criteria,
             expected: $expected
@@ -96,7 +96,7 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
     #[DataProvider('objectListTranslatedFloatCases')]
     #[DataProvider('objectListTranslatedBoolCases')]
     #[DataProvider('objectListTranslatedDateCases')]
-    final public function testStorage(Documents $input, Criteria $criteria, Result $expected): void
+    final public function testFilter(Documents $input, Criteria $criteria, Result $expected): void
     {
         $storage = $this->getStorage();
 

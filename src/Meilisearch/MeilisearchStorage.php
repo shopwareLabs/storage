@@ -4,6 +4,7 @@ namespace Shopware\Storage\Meilisearch;
 
 use Meilisearch\Client;
 use Meilisearch\Endpoints\Indexes;
+use Meilisearch\Exceptions\ApiException;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Aggregation\Type\Avg;
@@ -54,10 +55,14 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
     public function get(string $key, StorageContext $context): ?Document
     {
-        $result = $this->client->index($this->collection->name)->getDocument($key);
+        try {
+            $result = $this->client->index($this->collection->name)->getDocument($key);
+        } catch (ApiException $e) {
+            if ($e->getCode() === 404) {
+                return null;
+            }
 
-        if ($result === null) {
-            return null;
+            throw $e;
         }
 
         return $this->hydrator->hydrate(

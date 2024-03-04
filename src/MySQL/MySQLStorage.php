@@ -58,9 +58,13 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
 
         $query = $this->buildQuery($criteria, $context);
 
-        /** @var array<array<string, mixed>> $data */
         $data = $query->executeQuery()->fetchAllAssociative();
 
+        if (!$data) {
+            return new Documents([]);
+        }
+
+        /** @var array<array<string, mixed>> $data */
         $documents = [];
         foreach ($data as $row) {
             $documents[] = $this->hydrator->hydrate(
@@ -80,9 +84,13 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
 
         $query = $this->buildQuery($criteria, $context);
 
-        /** @var array<array<string, mixed>> $data */
         $data = $query->executeQuery()->fetchAssociative();
 
+        if (!$data) {
+            return null;
+        }
+
+        /** @var array<array<string, mixed>> $data */
         return $this->hydrator->hydrate(
             collection: $this->collection,
             data: $data,
