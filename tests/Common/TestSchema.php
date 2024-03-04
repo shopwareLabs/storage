@@ -3,16 +3,16 @@
 namespace Shopware\StorageTests\Common;
 
 use Shopware\Storage\Common\Schema\Collection;
-use Shopware\Storage\Common\Schema\Schema;
+use Shopware\Storage\Common\Schema\Registry;
 use Shopware\StorageTests\Common\Schema\Product;
 
 class TestSchema
 {
     public static function getCollection(): Collection
     {
-        $schema = new Schema();
-        $schema->add(Product::class);
+        $registry = new Registry();
+        $registry->add(Product::class);
 
-        return $schema->get('product');
+        return $registry->get('product');
     }
 }

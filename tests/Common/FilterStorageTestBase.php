@@ -6,11 +6,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
+use Shopware\Storage\Common\Document\Translator;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\Criteria;
-use Shopware\Storage\Common\Filter\Result;
 use Shopware\Storage\Common\Filter\FilterAware;
 use Shopware\Storage\Common\Filter\Paging\Page;
+use Shopware\Storage\Common\Filter\Result;
 use Shopware\Storage\Common\Filter\Type\Any;
 use Shopware\Storage\Common\Filter\Type\Contains;
 use Shopware\Storage\Common\Filter\Type\Equals;
@@ -22,7 +23,11 @@ use Shopware\Storage\Common\Filter\Type\Neither;
 use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
-use Shopware\Storage\Common\Schema\Translation;
+use Shopware\Storage\Common\Schema\Translation\TranslatedBool;
+use Shopware\Storage\Common\Schema\Translation\TranslatedDate;
+use Shopware\Storage\Common\Schema\Translation\TranslatedFloat;
+use Shopware\Storage\Common\Schema\Translation\TranslatedInt;
+use Shopware\Storage\Common\Schema\Translation\TranslatedString;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\StorageTests\Common\Schema\Category;
@@ -33,7 +38,7 @@ abstract class FilterStorageTestBase extends TestCase
 {
     abstract public function getStorage(): FilterAware&Storage;
 
-    #[DataProvider('stringCases')]
+    #[DataProvider('keysCases')]
     public function testDebug(
         Documents $input,
         Criteria $criteria,
@@ -55,42 +60,62 @@ abstract class FilterStorageTestBase extends TestCase
     #[DataProvider('floatCases')]
     #[DataProvider('boolCases')]
     #[DataProvider('dateCases')]
-    #[DataProvider('listStringCases')]
-    #[DataProvider('listFloatCases')]
-    #[DataProvider('listIntCases')]
-    #[DataProvider('listDateCases')]
+    #[DataProvider('stringListCases')]
+    #[DataProvider('floatListCases')]
+    #[DataProvider('intListCases')]
+    #[DataProvider('dateListCases')]
+    #[DataProvider('translatedStringCases')]
+    #[DataProvider('translatedIntCases')]
+    #[DataProvider('translatedFloatCases')]
+    #[DataProvider('translatedBoolCases')]
+    #[DataProvider('translatedDateCases')]
     #[DataProvider('objectStringCases')]
     #[DataProvider('objectFloatCases')]
     #[DataProvider('objectIntCases')]
     #[DataProvider('objectBoolCases')]
     #[DataProvider('objectDateCases')]
+    #[DataProvider('objectStringListCases')]
+    #[DataProvider('objectFloatListCases')]
+    #[DataProvider('objectIntListCases')]
+    #[DataProvider('objectDateListCases')]
+    #[DataProvider('objectTranslatedStringCases')]
+    #[DataProvider('objectTranslatedIntCases')]
+    #[DataProvider('objectTranslatedFloatCases')]
+    #[DataProvider('objectTranslatedBoolCases')]
+    #[DataProvider('objectTranslatedDateCases')]
     #[DataProvider('objectListStringCases')]
     #[DataProvider('objectListFloatCases')]
     #[DataProvider('objectListIntCases')]
     #[DataProvider('objectListBoolCases')]
     #[DataProvider('objectListDateCases')]
-    #[DataProvider('translatedStringCases')]
-    #[DataProvider('translatedIntCases')]
-    #[DataProvider('translatedFloatCases')]
-    #[DataProvider('highlightCases')]
-    #[DataProvider('translatedDateCases')]
-    //#[DataProvider('translatedListCases')]
-    //#[DataProvider('translatedObjectStringCases')]
-    //#[DataProvider('translatedObjectIntCases')]
-    //#[DataProvider('translatedObjectFloatCases')]
-    //#[DataProvider('translatedObjectBoolCases')]
-    //#[DataProvider('translatedObjectDateCases')]
+    #[DataProvider('objectListStringListCases')]
+    #[DataProvider('objectListFloatListCases')]
+    #[DataProvider('objectListIntListCases')]
+    #[DataProvider('objectListDateListCases')]
+    #[DataProvider('objectListTranslatedStringCases')]
+    #[DataProvider('objectListTranslatedIntCases')]
+    #[DataProvider('objectListTranslatedFloatCases')]
+    #[DataProvider('objectListTranslatedBoolCases')]
+    #[DataProvider('objectListTranslatedDateCases')]
     final public function testStorage(Documents $input, Criteria $criteria, Result $expected): void
     {
         $storage = $this->getStorage();
 
         $storage->store($input);
 
+        $context = new StorageContext(languages: ['en', 'de']);
+
         try {
-            $loaded = $storage->filter($criteria, new StorageContext(languages: ['en', 'de']));
+            $loaded = $storage->filter($criteria, $context);
         } catch (NotSupportedByEngine $e) {
             static::markTestIncomplete($e->getMessage());
         }
+
+        Translator::translate(
+            collection: TestSchema::getCollection(),
+            context: $context,
+            documents: $expected
+        );
 
         static::assertEquals($expected, $loaded);
     }
@@ -1140,7 +1165,7 @@ abstract class FilterStorageTestBase extends TestCase
         ];
     }
 
-    final public static function listStringCases(): \Generator
+    final public static function stringListCases(): \Generator
     {
         yield 'list field, equals filter' => [
             'input' => new Documents([
@@ -1220,248 +1245,910 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', keywords: ['foo', 'baz']),
             ]),
         ];
-        yield 'list field, null value, equals filter' => [
+    }
+
+    final public static function floatListCases(): \Generator
+    {
+        yield 'float list, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3'),
+                new Product(key: 'key1', dimensions: [1.1, 2.2]),
+                new Product(key: 'key2', dimensions: [1.1, 3.3]),
+                new Product(key: 'key3', dimensions: [1.1, 4.4]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'keywords', value: null),
+                    new Equals(field: 'dimensions', value: 3.3),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key3'),
+                new Product(key: 'key2', dimensions: [1.1, 3.3]),
             ]),
         ];
-        yield 'list field, null value, not filter' => [
+        yield 'float list, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3'),
+                new Product(key: 'key1', dimensions: [1.1, 2.2]),
+                new Product(key: 'key2', dimensions: [1.1, 3.3]),
+                new Product(key: 'key3', dimensions: [1.1, 4.4]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'keywords', value: null),
+                    new Any(field: 'dimensions', value: [3.3, 4.4]),
                 ]
             ),
             'expected' => new Result([
-                new Product('key1', keywords: [1, 2]),
-                new Product('key2', keywords: [1, 3]),
+                new Product(key: 'key2', dimensions: [1.1, 3.3]),
+                new Product(key: 'key3', dimensions: [1.1, 4.4]),
+            ]),
+        ];
+        yield 'float list, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', dimensions: [1.1, 2.2]),
+                new Product(key: 'key2', dimensions: [1.1, 3.3]),
+                new Product(key: 'key3', dimensions: [1.1, 4.4]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'dimensions', value: 3.3),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', dimensions: [1.1, 2.2]),
+                new Product(key: 'key3', dimensions: [1.1, 4.4]),
+            ]),
+        ];
+        yield 'float list, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', dimensions: [1.1, 2.2]),
+                new Product(key: 'key2', dimensions: [1.1, 3.3]),
+                new Product(key: 'key3', dimensions: [1.1, 4.4]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'dimensions', value: [3.3, 4.4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', dimensions: [1.1, 2.2]),
             ]),
         ];
     }
 
-    final public static function listFloatCases(): \Generator
+    final public static function intListCases(): \Generator
     {
-        yield 'list field, equals filter, float values' => [
+        yield 'int list, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1.1, 2.2]),
-                new Product(key: 'key2', keywords: [1.1, 3.3]),
-                new Product(key: 'key3', keywords: [1.1, 4.4]),
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3', states: [1, 4]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'keywords', value: 3.3),
+                    new Equals(field: 'states', value: 3),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', keywords: [1.1, 3.3]),
+                new Product(key: 'key2', states: [1, 3]),
             ]),
         ];
-        yield 'list field, equals any filter, float values' => [
+        yield 'int list, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1.1, 2.2]),
-                new Product(key: 'key2', keywords: [1.1, 3.3]),
-                new Product(key: 'key3', keywords: [1.1, 4.4]),
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3', states: [1, 4]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'keywords', value: [3.3, 4.4]),
+                    new Any(field: 'states', value: [3, 4]),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', keywords: [1.1, 3.3]),
-                new Product(key: 'key3', keywords: [1.1, 4.4]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3', states: [1, 4]),
             ]),
         ];
-        yield 'list field, not filter, float values' => [
+        yield 'int list, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1.1, 2.2]),
-                new Product(key: 'key2', keywords: [1.1, 3.3]),
-                new Product(key: 'key3', keywords: [1.1, 4.4]),
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3', states: [1, 4]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'keywords', value: 3.3),
+                    new Not(field: 'states', value: 3),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: [1.1, 2.2]),
-                new Product(key: 'key3', keywords: [1.1, 4.4]),
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key3', states: [1, 4]),
             ]),
         ];
-        yield 'list field, not any filter, float values' => [
+        yield 'int list, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1.1, 2.2]),
-                new Product(key: 'key2', keywords: [1.1, 3.3]),
-                new Product(key: 'key3', keywords: [1.1, 4.4]),
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3', states: [1, 4]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'keywords', value: [3.3, 4.4]),
+                    new Neither(field: 'states', value: [3, 4]),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: [1.1, 2.2]),
+                new Product(key: 'key1', states: [1, 2]),
+            ]),
+        ];
+        yield 'int list, null value, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3'),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'states', value: null),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key3'),
+            ]),
+        ];
+        yield 'int list, null value, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', states: [1, 2]),
+                new Product(key: 'key2', states: [1, 3]),
+                new Product(key: 'key3'),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'states', value: null),
+                ]
+            ),
+            'expected' => new Result([
+                new Product('key1', states: [1, 2]),
+                new Product('key2', states: [1, 3]),
             ]),
         ];
     }
 
-    final public static function listIntCases(): \Generator
+    final public static function dateListCases(): \Generator
     {
-        yield 'list field, equals filter, int values' => [
+        yield 'date list, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3', keywords: [1, 4]),
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'keywords', value: 3),
+                    new Equals(field: 'timestamps', value: '2021-01-03'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', keywords: [1, 3]),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
             ]),
         ];
-        yield 'list field, equals any filter, int values' => [
+        yield 'date list, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3', keywords: [1, 4]),
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'keywords', value: [3, 4]),
+                    new Any(field: 'timestamps', value: ['2021-01-03', '2021-01-04']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3', keywords: [1, 4]),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
             ]),
         ];
-        yield 'list field, not filter, int values' => [
+        yield 'date list, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3', keywords: [1, 4]),
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'keywords', value: 3),
+                    new Not(field: 'timestamps', value: '2021-01-03'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key3', keywords: [1, 4]),
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
             ]),
         ];
-        yield 'list field, not any filter, int values' => [
+        yield 'date list, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: [1, 2]),
-                new Product(key: 'key2', keywords: [1, 3]),
-                new Product(key: 'key3', keywords: [1, 4]),
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'keywords', value: [3, 4]),
+                    new Neither(field: 'timestamps', value: ['2021-01-03', '2021-01-04']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: [1, 2]),
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+            ]),
+        ];
+        yield 'date list, contains filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key2', timestamps: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key3', timestamps: ['2021-01-01', '2021-01-04']),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Contains(field: 'timestamps', value: '2021-01-02'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', timestamps: ['2021-01-01', '2021-01-02']),
             ]),
         ];
     }
 
-    final public static function listDateCases(): \Generator
+    final public static function translatedStringCases(): \Generator
     {
-        yield 'list field, equals filter, date values' => [
+        yield 'translated string field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['de' => 'foo'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'keywords', value: '2021-01-03'),
+                    new Equals(field: 'name', value: 'foo'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['de' => 'foo'])),
             ]),
         ];
-        yield 'list field, equals any filter, date values' => [
+        yield 'translated string field, equals-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'keywords', value: ['2021-01-03', '2021-01-04']),
+                    new Any(field: 'name', value: ['foo', 'bar']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
             ]),
         ];
-        yield 'list field, not filter, date values' => [
+        yield 'translated string field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'keywords', value: '2021-01-03'),
+                    new Not(field: 'name', value: 'foo'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
             ]),
         ];
-        yield 'list field, not any filter, date values' => [
+        yield 'translated string field, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'keywords', value: ['2021-01-03', '2021-01-04']),
+                    new Neither(field: 'name', value: ['foo', 'bar']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
             ]),
         ];
-        yield 'list field, contains filter, date values' => [
+        yield 'translated string field, contains filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
-                new Product(key: 'key2', keywords: ['2021-01-01', '2021-01-03']),
-                new Product(key: 'key3', keywords: ['2021-01-01', '2021-01-04']),
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'boo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'foo', 'de' => 'bar'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Contains(field: 'keywords', value: '2021-01-02'),
+                    new Contains(field: 'name', value: 'oo'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', keywords: ['2021-01-01', '2021-01-02']),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'boo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'foo', 'de' => 'bar'])),
+            ]),
+        ];
+        yield 'translated string field, starts-with filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Prefix(field: 'name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+            ]),
+        ];
+        yield 'translated string field, ends-with filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'ob', 'de' => 'foo'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Suffix(field: 'name', value: 'o'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+            ]),
+        ];
+        yield 'translated string field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'c'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'c'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+            ]),
+        ];
+        yield 'translated string field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'c'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'c'])),
+            ]),
+        ];
+        yield 'translated string field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'c'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+            ]),
+        ];
+        yield 'translated string field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'c'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+            ]),
+        ];
+        yield 'translated string field, equals filter, empty string' => [
+            'input' => new Documents([
+                new Product(key: 'key1', name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key3', name: new TranslatedString(translations: ['en' => '', 'de' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['de' => 'foo'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', name: new TranslatedString(translations: ['en' => 'foo'])),
+                new Product(key: 'key4', name: new TranslatedString(translations: ['de' => 'foo'])),
+            ]),
+        ];
+    }
+
+    final public static function translatedIntCases(): \Generator
+    {
+        yield 'translated int field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 2])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 2])),
+            ]),
+        ];
+        yield 'translated int field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 3])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 4])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'position', value: [2, 3, 4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 3])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 4])),
+            ]),
+        ];
+        yield 'translated int field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 2])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+            ]),
+        ];
+        yield 'translated int field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 2])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'position', value: [1, 2]),
+                ]
+            ),
+            'expected' => new Result([]),
+        ];
+        yield 'translated int field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+            ]),
+        ];
+        yield 'translated int field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 3])),
+            ]),
+        ];
+        yield 'translated int field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 1])),
+            ]),
+        ];
+        yield 'translated int field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(translations: ['en' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                new Product(key: 'key4', position: new TranslatedInt(translations: ['de' => 1])),
+            ]),
+        ];
+    }
+
+    final public static function translatedFloatCases(): \Generator
+    {
+        yield 'translated float field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 2.2])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 2.2])),
+            ]),
+        ];
+        yield 'translated float field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 3.3])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 4.4])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'weight', value: [2.2, 3.3, 4.4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 3.3])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 4.4])),
+            ]),
+        ];
+        yield 'translated float field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 2.2])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+            ]),
+        ];
+        yield 'translated float field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 2.2])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'weight', value: [1.1, 2.2]),
+                ]
+            ),
+            'expected' => new Result([]),
+        ];
+        yield 'translated float field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 1.1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+            ]),
+        ];
+        yield 'translated float field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 1.1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 3.3])),
+            ]),
+        ];
+        yield 'translated float field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 1.1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 1.1])),
+            ]),
+        ];
+        yield 'translated float field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 1.1])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key4', weight: new TranslatedFloat(translations: ['de' => 1.1])),
+            ]),
+        ];
+    }
+
+    final public static function translatedBoolCases(): \Generator
+    {
+        yield 'translated bool field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', highlight: new TranslatedBool(translations: ['en' => true, 'de' => false])),
+                new Product(key: 'key2', highlight: new TranslatedBool(translations: ['en' => false])),
+                new Product(key: 'key3', highlight: new TranslatedBool(translations: ['en' => null, 'de' => false])),
+                new Product(key: 'key4', highlight: new TranslatedBool(translations: ['de' => false])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'highlight', value: false),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', highlight: new TranslatedBool(translations: ['en' => false])),
+                new Product(key: 'key3', highlight: new TranslatedBool(translations: ['en' => null, 'de' => false])),
+                new Product(key: 'key4', highlight: new TranslatedBool(translations: ['de' => false])),
+            ]),
+        ];
+        yield 'translated bool field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', highlight: new TranslatedBool(translations: ['en' => true, 'de' => false])),
+                new Product(key: 'key2', highlight: new TranslatedBool(translations: ['en' => false])),
+                new Product(key: 'key3', highlight: new TranslatedBool(translations: ['en' => null, 'de' => false])),
+                new Product(key: 'key4', highlight: new TranslatedBool(translations: ['de' => false])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'highlight', value: false),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', highlight: new TranslatedBool(translations: ['en' => true, 'de' => false])),
+            ]),
+        ];
+    }
+
+    final public static function translatedDateCases(): \Generator
+    {
+        yield 'translated date field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+            ]),
+        ];
+        yield 'translated date field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+            ]),
+        ];
+        yield 'translated date field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+            ]),
+        ];
+        yield 'translated date field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
+                ]
+            ),
+            'expected' => new Result([]),
+        ];
+        yield 'translated date field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+            ]),
+        ];
+        yield 'translated date field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+            ]),
+        ];
+        yield 'translated date field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+            ]),
+        ];
+        yield 'translated date field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
             ]),
         ];
     }
@@ -1487,7 +2174,7 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function objectStringCases(): \Generator
     {
-        yield 'object string field, equals filter' => [
+        yield 'object, string field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1502,7 +2189,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
             ]),
         ];
-        yield 'object string field, equals any filter' => [
+        yield 'object, string field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1518,7 +2205,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(ean: 'qux')),
             ]),
         ];
-        yield 'object string field, not filter' => [
+        yield 'object, string field, not filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1534,7 +2221,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(ean: 'qux')),
             ]),
         ];
-        yield 'object string field, not any filter' => [
+        yield 'object, string field, not any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1549,7 +2236,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
             ]),
         ];
-        yield 'object string field, contains filter' => [
+        yield 'object, string field, contains filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1565,7 +2252,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
             ]),
         ];
-        yield 'object string field, gte filter' => [
+        yield 'object, string field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1581,7 +2268,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(ean: 'qux')),
             ]),
         ];
-        yield 'object string field, lte filter' => [
+        yield 'object, string field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1597,7 +2284,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
             ]),
         ];
-        yield 'object string field, gt filter' => [
+        yield 'object, string field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1612,7 +2299,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(ean: 'qux')),
             ]),
         ];
-        yield 'object string field, lt filter' => [
+        yield 'object, string field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(ean: 'bar')),
                 new Product(key: 'key2', mainCategory: new Category(ean: 'baz')),
@@ -1680,7 +2367,7 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function objectFloatCases(): \Generator
     {
-        yield 'object float field, equals filter' => [
+        yield 'object, float field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1695,7 +2382,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
             ]),
         ];
-        yield 'object float field, equals any filter' => [
+        yield 'object, float field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1711,7 +2398,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
             ]),
         ];
-        yield 'object float field, not filter' => [
+        yield 'object, float field, not filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1727,7 +2414,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(price: 3.3)),
             ]),
         ];
-        yield 'object float field, not any filter' => [
+        yield 'object, float field, not any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1742,7 +2429,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(price: 3.3)),
             ]),
         ];
-        yield 'object float field, gte filter' => [
+        yield 'object, float field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1758,7 +2445,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(price: 3.3)),
             ]),
         ];
-        yield 'object float field, lte filter' => [
+        yield 'object, float field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1774,7 +2461,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
             ]),
         ];
-        yield 'object float field, gt filter' => [
+        yield 'object, float field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1789,7 +2476,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(price: 3.3)),
             ]),
         ];
-        yield 'object float field, lt filter' => [
+        yield 'object, float field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1804,7 +2491,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
             ]),
         ];
-        yield 'object float field, gte and lte filter' => [
+        yield 'object, float field, gte and lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(price: 1.1)),
                 new Product(key: 'key2', mainCategory: new Category(price: 2.2)),
@@ -1826,7 +2513,7 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function objectIntCases(): \Generator
     {
-        yield 'object int field, equals filter' => [
+        yield 'object, int field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1841,7 +2528,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
             ]),
         ];
-        yield 'object int field, equals any filter' => [
+        yield 'object, int field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1857,7 +2544,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
             ]),
         ];
-        yield 'object int field, not filter' => [
+        yield 'object, int field, not filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1873,7 +2560,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(stock: 3)),
             ]),
         ];
-        yield 'object int field, not any filter' => [
+        yield 'object, int field, not any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1888,7 +2575,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(stock: 3)),
             ]),
         ];
-        yield 'object int field, gte filter' => [
+        yield 'object, int field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1904,7 +2591,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(stock: 3)),
             ]),
         ];
-        yield 'object int field, lte filter' => [
+        yield 'object, int field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1920,7 +2607,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
             ]),
         ];
-        yield 'object int field, gt filter' => [
+        yield 'object, int field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1935,7 +2622,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key3', mainCategory: new Category(stock: 3)),
             ]),
         ];
-        yield 'object int field, lt filter' => [
+        yield 'object, int field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -1950,7 +2637,7 @@ abstract class FilterStorageTestBase extends TestCase
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
             ]),
         ];
-        yield 'object int field, gte and lte filter' => [
+        yield 'object, int field, gte and lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', mainCategory: new Category(stock: 1)),
                 new Product(key: 'key2', mainCategory: new Category(stock: 2)),
@@ -2136,671 +2823,1000 @@ abstract class FilterStorageTestBase extends TestCase
         ];
     }
 
-    final public static function translatedStringCases(): \Generator
+    final public static function objectStringListCases(): \Generator
     {
-        yield 'translated string field, equals filter' => [
+        yield 'object, string list, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'name', value: 'foo'),
+                    new Equals(field: 'mainCategory.keywords', value: 'baz'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['de' => 'foo'])),
+                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
             ]),
         ];
-        yield 'translated string field, equals-any filter' => [
+
+        yield 'object, string list, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'baz', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'name', value: ['foo', 'bar']),
+                    new Any(field: 'mainCategory.keywords', value: ['baz', 'qux']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
             ]),
         ];
-        yield 'translated string field, not filter' => [
+        yield 'object, string list, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'baz', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'name', value: 'foo'),
+                    new Not(field: 'mainCategory.keywords', value: 'baz'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'baz', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
             ]),
         ];
-        yield 'translated string field, not any filter' => [
+        yield 'object, string list, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'baz', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'name', value: ['foo', 'bar']),
+                    new Neither(field: 'mainCategory.keywords', value: ['baz', 'qux']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key4', name: new Translation(['en' => 'baz', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
             ]),
         ];
-        yield 'translated string field, contains filter' => [
+        //        yield 'object, string list, contains filter' => [
+        //            'input' => new Documents([
+        //                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+        //                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+        //                new Product(key: 'key3', mainCategory: new Category(keywords: ['foo', 'qux'])),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                    new Contains(field: 'mainCategory.keywords', value: 'ba'),
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                new Product(key: 'key1', mainCategory: new Category(keywords: ['foo', 'bar'])),
+        //                new Product(key: 'key2', mainCategory: new Category(keywords: ['foo', 'baz'])),
+        //            ]),
+        //        ];
+    }
+
+    final public static function objectFloatListCases(): \Generator
+    {
+        yield 'object, float list, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'boo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'foo', 'de' => 'bar'])),
+                new Product(key: 'key1', mainCategory: new Category(dimensions: [1.1, 2.2])),
+                new Product(key: 'key2', mainCategory: new Category(dimensions: [1.1, 3.3])),
+                new Product(key: 'key3', mainCategory: new Category(dimensions: [1.1, 4.4])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Contains(field: 'name', value: 'oo'),
+                    new Equals(field: 'mainCategory.dimensions', value: 3.3),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'boo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'foo', 'de' => 'bar'])),
+                new Product(key: 'key2', mainCategory: new Category(dimensions: [1.1, 3.3])),
             ]),
         ];
-        yield 'translated string field, starts-with filter' => [
+        yield 'object, float list, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'baz', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(dimensions: [1.1, 2.2])),
+                new Product(key: 'key2', mainCategory: new Category(dimensions: [1.1, 3.3])),
+                new Product(key: 'key3', mainCategory: new Category(dimensions: [1.1, 4.4])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Prefix(field: 'name', value: 'foo'),
+                    new Any(field: 'mainCategory.dimensions', value: [3.3, 4.4]),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key2', mainCategory: new Category(dimensions: [1.1, 3.3])),
+                new Product(key: 'key3', mainCategory: new Category(dimensions: [1.1, 4.4])),
             ]),
         ];
-        yield 'translated string field, ends-with filter' => [
+        yield 'object, float list, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'ob', 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(dimensions: [1.1, 2.2])),
+                new Product(key: 'key2', mainCategory: new Category(dimensions: [1.1, 3.3])),
+                new Product(key: 'key3', mainCategory: new Category(dimensions: [1.1, 4.4])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Suffix(field: 'name', value: 'o'),
+                    new Not(field: 'mainCategory.dimensions', value: 3.3),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(dimensions: [1.1, 2.2])),
+                new Product(key: 'key3', mainCategory: new Category(dimensions: [1.1, 4.4])),
             ]),
         ];
-        yield 'translated string field, gte filter' => [
+        yield 'object, float list, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'a', 'de' => 'b'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'c'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'b'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'b', 'de' => 'a'])),
+                new Product(key: 'key1', mainCategory: new Category(dimensions: [1.1, 2.2])),
+                new Product(key: 'key2', mainCategory: new Category(dimensions: [1.1, 3.3])),
+                new Product(key: 'key3', mainCategory: new Category(dimensions: [1.1, 4.4])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'name', value: 'b'),
+                    new Neither(field: 'mainCategory.dimensions', value: [3.3, 4.4]),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'c'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'b'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'b', 'de' => 'a'])),
-            ]),
-        ];
-        yield 'translated string field, gt filter' => [
-            'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'a', 'de' => 'b'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'c'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'b'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'b', 'de' => 'a'])),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Gt(field: 'name', value: 'b'),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'c'])),
-            ]),
-        ];
-        yield 'translated string field, lte filter' => [
-            'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'a', 'de' => 'b'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'c'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'b'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'b', 'de' => 'a'])),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Lte(field: 'name', value: 'b'),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key1', name: new Translation(['en' => 'a', 'de' => 'b'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'b'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'b', 'de' => 'a'])),
-            ]),
-        ];
-        yield 'translated string field, lt filter' => [
-            'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'a', 'de' => 'b'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'c'])),
-                new Product(key: 'key3', name: new Translation(['en' => null, 'de' => 'b'])),
-                new Product(key: 'key4', name: new Translation(['en' => 'b', 'de' => 'a'])),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Lt(field: 'name', value: 'b'),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key1', name: new Translation(['en' => 'a', 'de' => 'b'])),
-            ]),
-        ];
-        yield 'translated string field, equals filter, empty string' => [
-            'input' => new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'bar', 'de' => 'foo'])),
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key3', name: new Translation(['en' => '', 'de' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['de' => 'foo'])),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Equals(field: 'name', value: 'foo'),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key2', name: new Translation(['en' => 'foo'])),
-                new Product(key: 'key4', name: new Translation(['de' => 'foo'])),
+                new Product(key: 'key1', mainCategory: new Category(dimensions: [1.1, 2.2])),
             ]),
         ];
     }
 
-    final public static function translatedIntCases(): \Generator
+    final public static function objectIntListCases(): \Generator
     {
-        yield 'translated int field, equals filter' => [
+        //        yield 'object, int list, equals filter' => [
+        //            'input' => new Documents([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //                new Product(key: 'key3', mainCategory: new Category(states: [1, 4])),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                    new Equals(field: 'mainCategory.states', value: 3),
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //            ]),
+        //        ];
+        //        yield 'object, int list, equals any filter' => [
+        //            'input' => new Documents([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //                new Product(key: 'key3', mainCategory: new Category(states: [1, 4])),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                    new Any(field: 'mainCategory.states', value: [3, 4]),
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //                new Product(key: 'key3', mainCategory: new Category(states: [1, 4])),
+        //            ]),
+        //        ];
+        //        yield 'object, int list, not filter' => [
+        //            'input' => new Documents([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //                new Product(key: 'key3', mainCategory: new Category(states: [1, 4])),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                    new Not(field: 'mainCategory.states', value: 3),
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product(key: 'key3', mainCategory: new Category(states: [1, 4])),
+        //            ]),
+        //        ];
+        //        yield 'object, int list, not any filter' => [
+        //            'input' => new Documents([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //                new Product(key: 'key3', mainCategory: new Category(states: [1, 4])),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                    new Neither(field: 'mainCategory.states', value: [3, 4]),
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //            ]),
+        //        ];
+        yield 'object, int list, null value, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 2])),
+                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+                new Product(key: 'key3'),
+                new Product(key: 'key4', mainCategory: new Category(states: null)),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'position', value: 2),
+                    new Equals(field: 'mainCategory.states', value: null),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', position: new Translation(['en' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 2])),
+                new Product(key: 'key3'),
+                new Product(key: 'key4', mainCategory: new Category(states: null)),
             ]),
         ];
-        yield 'translated int field, equals-any filter' => [
+        //        yield 'object, int list, null value, not filter' => [
+        //            'input' => new Documents([
+        //                new Product(key: 'key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product(key: 'key2', mainCategory: new Category(states: [1, 3])),
+        //                new Product(key: 'key3'),
+        //            ]),
+        //            'criteria' => new Criteria(
+        //                filters: [
+        //                    new Not(field: 'mainCategory.states', value: null),
+        //                ]
+        //            ),
+        //            'expected' => new Result([
+        //                new Product('key1', mainCategory: new Category(states: [1, 2])),
+        //                new Product('key2', mainCategory: new Category(states: [1, 3])),
+        //            ]),
+        //        ];
+    }
+
+    final public static function objectDateListCases(): \Generator
+    {
+        yield 'object, date list, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key4', position: new Translation(['de' => 4])),
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'position', value: [2, 3, 4]),
+                    new Equals(field: 'mainCategory.timestamps', value: '2021-01-03'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', position: new Translation(['en' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key4', position: new Translation(['de' => 4])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
             ]),
         ];
-        yield 'translated int field, not filter' => [
+        yield 'object, date list, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 2])),
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'position', value: 2),
+                    new Any(field: 'mainCategory.timestamps', value: ['2021-01-03', '2021-01-04']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
             ]),
         ];
-        yield 'translated int field, not-any filter' => [
+        yield 'object, date list, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 2])),
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'position', value: [1, 2]),
+                    new Not(field: 'mainCategory.timestamps', value: '2021-01-03'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
+            ]),
+        ];
+        yield 'object, date list, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'mainCategory.timestamps', value: ['2021-01-03', '2021-01-04']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+            ]),
+        ];
+        yield 'object, date list, contains filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+                new Product(key: 'key2', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-03'])),
+                new Product(key: 'key3', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-04'])),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Contains(field: 'mainCategory.timestamps', value: '2021-01-02'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(timestamps: ['2021-01-01', '2021-01-02'])),
+            ]),
+        ];
+    }
+
+    final public static function objectTranslatedStringCases(): \Generator
+    {
+        yield 'object, translated string field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'mainCategory.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['de' => 'foo']))),
+            ]),
+        ];
+        yield 'object, translated string field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'mainCategory.name', value: ['foo', 'bar']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+            ]),
+        ];
+        yield 'object, translated string field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'mainCategory.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo']))),
+            ]),
+        ];
+        yield 'object, translated string field, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'mainCategory.name', value: ['foo', 'bar']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo']))),
+            ]),
+        ];
+        yield 'object, translated string field, contains filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'boo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo', 'de' => 'bar']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Contains(field: 'mainCategory.name', value: 'oo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'boo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo', 'de' => 'bar']))),
+            ]),
+        ];
+        yield 'object, translated string field, starts-with filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Prefix(field: 'mainCategory.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+            ]),
+        ];
+        yield 'object, translated string field, ends-with filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'ob', 'de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Suffix(field: 'mainCategory.name', value: 'o'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo']))),
+            ]),
+        ];
+        yield 'object, translated string field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'c']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'mainCategory.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'c']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a']))),
+            ]),
+        ];
+        yield 'object, translated string field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'c']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'mainCategory.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'c']))),
+            ]),
+        ];
+        yield 'object, translated string field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'c']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'mainCategory.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a']))),
+            ]),
+        ];
+        yield 'object, translated string field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'c']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'mainCategory.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b']))),
+            ]),
+        ];
+        yield 'object, translated string field, equals filter, empty string' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo']))),
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key3', mainCategory: new Category(name: new TranslatedString(translations: ['en' => '', 'de' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['de' => 'foo']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'mainCategory.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(name: new TranslatedString(translations: ['en' => 'foo']))),
+                new Product(key: 'key4', mainCategory: new Category(name: new TranslatedString(translations: ['de' => 'foo']))),
+            ]),
+        ];
+    }
+
+    final public static function objectTranslatedIntCases(): \Generator
+    {
+        yield 'object, translated int field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 2]))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'mainCategory.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 2]))),
+            ]),
+        ];
+        yield 'object, translated int field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 3]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 4]))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'mainCategory.position', value: [2, 3, 4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 3]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 4]))),
+            ]),
+        ];
+        yield 'object, translated int field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 2]))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'mainCategory.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+            ]),
+        ];
+        yield 'object, translated int field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 2]))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'mainCategory.position', value: [1, 2]),
                 ]
             ),
             'expected' => new Result([]),
         ];
-        yield 'translated int field, gte filter' => [
+        yield 'object, translated int field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 3])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 1])),
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 3]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'position', value: 2),
+                    new Gte(field: 'mainCategory.position', value: 2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', position: new Translation(['en' => 3])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 3]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
             ]),
         ];
-        yield 'translated int field, gt filter' => [
+        yield 'object, translated int field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 3])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 1])),
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 3]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'position', value: 2),
+                    new Gt(field: 'mainCategory.position', value: 2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', position: new Translation(['en' => 3])),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 3]))),
             ]),
         ];
-        yield 'translated int field, lte filter' => [
+        yield 'object, translated int field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 3])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 1])),
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 3]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'position', value: 2),
+                    new Lte(field: 'mainCategory.position', value: 2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 1])),
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 1]))),
             ]),
         ];
-        yield 'translated int field, lt filter' => [
+        yield 'object, translated int field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => 3])),
-                new Product(key: 'key3', position: new Translation(['en' => null, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 1])),
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key2', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 3]))),
+                new Product(key: 'key3', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'position', value: 2),
+                    new Lt(field: 'mainCategory.position', value: 2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key4', position: new Translation(['de' => 1])),
+                new Product(key: 'key1', mainCategory: new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2]))),
+                new Product(key: 'key4', mainCategory: new Category(position: new TranslatedInt(translations: ['de' => 1]))),
             ]),
         ];
     }
 
-    final public static function translatedFloatCases(): \Generator
+    final public static function objectTranslatedFloatCases(): \Generator
     {
-        yield 'translated float field, equals filter' => [
+        yield 'object, translated float field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 2.2])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 2.2]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'weight', value: 2.2),
+                    new Equals(field: 'mainCategory.weight', value: 2.2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', weight: new Translation(['en' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 2.2])),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 2.2]))),
             ]),
         ];
-        yield 'translated float field, equals-any filter' => [
+        yield 'object, translated float field, equals-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key4', weight: new Translation(['de' => 4.4])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 3.3]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 4.4]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'weight', value: [2.2, 3.3, 4.4]),
+                    new Any(field: 'mainCategory.weight', value: [2.2, 3.3, 4.4]),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', weight: new Translation(['en' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key4', weight: new Translation(['de' => 4.4])),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 3.3]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 4.4]))),
             ]),
         ];
-        yield 'translated float field, not filter' => [
+        yield 'object, translated float field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 2.2])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 2.2]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'weight', value: 2.2),
+                    new Not(field: 'mainCategory.weight', value: 2.2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
             ]),
         ];
-        yield 'translated float field, not-any filter' => [
+        yield 'object, translated float field, not-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 2.2])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 2.2]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'weight', value: [1.1, 2.2]),
+                    new Neither(field: 'mainCategory.weight', value: [1.1, 2.2]),
                 ]
             ),
             'expected' => new Result([]),
         ];
-        yield 'translated float field, gte filter' => [
+        yield 'object, translated float field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 1.1])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 3.3]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 1.1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'weight', value: 2.2),
+                    new Gte(field: 'mainCategory.weight', value: 2.2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', weight: new Translation(['en' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 3.3]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
             ]),
         ];
-        yield 'translated float field, gt filter' => [
+        yield 'object, translated float field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 1.1])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 3.3]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 1.1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'weight', value: 2.2),
+                    new Gt(field: 'mainCategory.weight', value: 2.2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', weight: new Translation(['en' => 3.3])),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 3.3]))),
             ]),
         ];
-        yield 'translated float field, lte filter' => [
+        yield 'object, translated float field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 1.1])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 3.3]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 1.1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'weight', value: 2.2),
+                    new Lte(field: 'mainCategory.weight', value: 2.2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 1.1])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 1.1]))),
             ]),
         ];
-        yield 'translated float field, lt filter' => [
+        yield 'object, translated float field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['en' => null, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 1.1])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key2', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 3.3]))),
+                new Product(key: 'key3', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 1.1]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'weight', value: 2.2),
+                    new Lt(field: 'mainCategory.weight', value: 2.2),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key4', weight: new Translation(['de' => 1.1])),
-            ]),
-        ];
-    }
-
-    final public static function highlightCases(): \Generator
-    {
-        yield 'translated bool field, equals filter' => [
-            'input' => new Documents([
-                new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
-                new Product(key: 'key2', highlight: new Translation(['en' => false])),
-                new Product(key: 'key3', highlight: new Translation(['en' => null, 'de' => false])),
-                new Product(key: 'key4', highlight: new Translation(['de' => false])),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Equals(field: 'highlight', value: false),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key2', highlight: new Translation(['en' => false])),
-                new Product(key: 'key3', highlight: new Translation(['en' => null, 'de' => false])),
-                new Product(key: 'key4', highlight: new Translation(['de' => false])),
-            ]),
-        ];
-        yield 'translated bool field, not filter' => [
-            'input' => new Documents([
-                new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
-                new Product(key: 'key2', highlight: new Translation(['en' => false])),
-                new Product(key: 'key3', highlight: new Translation(['en' => null, 'de' => false])),
-                new Product(key: 'key4', highlight: new Translation(['de' => false])),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Not(field: 'highlight', value: false),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
+                new Product(key: 'key1', mainCategory: new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2]))),
+                new Product(key: 'key4', mainCategory: new Category(weight: new TranslatedFloat(translations: ['de' => 1.1]))),
             ]),
         ];
     }
 
-    final public static function translatedDateCases(): \Generator
+    final public static function objectTranslatedBoolCases(): \Generator
     {
-        yield 'translated date field, equals filter' => [
+        yield 'object, translated bool field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => true, 'de' => false]))),
+                new Product(key: 'key2', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => false]))),
+                new Product(key: 'key3', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => null, 'de' => false]))),
+                new Product(key: 'key4', mainCategory: new Category(highlight: new TranslatedBool(translations: ['de' => false]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Equals(field: 'mainCategory.highlight', value: false),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => false]))),
+                new Product(key: 'key3', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => null, 'de' => false]))),
+                new Product(key: 'key4', mainCategory: new Category(highlight: new TranslatedBool(translations: ['de' => false]))),
             ]),
         ];
-        yield 'translated date field, equals-any filter' => [
+        yield 'object, translated bool field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => true, 'de' => false]))),
+                new Product(key: 'key2', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => false]))),
+                new Product(key: 'key3', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => null, 'de' => false]))),
+                new Product(key: 'key4', mainCategory: new Category(highlight: new TranslatedBool(translations: ['de' => false]))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                    new Not(field: 'mainCategory.highlight', value: false),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(highlight: new TranslatedBool(translations: ['en' => true, 'de' => false]))),
             ]),
         ];
-        yield 'translated date field, not filter' => [
+    }
+
+    final public static function objectTranslatedDateCases(): \Generator
+    {
+        yield 'object, translated date field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Equals(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
             ]),
         ];
-        yield 'translated date field, not-any filter' => [
+        yield 'object, translated date field, equals-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
+                    new Any(field: 'mainCategory.release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+            ]),
+        ];
+        yield 'object, translated date field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+            ]),
+        ];
+        yield 'object, translated date field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'mainCategory.release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
                 ]
             ),
             'expected' => new Result([]),
         ];
-        yield 'translated date field, gte filter' => [
+        yield 'object, translated date field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Gte(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
             ]),
         ];
-        yield 'translated date field, gt filter' => [
+        yield 'object, translated date field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Gt(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
             ]),
         ];
-        yield 'translated date field, lte filter' => [
+        yield 'object, translated date field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Lte(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
             ]),
         ];
-        yield 'translated date field, lt filter' => [
+        yield 'object, translated date field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Lt(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
             ]),
         ];
     }
 
     final public static function objectListStringCases(): \Generator
     {
-        yield 'list object string field, equals filter' => [
+        yield 'list object, string field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(ean: 'bar'),
@@ -2833,7 +3849,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object string field, equals any filter' => [
+        yield 'list object, string field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(ean: 'bar'),
@@ -2866,7 +3882,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object string field, contains filter' => [
+        yield 'list object, string field, contains filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(ean: 'bar'),
@@ -2899,7 +3915,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object string field, starts-with filter' => [
+        yield 'list object, string field, starts-with filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(ean: 'bar'),
@@ -2928,7 +3944,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object string field, ends-with filter' => [
+        yield 'list object, string field, ends-with filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(ean: 'bar'),
@@ -2963,40 +3979,9 @@ abstract class FilterStorageTestBase extends TestCase
         ];
     }
 
-    final public static function combinedObjectListCases(): \Generator
-    {
-        yield 'Test multi filter on nested objects' => [
-            'input' => new Documents([
-                new Product(key: 'key1', categories: [
-                    new Category(ean: 'bar', stock: 1, active: true),
-                    new Category(ean: 'bar-2', stock: 2, active: false),
-                ]),
-                new Product(key: 'key2', categories: [
-                    new Category(ean: 'bar', stock: 1, active: false),
-                ]),
-                new Product(key: 'key3', categories: [
-                    new Category(ean: 'bar', stock: 2, active: true),
-                ]),
-            ]),
-            'criteria' => new Criteria(
-                filters: [
-                    new Equals(field: 'categories.ean', value: 'bar'),
-                    new Equals(field: 'categories.stock', value: 1),
-                    new Equals(field: 'categories.active', value: true),
-                ]
-            ),
-            'expected' => new Result([
-                new Product(key: 'key1', categories: [
-                    new Category(ean: 'bar', stock:1, active: true),
-                    new Category(ean: 'bar-2', stock:2, active: false),
-                ]),
-            ]),
-        ];
-    }
-
     final public static function objectListFloatCases(): \Generator
     {
-        yield 'list object float field, equals filter' => [
+        yield 'list object, float field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(price: 1.1),
@@ -3028,7 +4013,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object float field, equals any filter' => [
+        yield 'list object, float field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(price: 1.1),
@@ -3044,7 +4029,6 @@ abstract class FilterStorageTestBase extends TestCase
                     new Category(price: 24.2),
                 ]),
             ]),
-
             'criteria' => new Criteria(
                 filters: [
                     new Any(field: 'categories.price', value: [10.1, 22.2]),
@@ -3062,7 +4046,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object float field, gte filter' => [
+        yield 'list object, float field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(price: 1.1),
@@ -3091,7 +4075,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object float field, lte filter' => [
+        yield 'list object, float field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(price: 1.1),
@@ -3123,7 +4107,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object float field, gt filter' => [
+        yield 'list object, float field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(price: 1.1),
@@ -3156,7 +4140,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object float field, lt filter' => [
+        yield 'list object, float field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(price: 1.1),
@@ -3192,7 +4176,7 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function objectListIntCases(): \Generator
     {
-        yield 'list object int field, equals filter' => [
+        yield 'list object, int field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(stock: 1),
@@ -3224,7 +4208,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object int field, equals any filter' => [
+        yield 'list object, int field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(stock: 1),
@@ -3257,7 +4241,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object int field, gte filter' => [
+        yield 'list object, int field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(stock: 1),
@@ -3286,7 +4270,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object int field, lte filter' => [
+        yield 'list object, int field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(stock: 1),
@@ -3317,7 +4301,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object int field, gt filter' => [
+        yield 'list object, int field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(stock: 1),
@@ -3350,7 +4334,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object int field, lt filter' => [
+        yield 'list object, int field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(stock: 1),
@@ -3386,7 +4370,7 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function objectListBoolCases(): \Generator
     {
-        yield 'object list bool field, equals filter' => [
+        yield 'list object, bool field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(active: true),
@@ -3418,7 +4402,7 @@ abstract class FilterStorageTestBase extends TestCase
 
     final public static function objectListDateCases(): \Generator
     {
-        yield 'list object date field, gte filter' => [
+        yield 'list object, date field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(changed: '2021-01-01 00:00:00.000'),
@@ -3447,7 +4431,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object date field, lte filter' => [
+        yield 'list object, date field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(changed: '2021-01-01 00:00:00.000'),
@@ -3479,7 +4463,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object date field, gt filter' => [
+        yield 'list object, date field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(changed: '2021-01-01 00:00:00.000'),
@@ -3512,7 +4496,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object date field, lt filter' => [
+        yield 'list object, date field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(changed: '2021-01-01 00:00:00.000'),
@@ -3544,7 +4528,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object date field, equals filter' => [
+        yield 'list object, date field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(changed: '2021-01-01 00:00:00.000'),
@@ -3576,7 +4560,7 @@ abstract class FilterStorageTestBase extends TestCase
                 ]),
             ]),
         ];
-        yield 'list object date field, equals any filter' => [
+        yield 'list object, date field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
                     new Category(changed: '2021-01-01 00:00:00.000'),
@@ -3606,6 +4590,1641 @@ abstract class FilterStorageTestBase extends TestCase
                     new Category(changed: '2021-01-20 00:00:00.000'),
                     new Category(changed: '2021-01-22 00:00:00.000'),
                     new Category(changed: '2021-01-24 00:00:00.000'),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListStringListCases(): \Generator
+    {
+        yield 'object list, string list, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                    new Category(keywords: ['baz']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.keywords', value: 'baz'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                    new Category(keywords: ['baz']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+            ]),
+        ];
+        yield 'object list, string list, equals any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.keywords', value: ['baz', 'qux']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+        ];
+        yield 'object list, string list, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.keywords', value: 'baz'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+        ];
+        yield 'object list, string list, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.keywords', value: ['baz', 'qux']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+            ]),
+        ];
+        yield 'object list, string list, contains filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(keywords: ['foo', 'qux']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Contains(field: 'categories.keywords', value: 'ba'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(keywords: ['foo', 'bar']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(keywords: ['foo', 'baz']),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListFloatListCases(): \Generator
+    {
+        yield 'object list, float list, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(dimensions: [1.1, 2.2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(dimensions: [1.1, 3.3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(dimensions: [1.1, 4.4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.dimensions', value: 3.3),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(dimensions: [1.1, 3.3]),
+                ]),
+            ]),
+        ];
+        yield 'object list, float list, equals any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(dimensions: [1.1, 2.2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(dimensions: [1.1, 3.3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(dimensions: [1.1, 4.4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.dimensions', value: [3.3, 4.4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(dimensions: [1.1, 3.3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(dimensions: [1.1, 4.4]),
+                ]),
+            ]),
+        ];
+        yield 'object list, float list, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(dimensions: [1.1, 2.2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(dimensions: [1.1, 3.3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(dimensions: [1.1, 4.4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.dimensions', value: 3.3),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(dimensions: [1.1, 2.2]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(dimensions: [1.1, 4.4]),
+                ]),
+            ]),
+        ];
+        yield 'object list, float list, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(dimensions: [1.1, 2.2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(dimensions: [1.1, 3.3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(dimensions: [1.1, 4.4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.dimensions', value: [3.3, 4.4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(dimensions: [1.1, 2.2]),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListIntListCases(): \Generator
+    {
+        yield 'object list, int list, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(states: [1, 4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.states', value: 3),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+            ]),
+        ];
+        yield 'object list, int list, equals any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(states: [1, 4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.states', value: [3, 4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(states: [1, 4]),
+                ]),
+            ]),
+        ];
+        yield 'object list, int list, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(states: [1, 4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.states', value: 3),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(states: [1, 4]),
+                ]),
+            ]),
+        ];
+        yield 'object list, int list, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(states: [1, 4]),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.states', value: [3, 4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+            ]),
+        ];
+        yield 'object list, int list, null value, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+                new Product(key: 'key3'),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.states', value: null),
+                ]
+            ),
+            'expected' => new Result([
+                new Product('key1', categories: [
+                    new Category(states: [1, 2]),
+                ]),
+                new Product('key2', categories: [
+                    new Category(states: [1, 3]),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListDateListCases(): \Generator
+    {
+        yield 'object list, date list, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.timestamps', value: '2021-01-03'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+            ]),
+        ];
+        yield 'object list, date list, equals any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.timestamps', value: ['2021-01-03', '2021-01-04']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+        ];
+        yield 'object list, date list, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.timestamps', value: '2021-01-03'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+        ];
+        yield 'object list, date list, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.timestamps', value: ['2021-01-03', '2021-01-04']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+            ]),
+        ];
+        yield 'object list, date list, contains filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-03']),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-04']),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Contains(field: 'categories.timestamps', value: '2021-01-02'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(timestamps: ['2021-01-01', '2021-01-02']),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListTranslatedStringCases(): \Generator
+    {
+        yield 'object list, translated string field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['de' => 'foo'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.name', value: ['foo', 'bar']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, not any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.name', value: ['foo', 'bar']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, contains filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'boo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo', 'de' => 'bar'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Contains(field: 'categories.name', value: 'oo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'boo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo', 'de' => 'bar'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, starts-with filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'baz', 'de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Prefix(field: 'categories.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, ends-with filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'ob', 'de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Suffix(field: 'categories.name', value: 'o'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'foo'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'c'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'categories.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'c'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'c'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'categories.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'c'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'c'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'categories.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'c'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => null, 'de' => 'b'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'b', 'de' => 'a'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'categories.name', value: 'b'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'a', 'de' => 'b'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated string field, equals filter, empty string' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'bar', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => '', 'de' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['de' => 'foo'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.name', value: 'foo'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(name: new TranslatedString(translations: ['en' => 'foo'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(name: new TranslatedString(translations: ['de' => 'foo'])),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListTranslatedIntCases(): \Generator
+    {
+        yield 'object list, translated int field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 2])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 2])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated int field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 3])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 4])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.position', value: [2, 3, 4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 3])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 4])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated int field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 2])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated int field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 2])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.position', value: [1, 2]),
+                ]
+            ),
+            'expected' => new Result([]),
+        ];
+        yield 'object list, translated int field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'categories.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated int field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'categories.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 3])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated int field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'categories.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 1])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated int field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => null, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'categories.position', value: 2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(position: new TranslatedInt(translations: ['en' => 1, 'de' => 2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(position: new TranslatedInt(translations: ['de' => 1])),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListTranslatedFloatCases(): \Generator
+    {
+        yield 'object list, translated float field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 2.2])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 2.2])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated float field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 3.3])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 4.4])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.weight', value: [2.2, 3.3, 4.4]),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 3.3])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 4.4])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated float field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 2.2])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated float field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 2.2])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.weight', value: [1.1, 2.2]),
+                ]
+            ),
+            'expected' => new Result([]),
+        ];
+        yield 'object list, translated float field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 1.1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'categories.weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated float field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 1.1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'categories.weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated float field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 1.1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'categories.weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 1.1])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated float field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 3.3])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => null, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 1.1])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'categories.weight', value: 2.2),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['en' => 1.1, 'de' => 2.2])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(weight: new TranslatedFloat(translations: ['de' => 1.1])),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListTranslatedBoolCases(): \Generator
+    {
+        yield 'object list, translated bool field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => true, 'de' => false])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => false])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => null, 'de' => false])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['de' => false])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.highlight', value: false),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => false])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => null, 'de' => false])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['de' => false])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated bool field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => true, 'de' => false])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => false])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => null, 'de' => false])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['de' => false])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.highlight', value: false),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(highlight: new TranslatedBool(translations: ['en' => true, 'de' => false])),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function objectListTranslatedDateCases(): \Generator
+    {
+        yield 'object list, translated date field, equals filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated date field, equals-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Any(field: 'categories.release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated date field, not filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Not(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated date field, not-any filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Neither(field: 'categories.release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
+                ]
+            ),
+            'expected' => new Result([]),
+        ];
+        yield 'object list, translated date field, gte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gte(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated date field, gt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Gt(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated date field, lte filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lte(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+        yield 'object list, translated date field, lt filter' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Lt(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                ]),
+                new Product(key: 'key4', categories: [
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                ]),
+            ]),
+        ];
+    }
+
+    final public static function combinedObjectListCases(): \Generator
+    {
+        yield 'Test multi filter on nested objects' => [
+            'input' => new Documents([
+                new Product(key: 'key1', categories: [
+                    new Category(ean: 'bar', stock: 1, active: true),
+                    new Category(ean: 'bar-2', stock: 2, active: false),
+                ]),
+                new Product(key: 'key2', categories: [
+                    new Category(ean: 'bar', stock: 1, active: false),
+                ]),
+                new Product(key: 'key3', categories: [
+                    new Category(ean: 'bar', stock: 2, active: true),
+                ]),
+            ]),
+            'criteria' => new Criteria(
+                filters: [
+                    new Equals(field: 'categories.ean', value: 'bar'),
+                    new Equals(field: 'categories.stock', value: 1),
+                    new Equals(field: 'categories.active', value: true),
+                ]
+            ),
+            'expected' => new Result([
+                new Product(key: 'key1', categories: [
+                    new Category(ean: 'bar', stock: 1, active: true),
+                    new Category(ean: 'bar-2', stock: 2, active: false),
                 ]),
             ]),
         ];

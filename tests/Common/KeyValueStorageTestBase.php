@@ -8,6 +8,7 @@ use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\KeyValue\KeyAware;
 use Shopware\Storage\Common\Storage;
+use Shopware\Storage\Common\StorageContext;
 use Shopware\StorageTests\Common\Schema\Category;
 use Shopware\StorageTests\Common\Schema\Product;
 
@@ -22,15 +23,17 @@ abstract class KeyValueStorageTestBase extends TestCase
 
         $storage->store($input);
 
+        $context = new StorageContext(languages: ['en', 'de']);
+
         foreach ($input as $expected) {
-            $document = $storage->get($expected->key);
+            $document = $storage->get(key: $expected->key, context: $context);
             static::assertInstanceOf(Document::class, $document);
 
             static::assertEquals($expected, $document);
 
             $storage->remove([$expected->key]);
 
-            $document = $storage->get($expected->key);
+            $document = $storage->get($expected->key, context: $context);
 
             static::assertNull($document);
         }
@@ -43,7 +46,9 @@ abstract class KeyValueStorageTestBase extends TestCase
 
         $storage->store(documents: $input);
 
-        $documents = $storage->mget($input->keys());
+        $context = new StorageContext(languages: ['en', 'de']);
+
+        $documents = $storage->mget(keys: $input->keys(), context: $context);
 
         foreach ($input as $expected) {
             static::assertTrue($documents->has($expected->key));
@@ -55,7 +60,7 @@ abstract class KeyValueStorageTestBase extends TestCase
 
         $storage->remove($input->keys());
 
-        $documents = $storage->mget($input->keys());
+        $documents = $storage->mget($input->keys(), $context);
 
         static::assertCount(0, $documents);
     }

@@ -15,7 +15,11 @@ use Shopware\Storage\Common\Aggregation\Type\Sum;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Exception\NotSupportedByEngine;
 use Shopware\Storage\Common\Filter\Criteria;
-use Shopware\Storage\Common\Schema\Translation;
+use Shopware\Storage\Common\Schema\Translation\TranslatedBool;
+use Shopware\Storage\Common\Schema\Translation\TranslatedDate;
+use Shopware\Storage\Common\Schema\Translation\TranslatedFloat;
+use Shopware\Storage\Common\Schema\Translation\TranslatedInt;
+use Shopware\Storage\Common\Schema\Translation\TranslatedString;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\StorageTests\Common\Schema\Category;
@@ -33,6 +37,54 @@ abstract class AggregationStorageTestBase extends TestCase
         array $expected
     ): void {
         $this->testStorage($aggregations, $input, $expected);
+    }
+
+    /**
+     * @param array<string, mixed> $expected
+     */
+    #[DataProvider('stringCases')]
+    #[DataProvider('textCases')]
+    #[DataProvider('intCases')]
+    #[DataProvider('floatCases')]
+    #[DataProvider('boolCases')]
+    #[DataProvider('dateCases')]
+    #[DataProvider('objectStringCases')]
+    #[DataProvider('objectFloatCases')]
+    #[DataProvider('objectIntCases')]
+    #[DataProvider('objectBoolCases')]
+    #[DataProvider('objectDateCases')]
+    #[DataProvider('objectListStringCases')]
+    #[DataProvider('objectListFloatCases')]
+    #[DataProvider('objectListIntCases')]
+    #[DataProvider('objectListBoolCases')]
+    #[DataProvider('objectListDateCases')]
+    #[DataProvider('translatedStringCases')]
+    #[DataProvider('translatedIntCases')]
+    #[DataProvider('translatedFloatCases')]
+    #[DataProvider('translatedBoolCases')]
+    #[DataProvider('translatedDateCases')]
+    public function testStorage(
+        Aggregation $aggregations,
+        Documents $input,
+        array $expected
+    ): void {
+        $storage = $this->getStorage();
+
+        $storage->store($input);
+
+        try {
+            $context = new StorageContext(languages: ['en', 'de']);
+
+            $loaded = $storage->aggregate(
+                aggregations: [$aggregations],
+                criteria: new Criteria(),
+                context: $context
+            );
+        } catch (NotSupportedByEngine $e) {
+            static::markTestIncomplete($e->getMessage());
+        }
+
+        static::assertEquals($expected, $loaded);
     }
 
     abstract public function getStorage(): AggregationAware&Storage;
@@ -363,91 +415,50 @@ abstract class AggregationStorageTestBase extends TestCase
         ];
     }
 
-    public static function listStringCases(): \Generator
-    {
-        yield 'Min, list string field' => [
-            new Min(name: 'min', field: 'listField'),
-            new Documents([
-                new Product('key1', keywords: ['b', 'c']),
-                new Product('key2', keywords: ['d', 'e', 'f']),
-                new Product('key3', keywords: ['g', 'h', 'i']),
-            ]),
-            ['min' => 'b'],
-        ];
-        yield 'Max, list string field' => [
-            new Max(name: 'max', field: 'listField'),
-            new Documents([
-                new Product('key1', keywords: ['b', 'c']),
-                new Product('key2', keywords: ['d', 'e', 'i']),
-                new Product('key3', keywords: ['g', 'h', 'f']),
-            ]),
-            ['max' => 'i'],
-        ];
-        yield 'Distinct, list string field' => [
-            new Max(name: 'distinct', field: 'listField'),
-            new Documents([
-                new Product('key1', keywords: ['b', 'c']),
-                new Product('key2', keywords: ['d', 'e', 'i']),
-                new Product('key3', keywords: ['g', 'h', 'f']),
-            ]),
-            ['distinct' => ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']],
-        ];
-    }
-
-    public static function listFloatCases(): \Generator
-    {
-        yield 'Avg, list float field' => [];
-        yield 'Min, list float field' => [];
-        yield 'Max, list float field' => [];
-        yield 'Sum, list float field' => [];
-        yield 'Count, list float field' => [];
-        yield 'Distinct, list float field' => [];
-    }
-
     public static function listIntCases(): \Generator
     {
         yield 'Avg, list int field' => [
-            new Avg(name: 'avg', field: 'listField'),
+            new Avg(name: 'avg', field: 'states'),
             new Documents([
-                new Product('key1', keywords: [1, 2, 3]),
-                new Product('key2', keywords: [2, 4, 3]),
-                new Product('key3', keywords: [2, 5, 5]),
+                new Product('key1', states: [1, 2, 3]),
+                new Product('key2', states: [2, 4, 3]),
+                new Product('key3', states: [2, 5, 5]),
             ]),
             ['avg' => 3],
         ];
         yield 'Min, list int field' => [
-            new Min(name: 'min', field: 'listField'),
+            new Min(name: 'min', field: 'states'),
             new Documents([
-                new Product('key1', keywords: [1, 2, 3]),
-                new Product('key2', keywords: [2, 4, 3]),
-                new Product('key3', keywords: [2, 5, 4]),
+                new Product('key1', states: [1, 2, 3]),
+                new Product('key2', states: [2, 4, 3]),
+                new Product('key3', states: [2, 5, 4]),
             ]),
             ['min' => 1],
         ];
         yield 'Max, list int field' => [
-            new Max(name: 'max', field: 'listField'),
+            new Max(name: 'max', field: 'states'),
             new Documents([
-                new Product('key1', keywords: [1, 2, 3]),
-                new Product('key2', keywords: [2, 4, 3]),
-                new Product('key3', keywords: [2, 5, 4]),
+                new Product('key1', states: [1, 2, 3]),
+                new Product('key2', states: [2, 4, 3]),
+                new Product('key3', states: [2, 5, 4]),
             ]),
             ['max' => 5],
         ];
         yield 'Sum, list int field' => [
-            new Sum(name: 'sum', field: 'listField'),
+            new Sum(name: 'sum', field: 'states'),
             new Documents([
-                new Product('key1', keywords: [1, 2, 3]),
-                new Product('key2', keywords: [2, 4, 3]),
-                new Product('key3', keywords: [2, 5, 4]),
+                new Product('key1', states: [1, 2, 3]),
+                new Product('key2', states: [2, 4, 3]),
+                new Product('key3', states: [2, 5, 4]),
             ]),
             ['sum' => 26],
         ];
         yield 'Count, list int field' => [
-            new Count(name: 'count', field: 'listField'),
+            new Count(name: 'count', field: 'states'),
             new Documents([
-                new Product('key1', keywords: [1, 2, 3]),
-                new Product('key2', keywords: [2, 4, 3]),
-                new Product('key3', keywords: [2, 5, 3]),
+                new Product('key1', states: [1, 2, 3]),
+                new Product('key2', states: [2, 4, 3]),
+                new Product('key3', states: [2, 5, 3]),
             ]),
             [
                 'count' => [
@@ -460,24 +471,14 @@ abstract class AggregationStorageTestBase extends TestCase
             ],
         ];
         yield 'Distinct, list int field' => [
-            new Distinct(name: 'distinct', field: 'listField'),
+            new Distinct(name: 'distinct', field: 'states'),
             new Documents([
-                new Product('key1', keywords: [1, 2, 3]),
-                new Product('key2', keywords: [2, 4, 3]),
-                new Product('key3', keywords: [2, 5, 3]),
+                new Product('key1', states: [1, 2, 3]),
+                new Product('key2', states: [2, 4, 3]),
+                new Product('key3', states: [2, 5, 3]),
             ]),
             ['distinct' => [1, 2, 3, 4, 5]],
         ];
-    }
-
-    public static function listDateCases(): \Generator
-    {
-        yield 'Avg, list date field' => [];
-        yield 'Min, list date field' => [];
-        yield 'Max, list date field' => [];
-        yield 'Sum, list date field' => [];
-        yield 'Count, list date field' => [];
-        yield 'Distinct, list date field' => [];
     }
 
     public static function objectStringCases(): \Generator
@@ -1034,28 +1035,28 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, translated string field' => [
             new Min(name: 'min', field: 'name'),
             new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'b', 'de' => 'b'])),
-                new Product(key: 'key2', name: new Translation(['en' => null, 'de' => 'd'])),
-                new Product(key: 'key3', name: new Translation(['de' => 'a'])),
+                new Product(key: 'key1', name: new TranslatedString(['en' => 'b', 'de' => 'b'])),
+                new Product(key: 'key2', name: new TranslatedString(['en' => null, 'de' => 'd'])),
+                new Product(key: 'key3', name: new TranslatedString(['de' => 'a'])),
             ]),
             ['min' => 'a'],
         ];
         yield 'Max, translated string field' => [
             new Max(name: 'max', field: 'name'),
             new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'b', 'de' => 'b'])),
-                new Product(key: 'key2', name: new Translation(['en' => null, 'de' => 'd'])),
-                new Product(key: 'key3', name: new Translation(['de' => 'a'])),
+                new Product(key: 'key1', name: new TranslatedString(['en' => 'b', 'de' => 'b'])),
+                new Product(key: 'key2', name: new TranslatedString(['en' => null, 'de' => 'd'])),
+                new Product(key: 'key3', name: new TranslatedString(['de' => 'a'])),
             ]),
             ['max' => 'd'],
         ];
         yield 'Count, translated string field' => [
             new Count(name: 'count', field: 'name'),
             new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'a'])),
-                new Product(key: 'key2', name: new Translation(['en' => null, 'de' => 'a'])),
-                new Product(key: 'key3', name: new Translation(['en' => 'b', 'de' => 'a'])),
-                new Product(key: 'key4', name: new Translation(['de' => 'c'])),
+                new Product(key: 'key1', name: new TranslatedString(['en' => 'a'])),
+                new Product(key: 'key2', name: new TranslatedString(['en' => null, 'de' => 'a'])),
+                new Product(key: 'key3', name: new TranslatedString(['en' => 'b', 'de' => 'a'])),
+                new Product(key: 'key4', name: new TranslatedString(['de' => 'c'])),
             ]),
             [
                 'count' => [
@@ -1068,10 +1069,10 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Distinct, translated string field' => [
             new Distinct(name: 'distinct', field: 'name'),
             new Documents([
-                new Product(key: 'key1', name: new Translation(['en' => 'a'])),
-                new Product(key: 'key2', name: new Translation(['en' => null, 'de' => 'a'])),
-                new Product(key: 'key3', name: new Translation(['en' => 'b', 'de' => 'a'])),
-                new Product(key: 'key4', name: new Translation(['de' => 'c'])),
+                new Product(key: 'key1', name: new TranslatedString(['en' => 'a'])),
+                new Product(key: 'key2', name: new TranslatedString(['en' => null, 'de' => 'a'])),
+                new Product(key: 'key3', name: new TranslatedString(['en' => 'b', 'de' => 'a'])),
+                new Product(key: 'key4', name: new TranslatedString(['de' => 'c'])),
             ]),
             ['distinct' => ['a', 'b', 'c']],
         ];
@@ -1082,46 +1083,46 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Avg, translated int field' => [
             new Avg(name: 'avg', field: 'position'),
             new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key3', position: new Translation(['de' => 8])),
+                new Product(key: 'key1', position: new TranslatedInt(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(['en' => null, 'de' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(['de' => 8])),
             ]),
             ['avg' => 4],
         ];
         yield 'Min, translated int field' => [
             new Min(name: 'min', field: 'position'),
             new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key3', position: new Translation(['de' => 5])),
+                new Product(key: 'key1', position: new TranslatedInt(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(['en' => null, 'de' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(['de' => 5])),
             ]),
             ['min' => 1],
         ];
         yield 'Max, translated int field' => [
             new Max(name: 'max', field: 'position'),
             new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key3', position: new Translation(['de' => 5])),
+                new Product(key: 'key1', position: new TranslatedInt(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(['en' => null, 'de' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(['de' => 5])),
             ]),
             ['max' => 5],
         ];
         yield 'Sum, translated int field' => [
             new Sum(name: 'sum', field: 'position'),
             new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key3', position: new Translation(['de' => 5])),
+                new Product(key: 'key1', position: new TranslatedInt(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(['en' => null, 'de' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(['de' => 5])),
             ]),
             ['sum' => 9],
         ];
         yield 'Count, translated int field' => [
             new Count(name: 'count', field: 'position'),
             new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 1])),
-                new Product(key: 'key3', position: new Translation(['de' => 5])),
-                new Product(key: 'key4', position: new Translation(['en' => 5])),
+                new Product(key: 'key1', position: new TranslatedInt(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(['en' => null, 'de' => 1])),
+                new Product(key: 'key3', position: new TranslatedInt(['de' => 5])),
+                new Product(key: 'key4', position: new TranslatedInt(['en' => 5])),
             ]),
             [
                 'count' => [
@@ -1133,9 +1134,9 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Distinct, translated int field' => [
             new Distinct(name: 'distinct', field: 'position'),
             new Documents([
-                new Product(key: 'key1', position: new Translation(['en' => 1, 'de' => 2])),
-                new Product(key: 'key2', position: new Translation(['en' => null, 'de' => 3])),
-                new Product(key: 'key3', position: new Translation(['de' => 5])),
+                new Product(key: 'key1', position: new TranslatedInt(['en' => 1, 'de' => 2])),
+                new Product(key: 'key2', position: new TranslatedInt(['en' => null, 'de' => 3])),
+                new Product(key: 'key3', position: new TranslatedInt(['de' => 5])),
             ]),
             ['distinct' => [1, 3, 5]],
         ];
@@ -1146,46 +1147,46 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Avg, translated float field' => [
             new Avg(name: 'avg', field: 'weight'),
             new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['de' => 8.8])),
+                new Product(key: 'key1', weight: new TranslatedFloat(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(['en' => null, 'de' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(['de' => 8.8])),
             ]),
             ['avg' => 4.4],
         ];
         yield 'Min, translated float field' => [
             new Min(name: 'min', field: 'weight'),
             new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['de' => 5.5])),
+                new Product(key: 'key1', weight: new TranslatedFloat(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(['en' => null, 'de' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(['de' => 5.5])),
             ]),
             ['min' => 1.1],
         ];
         yield 'Max, translated float field' => [
             new Max(name: 'max', field: 'weight'),
             new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['de' => 5.5])),
+                new Product(key: 'key1', weight: new TranslatedFloat(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(['en' => null, 'de' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(['de' => 5.5])),
             ]),
             ['max' => 5.5],
         ];
         yield 'Sum, translated float field' => [
             new Sum(name: 'sum', field: 'weight'),
             new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['de' => 5.5])),
+                new Product(key: 'key1', weight: new TranslatedFloat(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(['en' => null, 'de' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(['de' => 5.5])),
             ]),
             ['sum' => 9.9],
         ];
         yield 'Count, translated float field' => [
             new Count(name: 'count', field: 'weight'),
             new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 1.1])),
-                new Product(key: 'key3', weight: new Translation(['de' => 5.5])),
-                new Product(key: 'key4', weight: new Translation(['en' => 5.5])),
+                new Product(key: 'key1', weight: new TranslatedFloat(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(['en' => null, 'de' => 1.1])),
+                new Product(key: 'key3', weight: new TranslatedFloat(['de' => 5.5])),
+                new Product(key: 'key4', weight: new TranslatedFloat(['en' => 5.5])),
             ]),
             [
                 'count' => [
@@ -1197,9 +1198,9 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Distinct, translated float field' => [
             new Distinct(name: 'distinct', field: 'weight'),
             new Documents([
-                new Product(key: 'key1', weight: new Translation(['en' => 1.1, 'de' => 2.2])),
-                new Product(key: 'key2', weight: new Translation(['en' => null, 'de' => 3.3])),
-                new Product(key: 'key3', weight: new Translation(['de' => 5.5])),
+                new Product(key: 'key1', weight: new TranslatedFloat(['en' => 1.1, 'de' => 2.2])),
+                new Product(key: 'key2', weight: new TranslatedFloat(['en' => null, 'de' => 3.3])),
+                new Product(key: 'key3', weight: new TranslatedFloat(['de' => 5.5])),
             ]),
             ['distinct' => [1.1, 3.3, 5.5]],
         ];
@@ -1210,28 +1211,28 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, translated bool field' => [
             new Min(name: 'min', field: 'highlight'),
             new Documents([
-                new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
-                new Product(key: 'key2', highlight: new Translation(['en' => null, 'de' => true])),
-                new Product(key: 'key3', highlight: new Translation(['de' => false])),
+                new Product(key: 'key1', highlight: new TranslatedBool(['en' => true, 'de' => false])),
+                new Product(key: 'key2', highlight: new TranslatedBool(['en' => null, 'de' => true])),
+                new Product(key: 'key3', highlight: new TranslatedBool(['de' => false])),
             ]),
             ['min' => false],
         ];
         yield 'Max, translated bool field' => [
             new Max(name: 'max', field: 'highlight'),
             new Documents([
-                new Product(key: 'key1', highlight: new Translation(['en' => true, 'de' => false])),
-                new Product(key: 'key2', highlight: new Translation(['en' => null, 'de' => true])),
-                new Product(key: 'key3', highlight: new Translation(['de' => false])),
+                new Product(key: 'key1', highlight: new TranslatedBool(['en' => true, 'de' => false])),
+                new Product(key: 'key2', highlight: new TranslatedBool(['en' => null, 'de' => true])),
+                new Product(key: 'key3', highlight: new TranslatedBool(['de' => false])),
             ]),
             ['max' => true],
         ];
         yield 'Count, translated bool field' => [
             new Count(name: 'count', field: 'highlight'),
             new Documents([
-                new Product(key: 'key1', highlight: new Translation(['en' => true])),
-                new Product(key: 'key2', highlight: new Translation(['en' => null, 'de' => true])),
-                new Product(key: 'key3', highlight: new Translation(['en' => false, 'de' => true])),
-                new Product(key: 'key4', highlight: new Translation(['de' => false])),
+                new Product(key: 'key1', highlight: new TranslatedBool(['en' => true])),
+                new Product(key: 'key2', highlight: new TranslatedBool(['en' => null, 'de' => true])),
+                new Product(key: 'key3', highlight: new TranslatedBool(['en' => false, 'de' => true])),
+                new Product(key: 'key4', highlight: new TranslatedBool(['de' => false])),
             ]),
             [
                 'count' => [
@@ -1243,10 +1244,10 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Distinct, translated bool field' => [
             new Distinct(name: 'distinct', field: 'highlight'),
             new Documents([
-                new Product(key: 'key1', highlight: new Translation(['en' => true])),
-                new Product(key: 'key2', highlight: new Translation(['en' => null, 'de' => true])),
-                new Product(key: 'key3', highlight: new Translation(['en' => false, 'de' => true])),
-                new Product(key: 'key4', highlight: new Translation(['de' => false])),
+                new Product(key: 'key1', highlight: new TranslatedBool(['en' => true])),
+                new Product(key: 'key2', highlight: new TranslatedBool(['en' => null, 'de' => true])),
+                new Product(key: 'key3', highlight: new TranslatedBool(['en' => false, 'de' => true])),
+                new Product(key: 'key4', highlight: new TranslatedBool(['de' => false])),
             ]),
             ['distinct' => [false, true]],
         ];
@@ -1257,28 +1258,28 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, translated date field' => [
             new Min(name: 'min', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
             ]),
             ['min' => '2021-01-01 00:00:00.000'],
         ];
         yield 'Max, translated date field' => [
             new Max(name: 'max', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
             ]),
             ['max' => '2021-01-04 00:00:00.000'],
         ];
         yield 'Count, translated date field' => [
             new Count(name: 'count', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['de' => '2021-01-04 00:00:00.000'])),
-                new Product(key: 'key4', release: new Translation(['en' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key4', release: new TranslatedDate(['en' => '2021-01-04 00:00:00.000'])),
             ]),
             [
                 'count' => [
@@ -1291,63 +1292,11 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Distinct, translated date field' => [
             new Distinct(name: 'distinct', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new Translation(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new Translation(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new Translation(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
             ]),
             ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-03 00:00:00.000', '2021-01-04 00:00:00.000']],
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $expected
-     */
-    #[DataProvider('stringCases')]
-    #[DataProvider('textCases')]
-    #[DataProvider('intCases')]
-    #[DataProvider('floatCases')]
-    #[DataProvider('boolCases')]
-    #[DataProvider('dateCases')]
-    //    #[DataProvider('listStringCases')]
-    //    #[DataProvider('listFloatCases')]
-    //    #[DataProvider('listIntCases')]
-    //    #[DataProvider('listDateCases')]
-    #[DataProvider('objectStringCases')]
-    #[DataProvider('objectFloatCases')]
-    #[DataProvider('objectIntCases')]
-    #[DataProvider('objectBoolCases')]
-    #[DataProvider('objectDateCases')]
-    #[DataProvider('objectListStringCases')]
-    #[DataProvider('objectListFloatCases')]
-    #[DataProvider('objectListIntCases')]
-    #[DataProvider('objectListBoolCases')]
-    #[DataProvider('objectListDateCases')]
-    #[DataProvider('translatedStringCases')]
-    #[DataProvider('translatedIntCases')]
-    #[DataProvider('translatedFloatCases')]
-    #[DataProvider('translatedBoolCases')]
-    #[DataProvider('translatedDateCases')]
-    public function testStorage(
-        Aggregation $aggregations,
-        Documents $input,
-        array $expected
-    ): void {
-        $storage = $this->getStorage();
-
-        $storage->store($input);
-
-        try {
-            $context = new StorageContext(languages: ['en', 'de']);
-
-            $loaded = $storage->aggregate(
-                aggregations: [$aggregations],
-                criteria: new Criteria(),
-                context: $context
-            );
-        } catch (NotSupportedByEngine $e) {
-            static::markTestIncomplete($e->getMessage());
-        }
-
-        static::assertEquals($expected, $loaded);
     }
 }
