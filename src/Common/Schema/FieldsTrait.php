@@ -4,6 +4,9 @@ namespace Shopware\Storage\Common\Schema;
 
 trait FieldsTrait
 {
+    /**
+     * @var array<string, Field|ObjectField|ObjectListField|ListField>
+     */
     private array $fields = [];
 
     public function add(Field ...$fields): static

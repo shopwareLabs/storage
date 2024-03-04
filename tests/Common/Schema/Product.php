@@ -14,7 +14,6 @@ use Shopware\Storage\Common\Schema\Translation\TranslatedDate;
 use Shopware\Storage\Common\Schema\Translation\TranslatedFloat;
 use Shopware\Storage\Common\Schema\Translation\TranslatedInt;
 use Shopware\Storage\Common\Schema\Translation\TranslatedText;
-use Shopware\Storage\Common\Schema\Translation\Translation;
 use Shopware\Storage\Common\Schema\Translation\TranslatedString;
 
 #[Collection(name: 'product')]
@@ -75,9 +74,6 @@ class Product extends Document
 
         #[Field(type: FieldType::DATETIME, translated: true)]
         public ?TranslatedDate $release = null,
-
-        #[ListField(innerType: FieldType::STRING, translated: true)]
-        public ?Translation $tags = null,
 
         #[ObjectField(class: Category::class)]
         public ?Category $mainCategory = null,

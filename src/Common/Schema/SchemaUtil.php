@@ -79,15 +79,7 @@ class SchemaUtil
             return new Field(name: 'key', type: FieldType::STRING);
         }
 
-        $field = $collection->get($property) ?? null;
-
-        if (!$field) {
-            throw new \RuntimeException(sprintf('Field %s not found in schema', $property));
-        }
-
-        if (!$field->type) {
-            throw new \RuntimeException(sprintf('Field %s not found in schema', $accessor));
-        }
+        $field = $collection->get($property);
 
         if (!in_array($field->type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true)) {
             return $field;
@@ -98,13 +90,13 @@ class SchemaUtil
         array_shift($parts);
 
         foreach ($parts as $part) {
-            $field = $field->get($part) ?? null;
-
-            if (!$field instanceof Field) {
+            if (!$field instanceof FieldsAware) {
                 throw new \RuntimeException(
                     sprintf('Unable to get nested field part %s of accessor %s in schema', $part, $accessor)
                 );
             }
+
+            $field = $field->get($part);
         }
 
         return $field;

@@ -67,9 +67,15 @@ class MySQLKeyStorage implements KeyAware, Storage
 
         $documents = [];
         foreach ($data as $row) {
+            if (!is_string($row)) {
+                continue;
+            }
+            /** @var array<string, mixed> $decoded */
+            $decoded = json_decode($row, true, 512, \JSON_THROW_ON_ERROR);
+
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: json_decode($row, true),
+                data: $decoded,
                 context: $context
             );
         }
@@ -84,13 +90,16 @@ class MySQLKeyStorage implements KeyAware, Storage
             params: ['key' => $key]
         );
 
-        if (!$data) {
+        if (!is_string($data)) {
             return null;
         }
 
+        /** @var array<string, mixed> $decoded */
+        $decoded = json_decode($data, true, 512, \JSON_THROW_ON_ERROR);
+
         return $this->hydrator->hydrate(
             collection: $this->collection,
-            data: json_decode((string) $data, true),
+            data: $decoded,
             context: $context
         );
     }

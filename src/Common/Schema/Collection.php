@@ -7,6 +7,9 @@ class Collection implements FieldsAware
 {
     use FieldsTrait;
 
+    /**
+     * @var class-string
+     */
     public string $class;
 
     public function __construct(public string $name) {}

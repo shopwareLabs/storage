@@ -18,16 +18,26 @@ abstract class Document implements \JsonSerializable
         public string $key
     ) {}
 
+    /**
+     * @return array<string, mixed>
+     */
     public function encode(): array
     {
         $data = json_decode(json_encode($this, self::JSON_OPTIONS), true);
+
+        if (!is_array($data)) {
+            throw new \RuntimeException(sprintf('Error: Failed to encode document class %s with key %s', static::class, $this->key));
+        }
 
         $data['key'] = $this->key;
 
         return $data;
     }
 
-    public function __call(string $name, array $arguments)
+    /**
+     * @param array<mixed> $arguments
+     */
+    public function __call(string $name, array $arguments): mixed
     {
         if (!isset($this->{$name})) {
             throw new \BadMethodCallException(

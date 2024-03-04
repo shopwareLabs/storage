@@ -388,6 +388,10 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
         $value = $data[$property];
 
         if ($translated) {
+            if (!is_array($value)) {
+                throw new \LogicException(sprintf('Value for accessor %s is not an array', $accessor));
+            }
+
             return $this->resolveTranslation($value, $context, $accessor);
         }
 
@@ -401,11 +405,18 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
             if ($value === null) {
                 return null;
             }
+            if (!is_array($value)) {
+                throw new \LogicException(sprintf('Value for accessor %s is not an array', $accessor));
+            }
             $value = array_map(fn($item) => $this->resolveAccessor($accessor, $item, $context), $value);
 
             $type = SchemaUtil::type($this->collection, $accessor);
 
             if ($type === FieldType::LIST) {
+                if (!is_array($value)) {
+                    throw new \LogicException(sprintf('Value for accessor %s is not an array', $accessor));
+                }
+
                 return array_merge(...$value);
             }
 
@@ -562,6 +573,9 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
         };
     }
 
+    /**
+     * @param array<string, mixed>|null $value
+     */
     private function resolveTranslation(?array $value, StorageContext $context, string $accessor): mixed
     {
         if ($value === null) {

@@ -7,6 +7,9 @@ class ObjectListField extends Field implements FieldsAware
 {
     use FieldsTrait;
 
+    /**
+     * @param class-string $class
+     */
     public function __construct(
         public string $class,
         public string $name = '',

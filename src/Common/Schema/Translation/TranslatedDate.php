@@ -3,6 +3,6 @@
 namespace Shopware\Storage\Common\Schema\Translation;
 
 /**
- * @implements Translation<string>
+ * @extends Translation<string>
  */
 class TranslatedDate extends Translation {}

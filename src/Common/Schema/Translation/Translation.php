@@ -5,13 +5,14 @@ namespace Shopware\Storage\Common\Schema\Translation;
 use Shopware\Storage\Common\StorageContext;
 
 /**
- * @template Type
+ * @template TType
+ * @implements \ArrayAccess<string, TType|null>
  */
 class Translation implements \JsonSerializable, \ArrayAccess
 {
     /**
-     * @param array<string, Type> $translations
-     * @param Type|null $resolved
+     * @param array<string, TType|null> $translations
+     * @param TType|null $resolved
      */
     public function __construct(
         public array $translations = [],
@@ -33,6 +34,10 @@ class Translation implements \JsonSerializable, \ArrayAccess
         return $this->translations[$offset];
     }
 
+    /**
+     * @param string $offset
+     * @param TType|null $value
+     */
     public function offsetSet(mixed $offset, mixed $value): void
     {
         $this->translations[$offset] = $value;

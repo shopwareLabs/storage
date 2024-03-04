@@ -12,7 +12,6 @@ use Shopware\Storage\Common\Schema\Translation\TranslatedFloat;
 use Shopware\Storage\Common\Schema\Translation\TranslatedInt;
 use Shopware\Storage\Common\Schema\Translation\TranslatedString;
 use Shopware\Storage\Common\Schema\Translation\TranslatedText;
-use Shopware\Storage\Common\Schema\Translation\Translation;
 use Shopware\Storage\Common\Util\JsonSerializableTrait;
 
 class Category
@@ -71,9 +70,6 @@ class Category
 
         #[Field(type: FieldType::DATETIME, translated: true)]
         public ?TranslatedDate $release = null,
-
-        #[Field(type: FieldType::LIST, translated: true)]
-        public ?Translation $tags = null,
 
         #[ObjectField(class: Media::class)]
         public ?Media $logo = null

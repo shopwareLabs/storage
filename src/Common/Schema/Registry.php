@@ -5,7 +5,7 @@ namespace Shopware\Storage\Common\Schema;
 class Registry
 {
     /**
-     * @var array<string, \ReflectionClass>
+     * @var array<string, \ReflectionClass<object>>
      */
     private array $reflections = [];
 
@@ -15,7 +15,7 @@ class Registry
     private array $collections = [];
 
     /**
-     * @param array<class-string> $classes
+     * @param class-string ...$classes
      */
     public function add(string ...$classes): void
     {
@@ -52,12 +52,16 @@ class Registry
         $collection->class = $reflection->getName();
 
         $collection->add(
-            ...$this->parseFields($reflection->getName())
+            ...$this->parseFields($reflection->name)
         );
 
         return $collection;
     }
 
+    /**
+     * @param class-string $class
+     * @return array<string, Field|ObjectField|ObjectListField|ListField>
+     */
     private function parseFields(string $class): array
     {
         $reflection = new \ReflectionClass($class);
@@ -89,6 +93,9 @@ class Registry
         return $fields;
     }
 
+    /**
+     * @return \ReflectionAttribute<Field>|null
+     */
     private function getPropertyAttribute(\ReflectionProperty $property): ?\ReflectionAttribute
     {
         $attribute = $property->getAttributes(Field::class);

@@ -5,13 +5,14 @@ namespace Shopware\Storage\Common\Document;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldsAware;
 use Shopware\Storage\Common\Schema\FieldType;
+use Shopware\Storage\Common\Schema\ObjectField;
+use Shopware\Storage\Common\Schema\ObjectListField;
 use Shopware\Storage\Common\Schema\Translation\TranslatedBool;
 use Shopware\Storage\Common\Schema\Translation\TranslatedDate;
 use Shopware\Storage\Common\Schema\Translation\TranslatedFloat;
 use Shopware\Storage\Common\Schema\Translation\TranslatedInt;
 use Shopware\Storage\Common\Schema\Translation\TranslatedString;
 use Shopware\Storage\Common\Schema\Translation\TranslatedText;
-use Shopware\Storage\Common\Schema\Translation\Translation;
 use Shopware\Storage\Common\StorageContext;
 
 class Hydrator
@@ -28,6 +29,10 @@ class Hydrator
             context: $context
         );
 
+        if (!$document instanceof Document) {
+            throw new \LogicException(sprintf('Invalid document class configured in collection %s. Expected to be an instance of %s but got %s', $collection->class, Document::class, get_class($document)));
+        }
+
         if (!is_string($data['key'])) {
             throw new \LogicException('Invalid data, missing key for document');
         }
@@ -37,6 +42,10 @@ class Hydrator
         return $document;
     }
 
+    /**
+     * @param class-string $class
+     * @param array<string, mixed> $data
+     */
     private function nested(string $class, FieldsAware $fields, array $data, StorageContext $context): object
     {
         $instance = $this->instance($class);
@@ -62,6 +71,10 @@ class Hydrator
                 // some storages store this value as string
                 $value = is_string($value) ? json_decode($value, true) : $value;
 
+                if (!is_array($value)) {
+                    throw new \LogicException(sprintf('Invalid data for field %s, expected array but got %s', $field->name, gettype($value)));
+                }
+
                 $translation = self::translation(field: $field, value: $value);
 
                 $translation?->resolve($context);
@@ -70,9 +83,13 @@ class Hydrator
                 continue;
             }
 
-            if ($field->type === FieldType::OBJECT) {
+            if ($field instanceof ObjectField) {
                 // some storages store this value as string
                 $value = is_string($value) ? json_decode($value, true) : $value;
+
+                if (!is_array($value)) {
+                    throw new \LogicException(sprintf('Invalid data for field %s, expected array but got %s', $field->name, gettype($value)));
+                }
 
                 $instance->{$key} = $this->nested(
                     class: $field->class,
@@ -83,9 +100,13 @@ class Hydrator
                 continue;
             }
 
-            if ($field->type === FieldType::OBJECT_LIST) {
+            if ($field instanceof ObjectListField) {
                 // some storages store this value as string
                 $value = is_string($value) ? json_decode($value, true) : $value;
+
+                if (!is_array($value)) {
+                    throw new \LogicException(sprintf('Invalid data for field %s, expected array but got %s', $field->name, gettype($value)));
+                }
 
                 $instance->{$key} = array_map(
                     fn($item) => $this->nested(
@@ -105,13 +126,17 @@ class Hydrator
         return $instance;
     }
 
-    private function instance(string $class)
+    /**
+     * @param class-string $class
+     */
+    private function instance(string $class): object
     {
         return (new \ReflectionClass($class))
             ->newInstanceWithoutConstructor();
     }
 
-    private static function translation($field, ?array $value): ?Translation
+    // @phpstan-ignore-next-line Otherwise phpstan will complain about the match statement
+    private static function translation($field, ?array $value): TranslatedBool|TranslatedDate|TranslatedFloat|TranslatedInt|TranslatedString|TranslatedText|null
     {
         if ($value === null) {
             return null;

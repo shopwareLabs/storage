@@ -3,6 +3,6 @@
 namespace Shopware\Storage\Common\Schema\Translation;
 
 /**
- * @implements Translation<bool>
+ * @extends Translation<bool>
  */
 class TranslatedBool extends Translation {}

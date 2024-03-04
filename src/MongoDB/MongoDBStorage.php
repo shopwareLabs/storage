@@ -331,6 +331,10 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
 
         $documents = [];
         foreach ($cursor as $item) {
+            if (!is_array($item)) {
+                throw new \RuntimeException('Invalid document');
+            }
+
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
                 data: $item,

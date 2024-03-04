@@ -10,11 +10,14 @@ use Shopware\Storage\Common\StorageContext;
 
 class Translator
 {
+    /**
+     * @param iterable<Document> $documents
+     */
     public static function translate(
         \Shopware\Storage\Common\Schema\Collection $collection,
         iterable $documents,
         StorageContext $context
-    ) {
+    ): void {
         foreach ($documents as $document) {
             self::_translate(
                 fields: $collection->fields(),
