@@ -255,7 +255,8 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         foreach ($result->getHits() as $hit) {
             $documents[] = $this->hydrator->hydrate(
                 collection: $this->collection,
-                data: $hit
+                data: $hit,
+                context: $context
             );
         }
 
@@ -331,7 +332,7 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
     {
         $property = SchemaUtil::property($filter->field);
 
-        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $property);
+        $translated = SchemaUtil::translated(collection: $this->collection, accessor: $filter->field);
 
         $value = SchemaUtil::cast(collection: $this->collection, accessor: $filter->field, value: $filter->value);
 
@@ -362,11 +363,19 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($filter->value === null) {
             if ($filter instanceof Equals) {
-                return $factory(fn($field, $value) => $field . ' IS NULL');
+                return $this->equalsNull(
+                    factory: $factory,
+                    property: $property,
+                    field: $filter->field
+                );
             }
 
             if ($filter instanceof Not) {
-                return $factory(fn($field, $value) => $field . ' IS NOT NULL');
+                return $this->notNull(
+                    factory: $factory,
+                    property: $property,
+                    field: $filter->field
+                );
             }
 
             throw new \RuntimeException('Null filter values are only supported for Equals and Not filters');
@@ -387,7 +396,6 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         if ($filter instanceof Neither) {
-
             return $factory(function (string $field, mixed $value) {
                 return $field . ' NOT IN [' . implode(',', $value) . ']';
             });
@@ -410,6 +418,30 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         throw new \RuntimeException('Unknown filter: ' . get_class($filter));
+    }
+
+    private function equalsNull(\Closure $factory, string $property, string $field): string
+    {
+        if ($property === $field) {
+            return $factory(fn($field, $value) => $field . ' IS NULL');
+        }
+
+        return self::or([
+            $property . ' IS NULL',
+            $factory(fn($field, $value) => $field . ' IS NULL'),
+        ]);
+    }
+
+    private function notNull(\Closure $factory, string $property, string $field): string
+    {
+        if ($property === $field) {
+            return $factory(fn($field, $value) => $field . ' IS NOT NULL');
+        }
+
+        return self::and([
+            $property . ' IS NOT NULL',
+            $factory(fn($field, $value) => $field . ' IS NOT NULL'),
+        ]);
     }
 
     private function parseOperator(Operator $operator, StorageContext $context): string
