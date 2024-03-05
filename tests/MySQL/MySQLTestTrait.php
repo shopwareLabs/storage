@@ -19,8 +19,9 @@ trait MySQLTestTrait
     {
         parent::setUp();
 
-        $this->getConnection()
-            ->executeStatement((string) file_get_contents(__DIR__ . '/test_storage.sql'));
+        self::getConnection()->executeStatement('DROP TABLE IF EXISTS ' . TestSchema::getCollection()->name);
+
+        $this->getStorage()->setup();
     }
 
     public function createStorage(): MySQLStorage

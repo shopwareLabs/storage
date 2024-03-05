@@ -24,8 +24,7 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
         $this->getConnection()
             ->executeStatement('DROP TABLE IF EXISTS `' . TestSchema::getCollection()->name . '`');
 
-        $this->getConnection()
-            ->executeStatement('CREATE TABLE IF NOT EXISTS `' . TestSchema::getCollection()->name . '` (`key` VARCHAR(255) NOT NULL, `value` JSON NOT NULL, PRIMARY KEY (`key`))');
+        $this->getStorage()->setup();
     }
 
     protected function tearDown(): void

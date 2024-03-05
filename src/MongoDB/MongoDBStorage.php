@@ -60,11 +60,7 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         private readonly Client $client
     ) {}
 
-    public function setup(): void
-    {
-        // todo@o.skroblin auto setup feature
-    }
-
+    public function setup(): void {}
 
     public function mget(array $keys, StorageContext $context): Documents
     {

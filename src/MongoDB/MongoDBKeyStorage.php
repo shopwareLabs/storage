@@ -96,10 +96,7 @@ class MongoDBKeyStorage implements Storage
         $this->collection()->insertMany(array_values($items));
     }
 
-    public function setup(): void
-    {
-        // TODO: Implement setup() method.
-    }
+    public function setup(): void {}
 
     private function collection(): Collection
     {

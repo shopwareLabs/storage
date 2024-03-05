@@ -3,6 +3,7 @@
 namespace Shopware\Storage\Meilisearch;
 
 use Meilisearch\Client;
+use Meilisearch\Contracts\TasksQuery;
 use Meilisearch\Endpoints\Indexes;
 use Meilisearch\Exceptions\ApiException;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
@@ -43,6 +44,7 @@ use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
+use Shopware\StorageTests\Common\TestSchema;
 
 class MeilisearchStorage implements Storage, FilterAware, AggregationAware
 {
@@ -319,7 +321,17 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         $this->index()->addDocuments($data);
     }
 
-    public function setup(): void {}
+    public function setup(): void
+    {
+        if (!$this->exists()) {
+            $this->client->createIndex(
+                uid: $this->collection->name,
+                options: ['primaryKey' => 'key']
+            );
+        }
+
+        $this->updateIndex();
+    }
 
     public function index(): Indexes
     {
@@ -590,5 +602,49 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         return $distributions[$field];
+    }
+
+    private function exists(): bool
+    {
+        try {
+            $this->client->getIndex($this->collection->name);
+        } catch (ApiException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function updateIndex(): void
+    {
+        $fields = array_map(fn($field) => $field->name, TestSchema::getCollection()->fields());
+
+        $fields[] = 'key';
+
+        $fields = array_values(array_filter($fields));
+
+        $this->index()
+            ->updateFilterableAttributes($fields);
+
+        $this->index()
+            ->updateSortableAttributes($fields);
+
+        $this->wait();
+    }
+
+    private function wait(): void
+    {
+        $tasks = new TasksQuery();
+        $tasks->setStatuses(['enqueued', 'processing']);
+
+        $tasks = $this->client->getTasks($tasks);
+
+        $ids = array_map(fn($task) => $task['uid'], $tasks->getResults());
+
+        if (count($ids) === 0) {
+            return;
+        }
+
+        $this->client->waitForTasks($ids);
     }
 }

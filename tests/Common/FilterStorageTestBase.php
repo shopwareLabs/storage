@@ -991,9 +991,9 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
     {
         yield 'date field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1001,14 +1001,14 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
             ]),
         ];
         yield 'date field, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1016,15 +1016,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
             ]),
         ];
         yield 'date field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1032,15 +1032,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
         ];
         yield 'date field, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1048,14 +1048,14 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
         ];
         yield 'date field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1063,15 +1063,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
         ];
         yield 'date field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1079,15 +1079,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
             ]),
         ];
         yield 'date field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1095,14 +1095,14 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
         ];
         yield 'date field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1110,15 +1110,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
             ]),
         ];
         yield 'date field, gte and lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
-                new Product(key: 'key4', changed: '2021-01-04 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
+                new Product(key: 'key4', changed: '2021-01-04 00:00:00'),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -1127,8 +1127,8 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
         ];
         yield 'date field, null value, equals filter' => [
@@ -1148,8 +1148,8 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
         ];
         yield 'date field, null value, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
                 new Product(key: 'key3'),
             ]),
             'criteria' => new Criteria(
@@ -1158,8 +1158,8 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product('key1', changed: '2021-01-01 00:00:00.000'),
-                new Product('key2', changed: '2021-01-02 00:00:00.000'),
+                new Product('key1', changed: '2021-01-01 00:00:00'),
+                new Product('key2', changed: '2021-01-02 00:00:00'),
             ]),
         ];
     }
@@ -2018,136 +2018,136 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
     {
         yield 'translated date field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Equals(field: 'release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
             ]),
         ];
         yield 'translated date field, equals-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                    new Any(field: 'release', value: ['2021-01-02 00:00:00', '2021-01-03 00:00:00']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
             ]),
         ];
         yield 'translated date field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Not(field: 'release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
             ]),
         ];
         yield 'translated date field, not-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
+                    new Neither(field: 'release', value: ['2021-01-01 00:00:00', '2021-01-02 00:00:00']),
                 ]
             ),
             'expected' => new Result([]),
         ];
         yield 'translated date field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Gte(field: 'release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
             ]),
         ];
         yield 'translated date field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Gt(field: 'release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
             ]),
         ];
         yield 'translated date field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Lte(field: 'release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
             ]),
         ];
         yield 'translated date field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'release', value: '2021-01-02 00:00:00.000'),
+                    new Lt(field: 'release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
             ]),
         ];
     }
@@ -2680,9 +2680,9 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
     {
         yield 'object date field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2690,14 +2690,14 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
             ]),
         ];
         yield 'object date field, equals any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2705,15 +2705,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
         ];
         yield 'object date field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2721,15 +2721,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
         ];
         yield 'object date field, not any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2737,14 +2737,14 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
             ]),
         ];
         yield 'object date field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2752,15 +2752,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
         ];
         yield 'object date field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2768,15 +2768,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
             ]),
         ];
         yield 'object date field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2784,14 +2784,14 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
         ];
         yield 'object date field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2799,15 +2799,15 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
             ]),
         ];
         yield 'object date field, gte and lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
-                new Product(key: 'key4', mainCategory: new Category(changed: '2021-01-04 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
+                new Product(key: 'key4', mainCategory: new Category(changed: '2021-01-04 00:00:00')),
             ]),
             'criteria' => new Criteria(
                 filters: [
@@ -2816,8 +2816,8 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
         ];
     }
@@ -3679,136 +3679,136 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
     {
         yield 'object, translated date field, equals filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                    new Equals(field: 'mainCategory.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00']))),
             ]),
         ];
         yield 'object, translated date field, equals-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'mainCategory.release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                    new Any(field: 'mainCategory.release', value: ['2021-01-02 00:00:00', '2021-01-03 00:00:00']),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00']))),
             ]),
         ];
         yield 'object, translated date field, not filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                    new Not(field: 'mainCategory.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
             ]),
         ];
         yield 'object, translated date field, not-any filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'mainCategory.release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
+                    new Neither(field: 'mainCategory.release', value: ['2021-01-01 00:00:00', '2021-01-02 00:00:00']),
                 ]
             ),
             'expected' => new Result([]),
         ];
         yield 'object, translated date field, gte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                    new Gte(field: 'mainCategory.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
             ]),
         ];
         yield 'object, translated date field, gt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                    new Gt(field: 'mainCategory.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00']))),
             ]),
         ];
         yield 'object, translated date field, lte filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                    new Lte(field: 'mainCategory.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00']))),
             ]),
         ];
         yield 'object, translated date field, lt filter' => [
             'input' => new Documents([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000']))),
-                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key2', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00']))),
+                new Product(key: 'key3', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00']))),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'mainCategory.release', value: '2021-01-02 00:00:00.000'),
+                    new Lt(field: 'mainCategory.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
-                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000']))),
-                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000']))),
+                new Product(key: 'key1', mainCategory: new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00']))),
+                new Product(key: 'key4', mainCategory: new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00']))),
             ]),
         ];
     }
@@ -4404,191 +4404,191 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
         yield 'list object, date field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'categories.changed', value: '2021-01-22 00:00:00.000'),
+                    new Gte(field: 'categories.changed', value: '2021-01-22 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
         ];
         yield 'list object, date field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'categories.changed', value: '2021-01-02 00:00:00.000'),
+                    new Lte(field: 'categories.changed', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
             ]),
         ];
         yield 'list object, date field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'categories.changed', value: '2021-01-02 00:00:00.000'),
+                    new Gt(field: 'categories.changed', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
         ];
         yield 'list object, date field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'categories.changed', value: '2021-01-20 00:00:00.000'),
+                    new Lt(field: 'categories.changed', value: '2021-01-20 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
             ]),
         ];
         yield 'list object, date field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'categories.changed', value: '2021-01-02 00:00:00.000'),
+                    new Equals(field: 'categories.changed', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
             ]),
         ];
         yield 'list object, date field, equals any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(changed: '2021-01-01 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-01 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'categories.changed', value: ['2021-01-10 00:00:00.000', '2021-01-22 00:00:00.000']),
+                    new Any(field: 'categories.changed', value: ['2021-01-10 00:00:00', '2021-01-22 00:00:00']),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key2', categories: [
-                    new Category(changed: '2021-01-10 00:00:00.000'),
-                    new Category(changed: '2021-01-02 00:00:00.000'),
+                    new Category(changed: '2021-01-10 00:00:00'),
+                    new Category(changed: '2021-01-02 00:00:00'),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(changed: '2021-01-20 00:00:00.000'),
-                    new Category(changed: '2021-01-22 00:00:00.000'),
-                    new Category(changed: '2021-01-24 00:00:00.000'),
+                    new Category(changed: '2021-01-20 00:00:00'),
+                    new Category(changed: '2021-01-22 00:00:00'),
+                    new Category(changed: '2021-01-24 00:00:00'),
                 ]),
             ]),
         ];
@@ -5971,111 +5971,111 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
         yield 'object list, translated date field, equals filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Equals(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                    new Equals(field: 'categories.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
         ];
         yield 'object list, translated date field, equals-any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Any(field: 'categories.release', value: ['2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']),
+                    new Any(field: 'categories.release', value: ['2021-01-02 00:00:00', '2021-01-03 00:00:00']),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
         ];
         yield 'object list, translated date field, not filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Not(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                    new Not(field: 'categories.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
         ];
         yield 'object list, translated date field, not-any filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Neither(field: 'categories.release', value: ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000']),
+                    new Neither(field: 'categories.release', value: ['2021-01-01 00:00:00', '2021-01-02 00:00:00']),
                 ]
             ),
             'expected' => new Result([]),
@@ -6083,116 +6083,116 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
         yield 'object list, translated date field, gte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gte(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                    new Gte(field: 'categories.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
             ]),
         ];
         yield 'object list, translated date field, gt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Gt(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                    new Gt(field: 'categories.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
                 ]),
             ]),
         ];
         yield 'object list, translated date field, lte filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lte(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                    new Lte(field: 'categories.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
                 ]),
             ]),
         ];
         yield 'object list, translated date field, lt filter' => [
             'input' => new Documents([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key2', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-03 00:00:00'])),
                 ]),
                 new Product(key: 'key3', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => null, 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
                 ]),
             ]),
             'criteria' => new Criteria(
                 filters: [
-                    new Lt(field: 'categories.release', value: '2021-01-02 00:00:00.000'),
+                    new Lt(field: 'categories.release', value: '2021-01-02 00:00:00'),
                 ]
             ),
             'expected' => new Result([
                 new Product(key: 'key1', categories: [
-                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
                 ]),
                 new Product(key: 'key4', categories: [
-                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00.000'])),
+                    new Category(release: new TranslatedDate(translations: ['de' => '2021-01-01 00:00:00'])),
                 ]),
             ]),
         ];

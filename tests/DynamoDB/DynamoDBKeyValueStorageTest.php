@@ -3,11 +3,6 @@
 namespace Shopware\StorageTests\DynamoDB;
 
 use AsyncAws\DynamoDb\DynamoDbClient;
-use AsyncAws\DynamoDb\Exception\ResourceInUseException;
-use AsyncAws\DynamoDb\Input\CreateTableInput;
-use AsyncAws\DynamoDb\ValueObject\AttributeDefinition;
-use AsyncAws\DynamoDb\ValueObject\KeySchemaElement;
-use AsyncAws\DynamoDb\ValueObject\ProvisionedThroughput;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\DynamoDB\DynamoDBKeyStorage;
@@ -23,27 +18,7 @@ class DynamoDBKeyValueStorageTest extends KeyValueStorageTestBase
     {
         parent::setUp();
 
-        $client = $this->getClient();
-
-        $table = new CreateTableInput([
-            'TableName' => TestSchema::getCollection()->name,
-            'AttributeDefinitions' => [
-                new AttributeDefinition(['AttributeName' => 'key', 'AttributeType' => 'S']),
-            ],
-            'KeySchema' => [
-                new KeySchemaElement(['AttributeName' => 'key', 'KeyType' => 'HASH']),
-            ],
-            'ProvisionedThroughput' => new ProvisionedThroughput([
-                'ReadCapacityUnits' => 5,
-                'WriteCapacityUnits' => 5,
-            ]),
-        ]);
-
-        try {
-            $client->createTable($table);
-        } catch (ResourceInUseException $e) {
-            // table exists
-        }
+        $this->getStorage()->setup();
     }
 
     public function getStorage(): Storage

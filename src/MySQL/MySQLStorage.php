@@ -5,6 +5,9 @@ namespace Shopware\Storage\MySQL;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
+use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Aggregation\Type\Aggregation;
@@ -25,6 +28,8 @@ use Shopware\Storage\Common\Filter\Paging\Page;
 use Shopware\Storage\Common\Filter\Type\Any;
 use Shopware\Storage\Common\Filter\Type\Equals;
 use Shopware\Storage\Common\Schema\Collection;
+use Shopware\Storage\Common\Schema\Field;
+use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
@@ -48,7 +53,33 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
 
     public function setup(): void
     {
-        // todo@o.skroblin auto setup feature
+        $table = new Table(name: $this->collection->name);
+
+        foreach ($this->collection->fields() as $field) {
+            $table->addColumn(
+                name: $field->name,
+                typeName: $this->getType($field),
+                options: $this->getOptions($field),
+            );
+        }
+        $table->addOption('charset', 'utf8mb4');
+        $table->addOption('collate', 'utf8mb4_unicode_ci');
+
+        $table->setPrimaryKey(columnNames: ['key']);
+
+        $manager = $this->connection->createSchemaManager();
+        try {
+            $current = $manager->introspectTable(name: $this->collection->name);
+        } catch (TableDoesNotExist $e) {
+            $manager->createTable($table);
+            return;
+        }
+
+        $diff = $manager
+            ->createComparator()
+            ->compareTables(fromTable: $current, toTable: $table);
+
+        $manager->alterTable($diff);
     }
 
     public function mget(array $keys, StorageContext $context): Documents
@@ -305,5 +336,46 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         }
 
         return (int) $total;
+    }
+
+    private function getType(Field $field): string
+    {
+        if ($field->translated) {
+            return Types::JSON;
+        }
+
+        return match($field->type) {
+            FieldType::STRING => Types::STRING,
+            FieldType::TEXT => Types::TEXT,
+            FieldType::INT => Types::INTEGER,
+            FieldType::FLOAT => Types::DECIMAL,
+            FieldType::BOOL => Types::BOOLEAN,
+            FieldType::DATETIME => Types::DATETIME_MUTABLE,
+            FieldType::OBJECT, FieldType::OBJECT_LIST, FieldType::LIST => Types::JSON,
+            default => throw new \RuntimeException('Unsupported field type ' . $field->type),
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getOptions(Field $field): array
+    {
+        $options = [];
+
+        if ($field->nullable) {
+            $options['notnull'] = false;
+        }
+
+        if ($field->translated) {
+            return $options;
+        }
+
+        if ($field->type === FieldType::FLOAT) {
+            $options['precision'] = 10;
+            $options['scale'] = 4;
+        }
+
+        return $options;
     }
 }

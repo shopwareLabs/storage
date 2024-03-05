@@ -17,10 +17,7 @@ class RedisKeyStorage implements Storage
         private readonly Hydrator $hydrator
     ) {}
 
-    public function setup(): void
-    {
-        // todo@o.skroblin auto setup feature
-    }
+    public function setup(): void {}
 
     public function remove(array $keys): void
     {

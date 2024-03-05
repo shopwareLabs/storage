@@ -81,6 +81,8 @@ class Registry
 
             $field->name = !empty($field->name) ? $field->name : $property->getName();
 
+            $field->nullable = $property->getType()?->allowsNull() ?? true;
+
             $fields[$property->getName()] = $field;
 
             if ($field instanceof ObjectField || $field instanceof ObjectListField) {

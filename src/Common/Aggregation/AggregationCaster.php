@@ -36,8 +36,8 @@ class AggregationCaster
 
                 $caster = function ($value) {
                     return match (true) {
-                        is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),
-                        is_int($value) => (new \DateTimeImmutable('@' . $value))->format('Y-m-d H:i:s.v'),
+                        is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s'),
+                        is_int($value) => (new \DateTimeImmutable('@' . $value))->format('Y-m-d H:i:s'),
                         default => $value
                     };
                 };

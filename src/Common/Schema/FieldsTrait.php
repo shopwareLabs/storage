@@ -26,6 +26,9 @@ trait FieldsTrait
         return $this->fields[$field];
     }
 
+    /**
+     * @return array<Field>
+     */
     public function fields(): array
     {
         return $this->fields;

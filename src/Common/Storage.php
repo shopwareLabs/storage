@@ -31,4 +31,8 @@ interface Storage
      * @return void
      */
     public function setup(): void;
+
+    //    public function clear(): void;
+
+    //    public function destroy();
 }

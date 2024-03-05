@@ -4,6 +4,9 @@ namespace Shopware\Storage\MySQL;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
@@ -27,7 +30,24 @@ class MySQLKeyStorage implements Storage
 
     public function setup(): void
     {
-        // todo@o.skroblin auto setup feature
+        $table = new Table(name: $this->collection->name);
+        $table->addColumn(name: 'key', typeName: Types::STRING, options: ['length' => 255]);
+        $table->addColumn(name: 'value', typeName: Types::BLOB);
+
+        $manager = $this->connection->createSchemaManager();
+
+        try {
+            $current = $manager->introspectTable(name: $this->collection->name);
+        } catch (TableDoesNotExist) {
+            $manager->createTable($table);
+            return;
+        }
+
+        $diff = $manager
+            ->createComparator()
+            ->compareTables(fromTable: $current, toTable: $table);
+
+        $manager->alterTable($diff);
     }
 
     public function remove(array $keys): void

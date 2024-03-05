@@ -3,9 +3,14 @@
 namespace Shopware\Storage\DynamoDB;
 
 use AsyncAws\DynamoDb\DynamoDbClient;
+use AsyncAws\DynamoDb\Exception\ResourceInUseException;
 use AsyncAws\DynamoDb\Input\BatchGetItemInput;
+use AsyncAws\DynamoDb\Input\CreateTableInput;
+use AsyncAws\DynamoDb\ValueObject\AttributeDefinition;
 use AsyncAws\DynamoDb\ValueObject\AttributeValue;
 use AsyncAws\DynamoDb\ValueObject\KeysAndAttributes;
+use AsyncAws\DynamoDb\ValueObject\KeySchemaElement;
+use AsyncAws\DynamoDb\ValueObject\ProvisionedThroughput;
 use Shopware\Storage\Common\Document\Document;
 use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Document\Hydrator;
@@ -21,10 +26,27 @@ class DynamoDBKeyStorage implements Storage
         private readonly Collection $collection
     ) {}
 
-
     public function setup(): void
     {
-        // todo@o.skroblin auto setup feature
+        $table = new CreateTableInput([
+            'TableName' => $this->collection->name,
+            'AttributeDefinitions' => [
+                new AttributeDefinition(['AttributeName' => 'key', 'AttributeType' => 'S']),
+            ],
+            'KeySchema' => [
+                new KeySchemaElement(['AttributeName' => 'key', 'KeyType' => 'HASH']),
+            ],
+            'ProvisionedThroughput' => new ProvisionedThroughput([
+                'ReadCapacityUnits' => 5,
+                'WriteCapacityUnits' => 5,
+            ]),
+        ]);
+
+        try {
+            $this->client->createTable($table);
+        } catch (ResourceInUseException) {
+            // table exists
+        }
     }
 
     public function remove(array $keys): void
