@@ -3,9 +3,6 @@
 namespace Shopware\StorageTests\Meilisearch;
 
 use Meilisearch\Client;
-use Meilisearch\Contracts\TasksQuery;
-use Meilisearch\Endpoints\Indexes;
-use Meilisearch\Exceptions\ApiException;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\Meilisearch\MeilisearchStorage;
@@ -15,31 +12,25 @@ trait MeilisearchTestTrait
 {
     private static ?Client $client = null;
 
-    private function exists(): bool
+    public static function setUpBeforeClass(): void
     {
-        try {
-            $this->getClient()->getIndex(TestSchema::getCollection()->name);
-        } catch (ApiException) {
-            return false;
-        }
-
-        return true;
+        parent::setUpBeforeClass();
+        self::createStorage()->setup();
     }
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        if ($this->exists()) {
-            $this->index()->deleteAllDocuments();
-            $this->wait();
-            return;
-        }
-
-        $this->getStorage()->setup();
+        $this->getStorage()->clear();
     }
 
-    private function getClient(): Client
+    public static function tearDownAfterClass(): void
+    {
+        self::createStorage()->destroy();
+        parent::tearDownAfterClass();
+    }
+
+    private static function getClient(): Client
     {
         if (self::$client === null) {
             self::$client = new Client(
@@ -51,37 +42,16 @@ trait MeilisearchTestTrait
         return self::$client;
     }
 
-    public function createStorage(): MeilisearchLiveStorage
+    private static function createStorage(): MeilisearchLiveStorage
     {
         return new MeilisearchLiveStorage(
             storage: new MeilisearchStorage(
                 caster: new AggregationCaster(),
                 hydrator: new Hydrator(),
-                client: $this->getClient(),
+                client: self::getClient(),
                 collection: TestSchema::getCollection()
             ),
-            client: $this->getClient(),
+            client: self::getClient(),
         );
-    }
-
-    private function index(): Indexes
-    {
-        return $this->getClient()->index(TestSchema::getCollection()->name);
-    }
-
-    private function wait(): void
-    {
-        $tasks = new TasksQuery();
-        $tasks->setStatuses(['enqueued', 'processing']);
-
-        $tasks = $this->getClient()->getTasks($tasks);
-
-        $ids = array_map(fn($task) => $task['uid'], $tasks->getResults());
-
-        if (count($ids) === 0) {
-            return;
-        }
-
-        $this->getClient()->waitForTasks($ids);
     }
 }

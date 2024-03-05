@@ -76,6 +76,27 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         private readonly Collection $collection
     ) {}
 
+    public function destroy(): void
+    {
+        if (!$this->exists()) {
+            return;
+        }
+
+        $this->client->indices()->delete(['index' => $this->collection->name]);
+    }
+
+    public function clear(): void
+    {
+        if (!$this->exists()) {
+            return;
+        }
+
+        $this->client->deleteByQuery([
+            'index' => $this->collection->name,
+            'body' => ['query' => ['match_all' => new \stdClass()]],
+        ]);
+    }
+
     public function setup(): void
     {
         $properties = $this->setupProperties($this->collection);

@@ -28,6 +28,20 @@ class MySQLKeyStorage implements Storage
         return '`' . $this->collection->name . '`';
     }
 
+    public function destroy(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DROP TABLE IF EXISTS ' . $this->table()
+        );
+    }
+
+    public function clear(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DELETE FROM ' . $this->table()
+        );
+    }
+
     public function setup(): void
     {
         $table = new Table(name: $this->collection->name);

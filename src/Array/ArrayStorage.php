@@ -39,10 +39,11 @@ use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
 
-class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAware
+class ArrayStorage implements Storage, FilterAware, AggregationAware
 {
     /**
      * @var array<string, Document>
@@ -53,6 +54,16 @@ class ArrayStorage extends ArrayKeyStorage implements FilterAware, AggregationAw
         private readonly AggregationCaster $caster,
         private readonly Collection $collection
     ) {}
+
+    public function clear(): void
+    {
+        $this->storage = [];
+    }
+
+    public function destroy(): void
+    {
+        $this->storage = [];
+    }
 
     public function setup(): void
     {

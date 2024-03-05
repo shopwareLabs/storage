@@ -14,7 +14,7 @@ trait OpensearchTestTrait
 {
     private static ?Client $client = null;
 
-    private function getClient(): Client
+    private static function getClient(): Client
     {
         if (self::$client === null) {
             $builder = ClientBuilder::create();
@@ -30,31 +30,18 @@ trait OpensearchTestTrait
     {
         parent::setUp();
 
-        $exists = $this->getClient()
-            ->indices()
-            ->exists(['index' => TestSchema::getCollection()->name]);
-
-        if ($exists) {
-            //$this->getClient()->indices()->delete(['index' => TestSchema::getCollection()->name]);
-            // delete all documents from index
-            $this->getClient()->deleteByQuery([
-                'index' => TestSchema::getCollection()->name,
-                'body' => [
-                    'query' => ['match_all' => new \stdClass()],
-                ],
-            ]);
-        }
+        $this->getStorage()->clear();
 
         $this->getStorage()->setup();
     }
 
-    public function createStorage(Collection $collection): OpensearchLiveStorage
+    private static function createStorage(Collection $collection): OpensearchLiveStorage
     {
         return new OpensearchLiveStorage(
-            client: $this->getClient(),
+            client: self::getClient(),
             decorated: new OpensearchStorage(
                 caster: new AggregationCaster(),
-                client: $this->getClient(),
+                client: self::getClient(),
                 hydrator: new Hydrator(),
                 collection: $collection
             ),
@@ -64,15 +51,6 @@ trait OpensearchTestTrait
 
     public static function tearDownAfterClass(): void
     {
-        $builder = ClientBuilder::create();
-        $builder->setHosts(['http://localhost:9200']);
-        $client = $builder->build();
-
-        $exists = $client->indices()
-            ->exists(['index' => TestSchema::getCollection()->name]);
-
-        if ($exists) {
-            $client->indices()->delete(['index' => TestSchema::getCollection()->name]);
-        }
+        self::createStorage(TestSchema::getCollection())->destroy();
     }
 }
