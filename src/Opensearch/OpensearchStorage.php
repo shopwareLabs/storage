@@ -58,7 +58,10 @@ use Shopware\Storage\Common\Filter\Type\Not;
 use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Collection;
+use Shopware\Storage\Common\Schema\Field;
+use Shopware\Storage\Common\Schema\FieldsAware;
 use Shopware\Storage\Common\Schema\FieldType;
+use Shopware\Storage\Common\Schema\ListField;
 use Shopware\Storage\Common\Schema\SchemaUtil;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
@@ -75,7 +78,54 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
     public function setup(): void
     {
-        // todo@o.skroblin auto setup feature
+        $properties = $this->setupProperties($this->collection);
+
+        if (!$this->exists()) {
+            $this->client->indices()->create([
+                'index' => $this->collection->name,
+            ]);
+        }
+
+        $this->client->indices()->putMapping([
+            'index' => $this->collection->name,
+            'body' => [
+                'properties' => $properties,
+            ],
+        ]);
+
+        $this->client->putScript([
+            'id' => 'translated',
+            'body' => [
+                'script' => [
+                    'lang' => 'painless',
+                    'source' => file_get_contents(__DIR__ . '/scripts/translated.groovy'),
+                ],
+            ],
+        ]);
+    }
+
+    private function exists(): bool
+    {
+        return $this->client->indices()->exists(['index' => $this->collection->name]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function setupProperties(FieldsAware $fields): array
+    {
+        $properties = [];
+        foreach ($fields->fields() as $field) {
+            $definition = $this->getType($field);
+
+            if ($field instanceof FieldsAware) {
+                $definition['properties'] = $this->setupProperties($field);
+            }
+
+            $properties[$field->name] = $definition;
+        }
+
+        return $properties;
     }
 
     public function mget(array $keys, StorageContext $context): Documents
@@ -251,7 +301,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 $data = $value['value_as_string'] ?? $value['value'];
 
                 if ($type === FieldType::DATETIME && $translated) {
-                    $data = date('Y-m-d H:i:s.000', $data / 1000);
+                    $data = date('Y-m-d H:i:s', $data / 1000);
                 }
 
                 $result[$aggregation->name] = $this->caster->cast(
@@ -266,7 +316,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 $data = $value['value_as_string'] ?? $value['value'];
 
                 if ($type === FieldType::DATETIME && $translated) {
-                    $data = date('Y-m-d H:i:s.000', $data / 1000);
+                    $data = date('Y-m-d H:i:s', $data / 1000);
                 }
 
                 $result[$aggregation->name] = $this->caster->cast(
@@ -813,5 +863,45 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         return null;
+    }
+
+    /**
+     * @param Field $field
+     * @return array<string, mixed>
+     */
+    private function getType(Field $field): array
+    {
+        $type = $field->type;
+        if ($field instanceof ListField) {
+            $type = $field->innerType;
+        }
+
+        $mapped = match ($type) {
+            FieldType::BOOL => ['type' => 'boolean'],
+            FieldType::DATETIME => [
+                'type' => 'date',
+                'format' => 'yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis',
+                'ignore_malformed' => true,
+            ],
+            FieldType::FLOAT => ['type' => 'double'],
+            FieldType::INT => ['type' => 'integer'],
+            FieldType::TEXT => ['type' => 'text'],
+            FieldType::STRING => ['type' => 'keyword'],
+            FieldType::OBJECT_LIST => ['type' => 'nested'],
+            FieldType::OBJECT => ['type' => 'object'],
+            default => throw new \LogicException(sprintf('Unsupported field type %s', $type)),
+        };
+
+        if (!$field->translated) {
+            return $mapped;
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'en' => $mapped,
+                'de' => $mapped,
+            ],
+        ];
     }
 }

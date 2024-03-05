@@ -36,28 +36,7 @@ trait MeilisearchTestTrait
             return;
         }
 
-        $this->getClient()->deleteIndex(TestSchema::getCollection()->name);
-
-        $this->wait();
-
-        $this->getClient()->createIndex(
-            uid: TestSchema::getCollection()->name,
-            options: ['primaryKey' => 'key']
-        );
-
-        $fields = array_map(fn($field) => $field->name, TestSchema::getCollection()->fields());
-
-        $fields[] = 'key';
-
-        $fields = array_values(array_filter($fields));
-
-        $this->index()
-            ->updateFilterableAttributes($fields);
-
-        $this->index()
-            ->updateSortableAttributes($fields);
-
-        $this->wait();
+        $this->getStorage()->setup();
     }
 
     private function getClient(): Client

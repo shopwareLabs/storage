@@ -54,7 +54,10 @@ class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware
         $this->wait();
     }
 
-    public function setup(): void {}
+    public function setup(): void
+    {
+        $this->storage->setup();
+    }
 
     private function wait(): void
     {

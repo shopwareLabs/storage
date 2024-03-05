@@ -37,9 +37,9 @@ class SchemaUtil
 
         if ($type === FieldType::DATETIME) {
             return match (true) {
-                is_array($value) => array_map(fn($v) => (new \DateTimeImmutable($v))->format('Y-m-d H:i:s.v'), $value),
+                is_array($value) => array_map(fn($v) => (new \DateTimeImmutable($v))->format('Y-m-d H:i:s'), $value),
                 // @phpstan-ignore-next-line
-                default => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s.v'),
+                default => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s'),
             };
         }
 

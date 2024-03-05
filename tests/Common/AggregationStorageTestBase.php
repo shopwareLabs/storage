@@ -370,48 +370,48 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, date field' => [
             new Min(name: 'min', field: 'changed'),
             new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
-            ['min' => '2021-01-01 00:00:00.000'],
+            ['min' => '2021-01-01 00:00:00'],
         ];
         yield 'Max, date field' => [
             new Max(name: 'max', field: 'changed'),
             new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
             ]),
-            ['max' => '2021-01-03 00:00:00.000'],
+            ['max' => '2021-01-03 00:00:00'],
         ];
         yield 'Count, date field' => [
             new Count(name: 'count', field: 'changed'),
             new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key4', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key5', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key4', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key5', changed: '2021-01-03 00:00:00'),
             ]),
             [
                 'count' => [
-                    ['key' => '2021-01-01 00:00:00.000', 'count' => 1],
-                    ['key' => '2021-01-02 00:00:00.000', 'count' => 3],
-                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1],
+                    ['key' => '2021-01-01 00:00:00', 'count' => 1],
+                    ['key' => '2021-01-02 00:00:00', 'count' => 3],
+                    ['key' => '2021-01-03 00:00:00', 'count' => 1],
                 ],
             ],
         ];
         yield 'Distinct, date field' => [
             new Distinct(name: 'distinct', field: 'changed'),
             new Documents([
-                new Product(key: 'key1', changed: '2021-01-01 00:00:00.000'),
-                new Product(key: 'key2', changed: '2021-01-02 00:00:00.000'),
-                new Product(key: 'key3', changed: '2021-01-03 00:00:00.000'),
-                new Product(key: 'key4', changed: '2021-01-03 00:00:00.000'),
-                new Product(key: 'key5', changed: '2021-01-03 00:00:00.000'),
+                new Product(key: 'key1', changed: '2021-01-01 00:00:00'),
+                new Product(key: 'key2', changed: '2021-01-02 00:00:00'),
+                new Product(key: 'key3', changed: '2021-01-03 00:00:00'),
+                new Product(key: 'key4', changed: '2021-01-03 00:00:00'),
+                new Product(key: 'key5', changed: '2021-01-03 00:00:00'),
             ]),
-            ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']],
+            ['distinct' => ['2021-01-01 00:00:00', '2021-01-02 00:00:00', '2021-01-03 00:00:00']],
         ];
     }
 
@@ -715,49 +715,49 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, object date field' => [
             new Min(name: 'min', field: 'mainCategory.changed'),
             new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
-            ['min' => '2021-01-01 00:00:00.000'],
+            ['min' => '2021-01-01 00:00:00'],
         ];
         yield 'Max, object date field' => [
             new Max(name: 'max', field: 'mainCategory.changed'),
             new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
-            ['max' => '2021-01-03 00:00:00.000'],
+            ['max' => '2021-01-03 00:00:00'],
         ];
 
         yield 'Count, object date field' => [
             new Count(name: 'count', field: 'mainCategory.changed'),
             new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key4', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key5', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key4', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key5', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
             [
                 'count' => [
-                    ['key' => '2021-01-01 00:00:00.000', 'count' => 1],
-                    ['key' => '2021-01-02 00:00:00.000', 'count' => 3],
-                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1],
+                    ['key' => '2021-01-01 00:00:00', 'count' => 1],
+                    ['key' => '2021-01-02 00:00:00', 'count' => 3],
+                    ['key' => '2021-01-03 00:00:00', 'count' => 1],
                 ],
             ],
         ];
         yield 'Distinct, object date field' => [
             new Distinct(name: 'distinct', field: 'mainCategory.changed'),
             new Documents([
-                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00.000')),
-                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00.000')),
-                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
-                new Product(key: 'key4', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
-                new Product(key: 'key5', mainCategory: new Category(changed: '2021-01-03 00:00:00.000')),
+                new Product(key: 'key1', mainCategory: new Category(changed: '2021-01-01 00:00:00')),
+                new Product(key: 'key2', mainCategory: new Category(changed: '2021-01-02 00:00:00')),
+                new Product(key: 'key3', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
+                new Product(key: 'key4', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
+                new Product(key: 'key5', mainCategory: new Category(changed: '2021-01-03 00:00:00')),
             ]),
-            ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']],
+            ['distinct' => ['2021-01-01 00:00:00', '2021-01-02 00:00:00', '2021-01-03 00:00:00']],
         ];
     }
 
@@ -989,44 +989,44 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, object list date field' => [
             new Min(name: 'min', field: 'categories.changed'),
             new Documents([
-                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00.000'), new Category(changed: '2021-01-02 00:00:00.000')]),
-                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00.000'), new Category(changed: '2021-01-04 00:00:00.000')]),
-                new Product(key: 'key3', categories: [new Category(changed: '2021-01-05 00:00:00.000'), new Category(changed: '2021-01-06 00:00:00.000')]),
+                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00'), new Category(changed: '2021-01-02 00:00:00')]),
+                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00'), new Category(changed: '2021-01-04 00:00:00')]),
+                new Product(key: 'key3', categories: [new Category(changed: '2021-01-05 00:00:00'), new Category(changed: '2021-01-06 00:00:00')]),
             ]),
-            ['min' => '2021-01-01 00:00:00.000'],
+            ['min' => '2021-01-01 00:00:00'],
         ];
         yield 'Max, object list date field' => [
             new Max(name: 'max', field: 'categories.changed'),
             new Documents([
-                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00.000'), new Category(changed: '2021-01-02 00:00:00.000')]),
-                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00.000'), new Category(changed: '2021-01-04 00:00:00.000')]),
-                new Product(key: 'key3', categories: [new Category(changed: '2021-01-05 00:00:00.000'), new Category(changed: '2021-01-06 00:00:00.000')]),
+                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00'), new Category(changed: '2021-01-02 00:00:00')]),
+                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00'), new Category(changed: '2021-01-04 00:00:00')]),
+                new Product(key: 'key3', categories: [new Category(changed: '2021-01-05 00:00:00'), new Category(changed: '2021-01-06 00:00:00')]),
             ]),
-            ['max' => '2021-01-06 00:00:00.000'],
+            ['max' => '2021-01-06 00:00:00'],
         ];
         yield 'Count, object list date field' => [
             new Count(name: 'count', field: 'categories.changed'),
             new Documents([
-                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00.000'), new Category(changed: '2021-01-03 00:00:00.000')]),
-                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00.000'), new Category(changed: '2021-01-02 00:00:00.000')]),
-                new Product(key: 'key3', categories: [new Category(changed: '2021-01-01 00:00:00.000'), new Category(changed: '2021-01-03 00:00:00.000')]),
+                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00'), new Category(changed: '2021-01-03 00:00:00')]),
+                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00'), new Category(changed: '2021-01-02 00:00:00')]),
+                new Product(key: 'key3', categories: [new Category(changed: '2021-01-01 00:00:00'), new Category(changed: '2021-01-03 00:00:00')]),
             ]),
             [
                 'count' => [
-                    ['key' => '2021-01-01 00:00:00.000', 'count' => 2],
-                    ['key' => '2021-01-02 00:00:00.000', 'count' => 1],
-                    ['key' => '2021-01-03 00:00:00.000', 'count' => 3],
+                    ['key' => '2021-01-01 00:00:00', 'count' => 2],
+                    ['key' => '2021-01-02 00:00:00', 'count' => 1],
+                    ['key' => '2021-01-03 00:00:00', 'count' => 3],
                 ],
             ],
         ];
         yield 'Distinct, object list date field' => [
             new Distinct(name: 'distinct', field: 'categories.changed'),
             new Documents([
-                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00.000'), new Category(changed: '2021-01-03 00:00:00.000')]),
-                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00.000'), new Category(changed: '2021-01-02 00:00:00.000')]),
-                new Product(key: 'key3', categories: [new Category(changed: '2021-01-01 00:00:00.000'), new Category(changed: '2021-01-03 00:00:00.000')]),
+                new Product(key: 'key1', categories: [new Category(changed: '2021-01-01 00:00:00'), new Category(changed: '2021-01-03 00:00:00')]),
+                new Product(key: 'key2', categories: [new Category(changed: '2021-01-03 00:00:00'), new Category(changed: '2021-01-02 00:00:00')]),
+                new Product(key: 'key3', categories: [new Category(changed: '2021-01-01 00:00:00'), new Category(changed: '2021-01-03 00:00:00')]),
             ]),
-            ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-02 00:00:00.000', '2021-01-03 00:00:00.000']],
+            ['distinct' => ['2021-01-01 00:00:00', '2021-01-02 00:00:00', '2021-01-03 00:00:00']],
         ];
     }
 
@@ -1258,45 +1258,45 @@ abstract class AggregationStorageTestBase extends TestCase
         yield 'Min, translated date field' => [
             new Min(name: 'min', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00'])),
             ]),
-            ['min' => '2021-01-01 00:00:00.000'],
+            ['min' => '2021-01-01 00:00:00'],
         ];
         yield 'Max, translated date field' => [
             new Max(name: 'max', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00'])),
             ]),
-            ['max' => '2021-01-04 00:00:00.000'],
+            ['max' => '2021-01-04 00:00:00'],
         ];
         yield 'Count, translated date field' => [
             new Count(name: 'count', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
-                new Product(key: 'key4', release: new TranslatedDate(['en' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00'])),
+                new Product(key: 'key4', release: new TranslatedDate(['en' => '2021-01-04 00:00:00'])),
             ]),
             [
                 'count' => [
-                    ['key' => '2021-01-01 00:00:00.000', 'count' => 1],
-                    ['key' => '2021-01-03 00:00:00.000', 'count' => 1],
-                    ['key' => '2021-01-04 00:00:00.000', 'count' => 2],
+                    ['key' => '2021-01-01 00:00:00', 'count' => 1],
+                    ['key' => '2021-01-03 00:00:00', 'count' => 1],
+                    ['key' => '2021-01-04 00:00:00', 'count' => 2],
                 ],
             ],
         ];
         yield 'Distinct, translated date field' => [
             new Distinct(name: 'distinct', field: 'release'),
             new Documents([
-                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00.000', 'de' => '2021-01-02 00:00:00.000'])),
-                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00.000'])),
-                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00.000'])),
+                new Product(key: 'key1', release: new TranslatedDate(['en' => '2021-01-01 00:00:00', 'de' => '2021-01-02 00:00:00'])),
+                new Product(key: 'key2', release: new TranslatedDate(['en' => null, 'de' => '2021-01-03 00:00:00'])),
+                new Product(key: 'key3', release: new TranslatedDate(['de' => '2021-01-04 00:00:00'])),
             ]),
-            ['distinct' => ['2021-01-01 00:00:00.000', '2021-01-03 00:00:00.000', '2021-01-04 00:00:00.000']],
+            ['distinct' => ['2021-01-01 00:00:00', '2021-01-03 00:00:00', '2021-01-04 00:00:00']],
         ];
     }
 }
