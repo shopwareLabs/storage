@@ -51,6 +51,20 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         return '`' . $source . '`';
     }
 
+    public function destroy(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DROP TABLE IF EXISTS ' . self::escape($this->collection->name)
+        );
+    }
+
+    public function clear(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DELETE FROM ' . self::escape($this->collection->name)
+        );
+    }
+
     public function setup(): void
     {
         $table = new Table(name: $this->collection->name);

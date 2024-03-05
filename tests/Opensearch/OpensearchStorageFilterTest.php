@@ -16,7 +16,7 @@ class OpensearchStorageFilterTest extends FilterStorageTestBase
 
     public function getStorage(): FilterAware&Storage
     {
-        return $this->createStorage(
+        return self::createStorage(
             collection: TestSchema::getCollection(),
         );
     }

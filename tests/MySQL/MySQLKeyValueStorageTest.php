@@ -21,8 +21,7 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
     {
         parent::setUp();
 
-        $this->getConnection()
-            ->executeStatement('DROP TABLE IF EXISTS `' . TestSchema::getCollection()->name . '`');
+        $this->getStorage()->destroy();
 
         $this->getStorage()->setup();
     }
@@ -31,8 +30,7 @@ class MySQLKeyValueStorageTest extends KeyValueStorageTestBase
     {
         parent::tearDown();
 
-        $this->getConnection()
-            ->executeStatement('DROP TABLE IF EXISTS `' . TestSchema::getCollection()->name . '`');
+        $this->getStorage()->destroy();
     }
 
     public function getStorage(): Storage

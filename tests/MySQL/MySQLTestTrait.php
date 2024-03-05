@@ -19,7 +19,7 @@ trait MySQLTestTrait
     {
         parent::setUp();
 
-        self::getConnection()->executeStatement('DROP TABLE IF EXISTS ' . TestSchema::getCollection()->name);
+        $this->getStorage()->destroy();
 
         $this->getStorage()->setup();
     }

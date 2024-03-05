@@ -16,7 +16,7 @@ class OpensearchStorageAggregationTest extends AggregationStorageTestBase
 
     public function getStorage(): AggregationAware&Storage
     {
-        return $this->createStorage(
+        return self::createStorage(
             collection: TestSchema::getCollection(),
         );
     }

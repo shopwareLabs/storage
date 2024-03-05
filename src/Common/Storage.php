@@ -32,7 +32,7 @@ interface Storage
      */
     public function setup(): void;
 
-    //    public function clear(): void;
+    public function clear(): void;
 
-    //    public function destroy();
+    public function destroy(): void;
 }

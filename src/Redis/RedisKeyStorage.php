@@ -17,6 +17,16 @@ class RedisKeyStorage implements Storage
         private readonly Hydrator $hydrator
     ) {}
 
+    public function clear(): void
+    {
+        $this->client->flushDB();
+    }
+
+    public function destroy(): void
+    {
+        $this->client->flushDB();
+    }
+
     public function setup(): void {}
 
     public function remove(array $keys): void

@@ -20,6 +20,18 @@ class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware
         private readonly \Shopware\Storage\Common\Schema\Collection $collection
     ) {}
 
+    public function destroy(): void
+    {
+        $this->decorated->destroy();
+        $this->wait();
+    }
+
+    public function clear(): void
+    {
+        $this->decorated->clear();
+        $this->wait();
+    }
+
     public function mget(array $keys, StorageContext $context): Documents
     {
         return $this->decorated->mget($keys, $context);
@@ -33,15 +45,13 @@ class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware
     public function remove(array $keys): void
     {
         $this->decorated->remove($keys);
-
-        $this->client->indices()->refresh(['index' => $this->collection->name]);
+        $this->wait();
     }
 
     public function store(Documents $documents): void
     {
         $this->decorated->store($documents);
-
-        $this->client->indices()->refresh(['index' => $this->collection->name]);
+        $this->wait();
     }
 
     public function filter(Criteria $criteria, StorageContext $context): Result
@@ -60,5 +70,18 @@ class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware
     public function setup(): void
     {
         $this->decorated->setup();
+    }
+
+    private function wait(): void
+    {
+        if (!$this->exists()) {
+            return;
+        }
+        $this->client->indices()->refresh(['index' => $this->collection->name]);
+    }
+
+    private function exists(): bool
+    {
+        return $this->client->indices()->exists(['index' => $this->collection->name]);
     }
 }

@@ -55,6 +55,16 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         private readonly Collection $collection
     ) {}
 
+    public function destroy(): void
+    {
+        $this->client->deleteIndex($this->collection->name);
+    }
+
+    public function clear(): void
+    {
+        $this->index()->deleteAllDocuments();
+    }
+
     public function get(string $key, StorageContext $context): ?Document
     {
         try {

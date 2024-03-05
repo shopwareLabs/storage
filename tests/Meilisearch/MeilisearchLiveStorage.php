@@ -20,6 +20,18 @@ class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware
         private readonly Client $client
     ) {}
 
+    public function destroy(): void
+    {
+        $this->storage->destroy();
+        $this->wait();
+    }
+
+    public function clear(): void
+    {
+        $this->storage->clear();
+        $this->wait();
+    }
+
     public function mget(array $keys, StorageContext $context): Documents
     {
         return $this->storage->mget($keys, $context);

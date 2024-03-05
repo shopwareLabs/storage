@@ -30,13 +30,14 @@ class MongoDBFilterStorageTest extends FilterStorageTestBase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->getClient()->dropDatabase('test');
+        $this->getStorage()->destroy();
+        $this->getStorage()->setup();
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-        $this->getClient()->dropDatabase('test');
+        $this->getStorage()->destroy();
     }
 
     public function getStorage(): FilterAware&Storage

@@ -14,6 +14,16 @@ class ArrayKeyStorage implements Storage
      */
     private array $storage = [];
 
+    public function destroy(): void
+    {
+        $this->storage = [];
+    }
+
+    public function clear(): void
+    {
+        $this->storage = [];
+    }
+
     public function store(Documents $documents): void
     {
         foreach ($documents as $document) {

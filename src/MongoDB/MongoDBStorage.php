@@ -60,6 +60,16 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         private readonly Client $client
     ) {}
 
+    public function destroy(): void
+    {
+        $this->collection()->drop();
+    }
+
+    public function clear(): void
+    {
+        $this->collection()->deleteMany([]);
+    }
+
     public function setup(): void {}
 
     public function mget(array $keys, StorageContext $context): Documents

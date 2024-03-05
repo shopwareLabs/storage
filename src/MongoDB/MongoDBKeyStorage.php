@@ -19,6 +19,16 @@ class MongoDBKeyStorage implements Storage
         private readonly Client $client
     ) {}
 
+    public function clear(): void
+    {
+        $this->collection()->deleteMany([]);
+    }
+
+    public function destroy(): void
+    {
+        $this->collection()->drop();
+    }
+
     public function mget(array $keys, StorageContext $context): Documents
     {
         $query['key'] = ['$in' => $keys];
