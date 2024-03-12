@@ -37,7 +37,7 @@ abstract class FilterStorageTestBase extends KeyValueStorageTestBase
 {
     abstract public function getStorage(): FilterAware&Storage;
 
-    #[DataProvider('keysCases')]
+    #[DataProvider('floatCases')]
     public function testDebug(
         Documents $input,
         Criteria $criteria,

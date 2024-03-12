@@ -9,11 +9,13 @@ class ListField extends Field
         public string $innerType = FieldType::STRING,
         public bool $translated = false,
         public string $name = '',
+        public bool $searchable = false,
     ) {
         parent::__construct(
             type: FieldType::LIST,
             translated: $translated,
-            name: $name
+            name: $name,
+            searchable: $searchable
         );
     }
 }

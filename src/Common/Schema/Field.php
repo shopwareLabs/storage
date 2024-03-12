@@ -10,6 +10,7 @@ class Field
     public function __construct(
         public string $type,
         public bool $translated = false,
-        public string $name = ''
+        public string $name = '',
+        public bool $searchable = false
     ) {}
 }

@@ -8,5 +8,5 @@ use Shopware\Storage\Common\StorageContext;
 
 interface SearchAware
 {
-    public function search(Criteria $criteria, StorageContext $context): Result;
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result;
 }
