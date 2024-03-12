@@ -7,6 +7,7 @@ use Doctrine\DBAL\DriverManager;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
 use Shopware\Storage\Common\Document\Hydrator;
 use Shopware\Storage\MySQL\MySQLAccessorBuilder;
+use Shopware\Storage\MySQL\MySQLMatchInterpreter;
 use Shopware\Storage\MySQL\MySQLParser;
 use Shopware\Storage\MySQL\MySQLStorage;
 use Shopware\StorageTests\Common\TestSchema;
@@ -33,6 +34,7 @@ trait MySQLTestTrait
         return new MySQLStorage(
             parser: $parser,
             hydrator: new Hydrator(),
+            interpreter: new MySQLMatchInterpreter(),
             accessor: $accessor,
             caster: new AggregationCaster(),
             connection: $this->getConnection(),

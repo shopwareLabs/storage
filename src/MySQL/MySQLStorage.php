@@ -30,16 +30,22 @@ use Shopware\Storage\Common\Filter\Type\Equals;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\Field;
 use Shopware\Storage\Common\Schema\FieldType;
+use Shopware\Storage\Common\Schema\ListField;
+use Shopware\Storage\Common\Schema\ObjectField;
+use Shopware\Storage\Common\Schema\ObjectListField;
+use Shopware\Storage\Common\Search\Search;
+use Shopware\Storage\Common\Search\SearchAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
 use Shopware\Storage\MySQL\Util\MultiInsert;
 
-class MySQLStorage implements Storage, FilterAware, AggregationAware
+class MySQLStorage implements Storage, FilterAware, AggregationAware, SearchAware
 {
     public function __construct(
         private readonly MySQLParser $parser,
         private readonly Hydrator $hydrator,
+        private readonly MySQLSearchInterpreter $interpreter,
         private readonly MySQLAccessorBuilder $accessor,
         private readonly AggregationCaster $caster,
         private readonly Connection $connection,
@@ -76,6 +82,13 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
                 options: $this->getOptions($field),
             );
         }
+
+        $this->createFullTextIndices(
+            fields: $this->collection->fields(),
+            table: $table,
+            prefix: null
+        );
+
         $table->addOption('charset', 'utf8mb4');
         $table->addOption('collate', 'utf8mb4_unicode_ci');
 
@@ -160,10 +173,49 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         );
 
         foreach ($documents as $document) {
-            $queue->add($this->collection->name, $document->encode());
+            $data = $document->encode();
+
+            $fulltext = $this->extractFullText(
+                fields: $this->collection->fields(),
+                data: $data,
+                prefix: null
+            );
+
+            $data = array_merge($data, $fulltext);
+
+            $queue->add($this->collection->name, $data);
         }
 
         $queue->execute();
+    }
+
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result
+    {
+        $query = $this->buildQuery($criteria, $context);
+
+        $this->interpreter->interpret(
+            collection: $this->collection,
+            builder: $query,
+            search: $search,
+            context: $context
+        );
+
+        /** @var array<array<string, mixed>> $data */
+        $data = $query->executeQuery()->fetchAllAssociative();
+
+        $documents = [];
+        foreach ($data as $row) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $row,
+                context: $context
+            );
+        }
+
+        return new Result(
+            elements: $documents,
+            total: $this->getTotal($query, $criteria)
+        );
     }
 
     public function filter(Criteria $criteria, StorageContext $context): Result
@@ -391,5 +443,121 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware
         }
 
         return $options;
+    }
+
+    /**
+     * @param array<Field> $fields
+     */
+    private function createFullTextIndices(array $fields, Table $table, ?string $prefix): void
+    {
+        foreach ($fields as $field) {
+            if (!$field->searchable) {
+                continue;
+            }
+
+            $name = implode('_', array_filter([$prefix, $field->name]));
+
+            $table->addColumn(
+                name: '_' . $name . '_search',
+                typeName: Types::TEXT,
+                options: ['notnull' => false]
+            );
+
+            $table->addIndex(
+                columnNames: ['_' . $name . '_search'],
+                indexName: 'idx_' . $name . '_search',
+                flags: ['FULLTEXT']
+            );
+
+            if ($field instanceof ObjectField || $field instanceof ObjectListField) {
+                $this->createFullTextIndices(
+                    fields: $field->fields(),
+                    table: $table,
+                    prefix: $name
+                );
+            }
+        }
+    }
+
+    /**
+     * @param array<Field> $fields
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function extractFullText(array $fields, array $data, ?string $prefix): array
+    {
+        $mapped = [];
+        foreach ($fields as $field) {
+            if (!$field->searchable) {
+                continue;
+            }
+
+            $value = $data[$field->name] ?? null;
+            if ($value === null) {
+                continue;
+            }
+
+            $name = implode('_', array_filter([$prefix, $field->name]));
+
+            $key = '_' . $name . '_search';
+
+            if ($field->translated || $field instanceof ListField) {
+                if (!is_array($value)) {
+                    continue;
+                }
+                $mapped[$key] = implode(' ', $value);
+                continue;
+            }
+
+            $native = in_array($field->type, [FieldType::STRING, FieldType::TEXT], true);
+            if ($native) {
+                if (!is_string($value)) {
+                    continue;
+                }
+
+                $mapped[$key] = $data[$field->name];
+                continue;
+            }
+
+            if ($field instanceof ObjectField) {
+                if (!is_array($value)) {
+                    continue;
+                }
+                /** @var array<string, mixed> $value */
+                $nested = $this->extractFullText(
+                    fields: $field->fields(),
+                    data: $value,
+                    prefix: $name
+                );
+
+                foreach ($nested as $key => $value) {
+                    $mapped[$key] = $value;
+                }
+
+                continue;
+            }
+
+            if ($field instanceof ObjectListField) {
+                if (!is_array($value)) {
+                    continue;
+                }
+
+                /** @var array<string, mixed> $item */
+                foreach ($value as $item) {
+                    $nested = $this->extractFullText(
+                        fields: $field->fields(),
+                        data: $item,
+                        prefix: $name
+                    );
+
+                    foreach ($nested as $key => $i) {
+                        $mapped[$key] .= $i . ' ';
+                    }
+                }
+                continue;
+            }
+        }
+
+        return $mapped;
     }
 }
