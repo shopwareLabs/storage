@@ -10,13 +10,16 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Result;
 use Shopware\Storage\Common\Filter\FilterAware;
+use Shopware\Storage\Common\Search\Search;
+use Shopware\Storage\Common\Search\SearchAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
+use Shopware\Storage\Meilisearch\MeilisearchStorage;
 
-class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware
+class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware, SearchAware
 {
     public function __construct(
-        private readonly FilterAware&AggregationAware&Storage $storage,
+        private readonly MeilisearchStorage $storage,
         private readonly Client $client
     ) {}
 
@@ -30,6 +33,11 @@ class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware
     {
         $this->storage->clear();
         $this->wait();
+    }
+
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result
+    {
+        return $this->storage->search($search, $criteria, $context);
     }
 
     public function mget(array $keys, StorageContext $context): Documents
