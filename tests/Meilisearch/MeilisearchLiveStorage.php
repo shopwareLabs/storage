@@ -23,6 +23,11 @@ class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware, 
         private readonly Client $client
     ) {}
 
+    public function setup(): void
+    {
+        $this->storage->setup();
+    }
+
     public function destroy(): void
     {
         $this->storage->destroy();
@@ -72,11 +77,6 @@ class MeilisearchLiveStorage implements Storage, FilterAware, AggregationAware, 
         $this->storage->store($documents);
 
         $this->wait();
-    }
-
-    public function setup(): void
-    {
-        $this->storage->setup();
     }
 
     private function wait(): void

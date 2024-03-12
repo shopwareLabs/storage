@@ -59,6 +59,18 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware, Sear
         private readonly Collection $collection
     ) {}
 
+    public function setup(): void
+    {
+        if (!$this->exists()) {
+            $this->client->createIndex(
+                uid: $this->collection->name,
+                options: ['primaryKey' => 'key']
+            );
+        }
+
+        $this->updateIndex();
+    }
+
     public function destroy(): void
     {
         $this->client->deleteIndex($this->collection->name);
@@ -376,18 +388,6 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware, Sear
         }
 
         $this->index()->addDocuments($data);
-    }
-
-    public function setup(): void
-    {
-        if (!$this->exists()) {
-            $this->client->createIndex(
-                uid: $this->collection->name,
-                options: ['primaryKey' => 'key']
-            );
-        }
-
-        $this->updateIndex();
     }
 
     public function index(): Indexes

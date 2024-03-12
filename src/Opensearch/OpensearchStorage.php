@@ -83,27 +83,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware, Searc
         private readonly Collection $collection
     ) {}
 
-    public function destroy(): void
-    {
-        if (!$this->exists()) {
-            return;
-        }
-
-        $this->client->indices()->delete(['index' => $this->collection->name]);
-    }
-
-    public function clear(): void
-    {
-        if (!$this->exists()) {
-            return;
-        }
-
-        $this->client->deleteByQuery([
-            'index' => $this->collection->name,
-            'body' => ['query' => ['match_all' => new \stdClass()]],
-        ]);
-    }
-
     public function setup(): void
     {
         $properties = $this->setupProperties($this->collection);
@@ -140,6 +119,27 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware, Searc
                     'source' => file_get_contents(__DIR__ . '/scripts/translated.groovy'),
                 ],
             ],
+        ]);
+    }
+
+    public function destroy(): void
+    {
+        if (!$this->exists()) {
+            return;
+        }
+
+        $this->client->indices()->delete(['index' => $this->collection->name]);
+    }
+
+    public function clear(): void
+    {
+        if (!$this->exists()) {
+            return;
+        }
+
+        $this->client->deleteByQuery([
+            'index' => $this->collection->name,
+            'body' => ['query' => ['match_all' => new \stdClass()]],
         ]);
     }
 
@@ -263,133 +263,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware, Searc
             elements: $documents,
             total: $this->getTotal($criteria, $result),
         );
-    }
-
-    private function handleSearch(Search $search, DSL $dsl, StorageContext $context): void
-    {
-        if (empty($search->group)) {
-            return;
-        }
-
-        $boosts = array_map(function (Boost $boost) use ($context) {
-            return $this->parseBoost($boost, $context);
-        }, $search->boosts);
-
-        $dsl->addQuery(new BoolQuery([
-            BoolQuery::MUST => $this->parseQuery(query: $search->group, context: $context),
-            BoolQuery::SHOULD => $boosts,
-        ]));
-    }
-
-    private function parseBoost(Boost $boost, StorageContext $context): BuilderInterface
-    {
-        if ($boost->query instanceof Query) {
-            return $this->parseQuery(query: $boost->query, context: $context);
-        }
-
-        $parsed = $this->parse(filter: $boost->query, context: $context);
-        if (method_exists($parsed, 'addParameter')) {
-            $parsed->addParameter('boost', $boost->boost);
-        }
-
-        return $parsed;
-    }
-
-    private function parseQuery(Query|Group $query, StorageContext $context): BoolQuery|NestedQuery
-    {
-        if ($query instanceof Group) {
-            $group = new BoolQuery();
-
-            foreach ($query->queries as $nested) {
-                $group->add(
-                    query: $this->parseQuery(query: $nested, context: $context),
-                    type: BoolQuery::SHOULD
-                );
-            }
-
-            $group->addParameter('minimum_should_match', $query->hits);
-
-            return $group;
-        }
-
-        $allowed = SchemaUtil::searchable(collection: $this->collection, accessor: $query->field);
-
-        if (!$allowed) {
-            throw new \LogicException(sprintf('Field %s is not searchable', $query->field));
-        }
-
-        $group = new BoolQuery();
-        $terms = explode(' ', $query->term);
-
-        foreach ($terms as $term) {
-            $group->add(
-                query: $this->query(field: $query->field, term: $term, context: $context, boost: $query->boost),
-                // keep the default parameter value to have it clear that this is a MUST query
-                type: BoolQuery::MUST
-            );
-        }
-
-        $nested = $this->getNestedPath($query->field);
-
-        if ($nested !== null) {
-            return new NestedQuery(path: $nested, query: $group);
-        }
-
-        return $group;
-    }
-
-    private function query(string $field, string $term, StorageContext $context, float $boost): BuilderInterface
-    {
-        $translated = SchemaUtil::translated(
-            collection: $this->collection,
-            accessor: $field
-        );
-
-        if (!$translated) {
-            $query = $this->accessorQuery(accessor: $field, term: $term);
-            $query->addParameter('boost', $boost);
-
-            return $query;
-        }
-
-        $bool = new BoolQuery();
-
-        foreach ($context->languages as $languageId) {
-            $accessor = $field . '.' . $languageId;
-
-            $query = $this->accessorQuery(accessor: $accessor, term: $term);
-            $query->addParameter('boost', $boost);
-
-            $bool->add(query: $query, type: BoolQuery::SHOULD,);
-
-            // for each language we go "deeper" in the translation, we reduce the ranking by 20%
-            $boost *= 0.80;
-        }
-
-        $bool->addParameter('minimum_should_match', 1);
-
-        return $bool;
-    }
-
-    private function accessorQuery(string $accessor, string $term): BoolQuery
-    {
-        $switch = new BoolQuery();
-        $switch->add(
-            query: new MatchQuery(field: $accessor . '.search', query: $term),
-            type: BoolQuery::SHOULD
-        );
-
-        // phrases are often in hardware cases:
-        // "iPhone 12" > "iphone 12GB"
-        // "RAM 128" > "128GB Corsair Vengeance LPX black DDR4-2666 DIMM CL16 Octa Kit"
-        $switch->add(
-            query: new MatchPhrasePrefixQuery(field: $accessor . '.search', query: $term),
-            type: BoolQuery::SHOULD
-        );
-
-        $switch->addParameter('minimum_should_match', 1);
-
-        return $switch;
     }
 
     public function filter(Criteria $criteria, StorageContext $context): Result
@@ -556,6 +429,133 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware, Searc
         }
 
         return $result;
+    }
+
+    private function handleSearch(Search $search, DSL $dsl, StorageContext $context): void
+    {
+        if (empty($search->group)) {
+            return;
+        }
+
+        $boosts = array_map(function (Boost $boost) use ($context) {
+            return $this->parseBoost($boost, $context);
+        }, $search->boosts);
+
+        $dsl->addQuery(new BoolQuery([
+            BoolQuery::MUST => $this->parseQuery(query: $search->group, context: $context),
+            BoolQuery::SHOULD => $boosts,
+        ]));
+    }
+
+    private function parseBoost(Boost $boost, StorageContext $context): BuilderInterface
+    {
+        if ($boost->query instanceof Query) {
+            return $this->parseQuery(query: $boost->query, context: $context);
+        }
+
+        $parsed = $this->parse(filter: $boost->query, context: $context);
+        if (method_exists($parsed, 'addParameter')) {
+            $parsed->addParameter('boost', $boost->boost);
+        }
+
+        return $parsed;
+    }
+
+    private function parseQuery(Query|Group $query, StorageContext $context): BoolQuery|NestedQuery
+    {
+        if ($query instanceof Group) {
+            $group = new BoolQuery();
+
+            foreach ($query->queries as $nested) {
+                $group->add(
+                    query: $this->parseQuery(query: $nested, context: $context),
+                    type: BoolQuery::SHOULD
+                );
+            }
+
+            $group->addParameter('minimum_should_match', $query->hits);
+
+            return $group;
+        }
+
+        $allowed = SchemaUtil::searchable(collection: $this->collection, accessor: $query->field);
+
+        if (!$allowed) {
+            throw new \LogicException(sprintf('Field %s is not searchable', $query->field));
+        }
+
+        $group = new BoolQuery();
+        $terms = explode(' ', $query->term);
+
+        foreach ($terms as $term) {
+            $group->add(
+                query: $this->query(field: $query->field, term: $term, context: $context, boost: $query->boost),
+                // keep the default parameter value to have it clear that this is a MUST query
+                type: BoolQuery::MUST
+            );
+        }
+
+        $nested = $this->getNestedPath($query->field);
+
+        if ($nested !== null) {
+            return new NestedQuery(path: $nested, query: $group);
+        }
+
+        return $group;
+    }
+
+    private function query(string $field, string $term, StorageContext $context, float $boost): BuilderInterface
+    {
+        $translated = SchemaUtil::translated(
+            collection: $this->collection,
+            accessor: $field
+        );
+
+        if (!$translated) {
+            $query = $this->accessorQuery(accessor: $field, term: $term);
+            $query->addParameter('boost', $boost);
+
+            return $query;
+        }
+
+        $bool = new BoolQuery();
+
+        foreach ($context->languages as $languageId) {
+            $accessor = $field . '.' . $languageId;
+
+            $query = $this->accessorQuery(accessor: $accessor, term: $term);
+            $query->addParameter('boost', $boost);
+
+            $bool->add(query: $query, type: BoolQuery::SHOULD,);
+
+            // for each language we go "deeper" in the translation, we reduce the ranking by 20%
+            $boost *= 0.80;
+        }
+
+        $bool->addParameter('minimum_should_match', 1);
+
+        return $bool;
+    }
+
+    private function accessorQuery(string $accessor, string $term): BoolQuery
+    {
+        $switch = new BoolQuery();
+        $switch->add(
+            query: new MatchQuery(field: $accessor . '.search', query: $term),
+            type: BoolQuery::SHOULD
+        );
+
+        // phrases are often in hardware cases:
+        // "iPhone 12" > "iphone 12GB"
+        // "RAM 128" > "128GB Corsair Vengeance LPX black DDR4-2666 DIMM CL16 Octa Kit"
+        $switch->add(
+            query: new MatchPhrasePrefixQuery(field: $accessor . '.search', query: $term),
+            type: BoolQuery::SHOULD
+        );
+
+        $switch->addParameter('minimum_should_match', 1);
+
+        return $switch;
     }
 
     private function handlePrimaries(Criteria $criteria, DSL $search): void

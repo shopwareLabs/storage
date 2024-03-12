@@ -14,4 +14,5 @@ return $config->setRules([
     'trailing_comma_in_multiline' => true,
     'array_syntax' => ['syntax' => 'short'],
     'method_argument_space' => false,
+    'ordered_class_elements' => ['order' => ['use_trait', 'constant', 'property', 'construct', 'destruct', 'magic', 'phpunit', 'public', 'protected', 'private']],
 ])->setFinder($finder);

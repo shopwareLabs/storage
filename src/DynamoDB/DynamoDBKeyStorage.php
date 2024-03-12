@@ -26,11 +26,6 @@ class DynamoDBKeyStorage implements Storage
         private readonly Collection $collection
     ) {}
 
-    public function destroy(): void
-    {
-        $this->client->deleteTable(['TableName' => $this->collection->name]);
-    }
-
     public function setup(): void
     {
         $table = new CreateTableInput([
@@ -52,6 +47,11 @@ class DynamoDBKeyStorage implements Storage
         } catch (ResourceInUseException) {
             // table exists
         }
+    }
+
+    public function destroy(): void
+    {
+        $this->client->deleteTable(['TableName' => $this->collection->name]);
     }
 
     public function clear(): void

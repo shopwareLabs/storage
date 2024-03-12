@@ -14,6 +14,21 @@ trait OpensearchTestTrait
 {
     private static ?Client $client = null;
 
+    public static function tearDownAfterClass(): void
+    {
+        self::createStorage(TestSchema::getCollection())
+            ->destroy();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->getStorage()->clear();
+
+        $this->getStorage()->setup();
+    }
+
     private static function getClient(): Client
     {
         if (self::$client === null) {
@@ -24,15 +39,6 @@ trait OpensearchTestTrait
         }
 
         return self::$client;
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->getStorage()->clear();
-
-        $this->getStorage()->setup();
     }
 
     private static function createStorage(Collection $collection): OpensearchLiveStorage
@@ -47,11 +53,5 @@ trait OpensearchTestTrait
             ),
             collection: $collection
         );
-    }
-
-    public static function tearDownAfterClass(): void
-    {
-        self::createStorage(TestSchema::getCollection())
-            ->destroy();
     }
 }

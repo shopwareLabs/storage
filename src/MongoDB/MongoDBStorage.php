@@ -64,6 +64,11 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware, SearchAw
         private readonly Client $client
     ) {}
 
+    public function setup(): void
+    {
+        $this->collection()->createIndex(['$**' => 'text']);
+    }
+
     public function destroy(): void
     {
         $this->collection()->drop();
@@ -72,11 +77,6 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware, SearchAw
     public function clear(): void
     {
         $this->collection()->deleteMany([]);
-    }
-
-    public function setup(): void
-    {
-        $this->collection()->createIndex(['$**' => 'text']);
     }
 
     public function search(Search $search, Criteria $criteria, StorageContext $context): Result
@@ -298,6 +298,77 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware, SearchAw
         return $result;
     }
 
+    public function remove(array $keys): void
+    {
+        $this->collection()->deleteMany([
+            'key' => ['$in' => $keys],
+        ]);
+    }
+
+    public function store(Documents $documents): void
+    {
+        $items = $documents->map(function (Document $document) {
+            return $document->encode();
+        });
+
+        if (empty($items)) {
+            return;
+        }
+
+        $this->collection()->insertMany(array_values($items));
+    }
+
+    public function filter(Criteria $criteria, StorageContext $context): Result
+    {
+        $query = [];
+
+        $options = [];
+
+        if ($criteria->paging instanceof Page) {
+            $options['skip'] = ($criteria->paging->page - 1) * $criteria->paging->limit;
+            $options['limit'] = $criteria->paging->limit;
+        } elseif ($criteria->paging instanceof Limit) {
+            $options['limit'] = $criteria->paging->limit;
+        }
+
+        if ($criteria->sorting) {
+            $options['sort'] = array_map(function (Sorting $sort) {
+                return [
+                    $sort->field => $sort->order === 'ASC' ? 1 : -1,
+                ];
+            }, $criteria->sorting);
+        }
+
+        if ($criteria->primaries) {
+            $query['key'] = ['$in' => $criteria->primaries];
+        }
+
+        if ($criteria->filters) {
+            $filters = $this->parseFilters($criteria->filters, $context);
+
+            $query = array_merge($query, $filters);
+        }
+
+        $cursor = $this->collection()->find($query, $options);
+
+        $cursor->setTypeMap(self::TYPE_MAP);
+
+        $documents = [];
+        foreach ($cursor as $item) {
+            if (!is_array($item)) {
+                throw new \RuntimeException('Invalid document');
+            }
+
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $item,
+                context: $context
+            );
+        }
+
+        return new Result($documents, null);
+    }
+
     /**
      * @param Aggregation[] $aggregations
      */
@@ -398,77 +469,6 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware, SearchAw
         }
 
         throw new \RuntimeException(sprintf('Unsupported aggregation type %s', $aggregation::class));
-    }
-
-    public function remove(array $keys): void
-    {
-        $this->collection()->deleteMany([
-            'key' => ['$in' => $keys],
-        ]);
-    }
-
-    public function store(Documents $documents): void
-    {
-        $items = $documents->map(function (Document $document) {
-            return $document->encode();
-        });
-
-        if (empty($items)) {
-            return;
-        }
-
-        $this->collection()->insertMany(array_values($items));
-    }
-
-    public function filter(Criteria $criteria, StorageContext $context): Result
-    {
-        $query = [];
-
-        $options = [];
-
-        if ($criteria->paging instanceof Page) {
-            $options['skip'] = ($criteria->paging->page - 1) * $criteria->paging->limit;
-            $options['limit'] = $criteria->paging->limit;
-        } elseif ($criteria->paging instanceof Limit) {
-            $options['limit'] = $criteria->paging->limit;
-        }
-
-        if ($criteria->sorting) {
-            $options['sort'] = array_map(function (Sorting $sort) {
-                return [
-                    $sort->field => $sort->order === 'ASC' ? 1 : -1,
-                ];
-            }, $criteria->sorting);
-        }
-
-        if ($criteria->primaries) {
-            $query['key'] = ['$in' => $criteria->primaries];
-        }
-
-        if ($criteria->filters) {
-            $filters = $this->parseFilters($criteria->filters, $context);
-
-            $query = array_merge($query, $filters);
-        }
-
-        $cursor = $this->collection()->find($query, $options);
-
-        $cursor->setTypeMap(self::TYPE_MAP);
-
-        $documents = [];
-        foreach ($cursor as $item) {
-            if (!is_array($item)) {
-                throw new \RuntimeException('Invalid document');
-            }
-
-            $documents[] = $this->hydrator->hydrate(
-                collection: $this->collection,
-                data: $item,
-                context: $context
-            );
-        }
-
-        return new Result($documents, null);
     }
 
     private function collection(): Collection

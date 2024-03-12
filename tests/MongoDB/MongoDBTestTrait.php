@@ -12,15 +12,6 @@ trait MongoDBTestTrait
 {
     private ?Client $client = null;
 
-    private function getClient(): Client
-    {
-        if ($this->client === null) {
-            $this->client = new Client('mongodb://localhost:27017');
-        }
-
-        return $this->client;
-    }
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,6 +23,15 @@ trait MongoDBTestTrait
     {
         parent::tearDown();
         $this->createStorage()->destroy();
+    }
+
+    private function getClient(): Client
+    {
+        if ($this->client === null) {
+            $this->client = new Client('mongodb://localhost:27017');
+        }
+
+        return $this->client;
     }
 
     private function createStorage(): MongoDBStorage

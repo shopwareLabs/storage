@@ -23,6 +23,11 @@ class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware, S
         private readonly \Shopware\Storage\Common\Schema\Collection $collection
     ) {}
 
+    public function setup(): void
+    {
+        $this->decorated->setup();
+    }
+
     public function search(Search $search, Criteria $criteria, StorageContext $context): Result
     {
         return $this->decorated->search($search, $criteria, $context);
@@ -73,11 +78,6 @@ class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware, S
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
     {
         return $this->decorated->aggregate($aggregations, $criteria, $context);
-    }
-
-    public function setup(): void
-    {
-        $this->decorated->setup();
     }
 
     private function wait(): void

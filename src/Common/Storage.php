@@ -8,6 +8,11 @@ use Shopware\Storage\Common\Document\Documents;
 interface Storage
 {
     /**
+     * Creates the storage
+     * @return void
+     */
+    public function setup(): void;
+    /**
      * @param array<string> $keys
      */
     public function mget(array $keys, StorageContext $context): Documents;
@@ -25,12 +30,6 @@ interface Storage
      * @return void
      */
     public function store(Documents $documents): void;
-
-    /**
-     * Creates the storage
-     * @return void
-     */
-    public function setup(): void;
 
     public function clear(): void;
 

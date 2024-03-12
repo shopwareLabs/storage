@@ -18,16 +18,16 @@ trait MeilisearchTestTrait
         self::createStorage()->setup();
     }
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->getStorage()->clear();
-    }
-
     public static function tearDownAfterClass(): void
     {
         self::createStorage()->destroy();
         parent::tearDownAfterClass();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->getStorage()->clear();
     }
 
     private static function getClient(): Client

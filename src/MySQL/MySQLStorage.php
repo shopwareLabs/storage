@@ -52,25 +52,6 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware, SearchAwar
         private readonly Collection $collection,
     ) {}
 
-    private static function escape(string $source): string
-    {
-        return '`' . $source . '`';
-    }
-
-    public function destroy(): void
-    {
-        $this->connection->executeStatement(
-            sql: 'DROP TABLE IF EXISTS ' . self::escape($this->collection->name)
-        );
-    }
-
-    public function clear(): void
-    {
-        $this->connection->executeStatement(
-            sql: 'DELETE FROM ' . self::escape($this->collection->name)
-        );
-    }
-
     public function setup(): void
     {
         $table = new Table(name: $this->collection->name);
@@ -107,6 +88,20 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware, SearchAwar
             ->compareTables(fromTable: $current, toTable: $table);
 
         $manager->alterTable($diff);
+    }
+
+    public function destroy(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DROP TABLE IF EXISTS ' . self::escape($this->collection->name)
+        );
+    }
+
+    public function clear(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DELETE FROM ' . self::escape($this->collection->name)
+        );
     }
 
     public function mget(array $keys, StorageContext $context): Documents
@@ -261,6 +256,11 @@ class MySQLStorage implements Storage, FilterAware, AggregationAware, SearchAwar
         }
 
         return $result;
+    }
+
+    private static function escape(string $source): string
+    {
+        return '`' . $source . '`';
     }
 
     private function loadAggregation(Aggregation $aggregation, Criteria $criteria, StorageContext $context): mixed

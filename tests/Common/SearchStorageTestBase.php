@@ -128,7 +128,7 @@ abstract class SearchStorageTestBase extends TestCase
         sort($expected);
         sort($matches);
 
-        static::assertEquals($expected, $matches);
+        static::assertEquals($expected, $matches, var_export($matches, true));
     }
 
     public static function specialCharacterCases(): \Generator
