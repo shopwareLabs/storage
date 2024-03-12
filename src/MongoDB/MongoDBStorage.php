@@ -41,10 +41,14 @@ use Shopware\Storage\Common\Filter\Type\Prefix;
 use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Search\Group;
+use Shopware\Storage\Common\Search\Query;
+use Shopware\Storage\Common\Search\Search;
+use Shopware\Storage\Common\Search\SearchAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 
-class MongoDBStorage implements Storage, FilterAware, AggregationAware
+class MongoDBStorage implements Storage, FilterAware, AggregationAware, SearchAware
 {
     private const TYPE_MAP = [
         'root' => 'array',
@@ -70,7 +74,65 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         $this->collection()->deleteMany([]);
     }
 
-    public function setup(): void {}
+    public function setup(): void
+    {
+        $this->collection()->createIndex(['$**' => 'text']);
+    }
+
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result
+    {
+        $filter = [];
+
+        $options = [];
+
+        if ($criteria->paging instanceof Page) {
+            $options['skip'] = ($criteria->paging->page - 1) * $criteria->paging->limit;
+            $options['limit'] = $criteria->paging->limit;
+        } elseif ($criteria->paging instanceof Limit) {
+            $options['limit'] = $criteria->paging->limit;
+        }
+
+        if ($criteria->sorting) {
+            $options['sort'] = array_map(function (Sorting $sort) {
+                return [
+                    $sort->field => $sort->order === 'ASC' ? 1 : -1,
+                ];
+            }, $criteria->sorting);
+        }
+
+        if ($criteria->primaries) {
+            $filter['key'] = ['$in' => $criteria->primaries];
+        }
+
+        if ($criteria->filters) {
+            $parsed = $this->parseFilters($criteria->filters, $context);
+
+            $filter = array_merge($filter, $parsed);
+        }
+
+        $terms = $this->collectTerms(queries: $search->group->queries);
+
+        $filter['$text'] = ['$search' => implode(' ', $terms)];
+
+        $cursor = $this->collection()->find(filter: $filter, options: $options);
+
+        $cursor->setTypeMap(self::TYPE_MAP);
+
+        $documents = [];
+        foreach ($cursor as $item) {
+            if (!is_array($item)) {
+                throw new \RuntimeException('Invalid document');
+            }
+
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $item,
+                context: $context
+            );
+        }
+
+        return new Result($documents, null);
+    }
 
     public function mget(array $keys, StorageContext $context): Documents
     {
@@ -583,5 +645,26 @@ class MongoDBStorage implements Storage, FilterAware, AggregationAware
         }
 
         return ['$or' => $queries];
+    }
+
+    /**
+     * @param array<Group|Query> $queries
+     * @return array<string>
+     */
+    private function collectTerms(array $queries): array
+    {
+        $terms = [];
+
+        foreach ($queries as $query) {
+            if ($query instanceof Group) {
+                $terms = array_merge($terms, $this->collectTerms(queries: $query->queries));
+                continue;
+            }
+
+            if ($query instanceof Query) {
+                $terms[] = $query->term;
+            }
+        }
+        return $terms;
     }
 }
