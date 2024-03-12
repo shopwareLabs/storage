@@ -14,13 +14,15 @@ use OpenSearchDSL\Aggregation\Metric\MinAggregation;
 use OpenSearchDSL\Aggregation\Metric\SumAggregation;
 use OpenSearchDSL\BuilderInterface;
 use OpenSearchDSL\Query\Compound\BoolQuery;
+use OpenSearchDSL\Query\FullText\MatchPhrasePrefixQuery;
+use OpenSearchDSL\Query\FullText\MatchQuery;
 use OpenSearchDSL\Query\Joining\NestedQuery;
 use OpenSearchDSL\Query\TermLevel\ExistsQuery;
 use OpenSearchDSL\Query\TermLevel\RangeQuery;
 use OpenSearchDSL\Query\TermLevel\TermQuery;
 use OpenSearchDSL\Query\TermLevel\TermsQuery;
 use OpenSearchDSL\Query\TermLevel\WildcardQuery;
-use OpenSearchDSL\Search;
+use OpenSearchDSL\Search as DSL;
 use OpenSearchDSL\Sort\FieldSort;
 use Shopware\Storage\Common\Aggregation\AggregationAware;
 use Shopware\Storage\Common\Aggregation\AggregationCaster;
@@ -63,11 +65,16 @@ use Shopware\Storage\Common\Schema\FieldsAware;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\ListField;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Search\Boost;
+use Shopware\Storage\Common\Search\Group;
+use Shopware\Storage\Common\Search\Query;
+use Shopware\Storage\Common\Search\Search;
+use Shopware\Storage\Common\Search\SearchAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\Storage\Common\Total;
 
-class OpensearchStorage implements Storage, FilterAware, AggregationAware
+class OpensearchStorage implements Storage, FilterAware, AggregationAware, SearchAware
 {
     public function __construct(
         private readonly AggregationCaster $caster,
@@ -104,14 +111,25 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         if (!$this->exists()) {
             $this->client->indices()->create([
                 'index' => $this->collection->name,
+                'body' => [
+                    'settings' => [
+                        'analysis' => [
+                            'analyzer' => [
+                                'standard_ascii' => [
+                                    'type' => 'custom',
+                                    'tokenizer' => 'standard',
+                                    'filter' => ['lowercase', 'asciifolding'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ]);
         }
 
         $this->client->indices()->putMapping([
             'index' => $this->collection->name,
-            'body' => [
-                'properties' => $properties,
-            ],
+            'body' => ['properties' => $properties],
         ]);
 
         $this->client->putScript([
@@ -123,30 +141,6 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
                 ],
             ],
         ]);
-    }
-
-    private function exists(): bool
-    {
-        return $this->client->indices()->exists(['index' => $this->collection->name]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function setupProperties(FieldsAware $fields): array
-    {
-        $properties = [];
-        foreach ($fields->fields() as $field) {
-            $definition = $this->getType($field);
-
-            if ($field instanceof FieldsAware) {
-                $definition['properties'] = $this->setupProperties($field);
-            }
-
-            $properties[$field->name] = $definition;
-        }
-
-        return $properties;
     }
 
     public function mget(array $keys, StorageContext $context): Documents
@@ -231,11 +225,176 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
     }
 
-    public function filter(
-        Criteria $criteria,
-        StorageContext $context
-    ): Result {
-        $search = new Search();
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result
+    {
+        $dsl = new DSL();
+
+        $this->handlePaging(criteria: $criteria, search: $dsl);
+
+        $this->handlePrimaries(criteria: $criteria, search: $dsl);
+
+        $this->handleFilters(criteria: $criteria, search: $dsl, context: $context);
+
+        $this->handleSorting(criteria: $criteria, search: $dsl);
+
+        $this->handleSearch(search: $search, dsl: $dsl, context: $context);
+
+        $parsed = $dsl->toArray();
+
+        $params = [
+            'index' => $this->collection->name,
+            '_source' => true,
+            'track_total_hits' => $criteria->total !== Total::NONE,
+            'body' => $parsed,
+        ];
+
+        $result = $this->client->search($params);
+
+        $documents = [];
+        foreach ($result['hits']['hits'] as $hit) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit['_source'],
+                context: $context
+            );
+        }
+
+        return new Result(
+            elements: $documents,
+            total: $this->getTotal($criteria, $result),
+        );
+    }
+
+    private function handleSearch(Search $search, DSL $dsl, StorageContext $context): void
+    {
+        if (empty($search->group)) {
+            return;
+        }
+
+        $boosts = array_map(function (Boost $boost) use ($context) {
+            return $this->parseBoost($boost, $context);
+        }, $search->boosts);
+
+        $dsl->addQuery(new BoolQuery([
+            BoolQuery::MUST => $this->parseQuery(query: $search->group, context: $context),
+            BoolQuery::SHOULD => $boosts,
+        ]));
+    }
+
+    private function parseBoost(Boost $boost, StorageContext $context): BuilderInterface
+    {
+        if ($boost->query instanceof Query) {
+            return $this->parseQuery(query: $boost->query, context: $context);
+        }
+
+        $parsed = $this->parse(filter: $boost->query, context: $context);
+        if (method_exists($parsed, 'addParameter')) {
+            $parsed->addParameter('boost', $boost->boost);
+        }
+
+        return $parsed;
+    }
+
+    private function parseQuery(Query|Group $query, StorageContext $context): BoolQuery|NestedQuery
+    {
+        if ($query instanceof Group) {
+            $group = new BoolQuery();
+
+            foreach ($query->queries as $nested) {
+                $group->add(
+                    query: $this->parseQuery(query: $nested, context: $context),
+                    type: BoolQuery::SHOULD
+                );
+            }
+
+            $group->addParameter('minimum_should_match', $query->hits);
+
+            return $group;
+        }
+
+        $allowed = SchemaUtil::searchable(collection: $this->collection, accessor: $query->field);
+
+        if (!$allowed) {
+            throw new \LogicException(sprintf('Field %s is not searchable', $query->field));
+        }
+
+        $group = new BoolQuery();
+        $terms = explode(' ', $query->term);
+
+        foreach ($terms as $term) {
+            $group->add(
+                query: $this->query(field: $query->field, term: $term, context: $context, boost: $query->boost),
+                // keep the default parameter value to have it clear that this is a MUST query
+                type: BoolQuery::MUST
+            );
+        }
+
+        $nested = $this->getNestedPath($query->field);
+
+        if ($nested !== null) {
+            return new NestedQuery(path: $nested, query: $group);
+        }
+
+        return $group;
+    }
+
+    private function query(string $field, string $term, StorageContext $context, float $boost): BuilderInterface
+    {
+        $translated = SchemaUtil::translated(
+            collection: $this->collection,
+            accessor: $field
+        );
+
+        if (!$translated) {
+            $query = $this->accessorQuery(accessor: $field, term: $term);
+            $query->addParameter('boost', $boost);
+
+            return $query;
+        }
+
+        $bool = new BoolQuery();
+
+        foreach ($context->languages as $languageId) {
+            $accessor = $field . '.' . $languageId;
+
+            $query = $this->accessorQuery(accessor: $accessor, term: $term);
+            $query->addParameter('boost', $boost);
+
+            $bool->add(query: $query, type: BoolQuery::SHOULD,);
+
+            // for each language we go "deeper" in the translation, we reduce the ranking by 20%
+            $boost *= 0.80;
+        }
+
+        $bool->addParameter('minimum_should_match', 1);
+
+        return $bool;
+    }
+
+    private function accessorQuery(string $accessor, string $term): BoolQuery
+    {
+        $switch = new BoolQuery();
+        $switch->add(
+            query: new MatchQuery(field: $accessor . '.search', query: $term),
+            type: BoolQuery::SHOULD
+        );
+
+        // phrases are often in hardware cases:
+        // "iPhone 12" > "iphone 12GB"
+        // "RAM 128" > "128GB Corsair Vengeance LPX black DDR4-2666 DIMM CL16 Octa Kit"
+        $switch->add(
+            query: new MatchPhrasePrefixQuery(field: $accessor . '.search', query: $term),
+            type: BoolQuery::SHOULD
+        );
+
+        $switch->addParameter('minimum_should_match', 1);
+
+        return $switch;
+    }
+
+    public function filter(Criteria $criteria, StorageContext $context): Result
+    {
+        $search = new DSL();
 
         $this->handlePaging(criteria: $criteria, search: $search);
 
@@ -273,7 +432,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
     public function aggregate(array $aggregations, Criteria $criteria, StorageContext $context): array
     {
-        $search = new Search();
+        $search = new DSL();
 
         $search->setSize(0);
 
@@ -399,7 +558,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         return $result;
     }
 
-    private function handlePrimaries(Criteria $criteria, Search $search): void
+    private function handlePrimaries(Criteria $criteria, DSL $search): void
     {
         if ($criteria->primaries) {
             $search->addQuery(
@@ -408,7 +567,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
     }
 
-    private function handleFilters(Criteria $criteria, Search $search, StorageContext $context): void
+    private function handleFilters(Criteria $criteria, DSL $search, StorageContext $context): void
     {
         $queries = $this->parseRootFilter(
             filters: $criteria->filters,
@@ -420,7 +579,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
     }
 
-    private function handlePaging(Criteria $criteria, Search $search): void
+    private function handlePaging(Criteria $criteria, DSL $search): void
     {
         if ($criteria->paging instanceof Page) {
             $search->setFrom(($criteria->paging->page - 1) * $criteria->paging->limit);
@@ -430,7 +589,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         }
     }
 
-    private function handleSorting(Criteria $criteria, Search $search): void
+    private function handleSorting(Criteria $criteria, DSL $search): void
     {
         if (!$criteria->sorting) {
             return;
@@ -476,7 +635,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         return $queries;
     }
 
-    private function translatedQuery(\Closure $factory, Filter $filter, StorageContext $context): BuilderInterface
+    private function translatedFilter(\Closure $factory, Filter $filter, StorageContext $context): BuilderInterface
     {
         $queries = [];
         $before = [];
@@ -502,8 +661,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
             foreach ($before as $id) {
                 $bool->add(
-                    new ExistsQuery(field: $filter->field . '.' . $id),
-                    BoolQuery::MUST_NOT
+                    query: new ExistsQuery(field: $filter->field . '.' . $id),
+                    type: BoolQuery::MUST_NOT
                 );
             }
 
@@ -617,7 +776,7 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
 
         if ($translated) {
             $factory = function (\Closure $generator) use ($filter, $context) {
-                return $this->translatedQuery($generator, $filter, $context);
+                return $this->translatedFilter($generator, $filter, $context);
             };
         }
 
@@ -817,11 +976,8 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
     /**
      * @param array<Aggregation> $aggregations
      */
-    private function handleAggregations(
-        array $aggregations,
-        Search $search,
-        StorageContext $context
-    ): void {
+    private function handleAggregations(array $aggregations, DSL $search, StorageContext $context): void
+    {
         foreach ($aggregations as $aggregation) {
             $parsed = $this->parseAggregation(
                 aggregation: $aggregation,
@@ -886,6 +1042,30 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
         return null;
     }
 
+    private function exists(): bool
+    {
+        return $this->client->indices()->exists(['index' => $this->collection->name]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function setupProperties(FieldsAware $fields): array
+    {
+        $properties = [];
+        foreach ($fields->fields() as $field) {
+            $definition = $this->getType($field);
+
+            if ($field instanceof FieldsAware) {
+                $definition['properties'] = $this->setupProperties($field);
+            }
+
+            $properties[$field->name] = $definition;
+        }
+
+        return $properties;
+    }
+
     /**
      * @param Field $field
      * @return array<string, mixed>
@@ -913,6 +1093,14 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             default => throw new \LogicException(sprintf('Unsupported field type %s', $type)),
         };
 
+        $scalar = !in_array($type, [FieldType::OBJECT, FieldType::OBJECT_LIST], true);
+        if ($field->searchable && $scalar) {
+            $mapped['fields'] = [
+                'search' => ['type' => 'text', 'analyzer' => 'standard_ascii'],
+                'search_as_you_type' => ['type' => 'search_as_you_type'],
+            ];
+        }
+
         if (!$field->translated) {
             return $mapped;
         }
@@ -925,4 +1113,5 @@ class OpensearchStorage implements Storage, FilterAware, AggregationAware
             ],
         ];
     }
+
 }

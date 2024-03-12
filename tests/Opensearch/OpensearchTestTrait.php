@@ -51,6 +51,7 @@ trait OpensearchTestTrait
 
     public static function tearDownAfterClass(): void
     {
-        self::createStorage(TestSchema::getCollection())->destroy();
+        self::createStorage(TestSchema::getCollection())
+            ->destroy();
     }
 }

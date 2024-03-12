@@ -9,16 +9,24 @@ use Shopware\Storage\Common\Document\Documents;
 use Shopware\Storage\Common\Filter\Criteria;
 use Shopware\Storage\Common\Filter\Result;
 use Shopware\Storage\Common\Filter\FilterAware;
+use Shopware\Storage\Common\Search\Search;
+use Shopware\Storage\Common\Search\SearchAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
+use Shopware\Storage\Opensearch\OpensearchStorage;
 
-class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware
+class OpensearchLiveStorage implements FilterAware, Storage, AggregationAware, SearchAware
 {
     public function __construct(
         private readonly Client $client,
-        private readonly FilterAware&AggregationAware&Storage $decorated,
+        private readonly OpensearchStorage $decorated,
         private readonly \Shopware\Storage\Common\Schema\Collection $collection
     ) {}
+
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result
+    {
+        return $this->decorated->search($search, $criteria, $context);
+    }
 
     public function destroy(): void
     {

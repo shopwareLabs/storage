@@ -10,7 +10,7 @@ use Shopware\StorageTests\Common\TestSchema;
 /**
  * @covers \Shopware\Storage\Opensearch\OpensearchStorage
  */
-class OpensearchStorageAggregationTest extends AggregationStorageTestBase
+class OpensearchAggregationTest extends AggregationStorageTestBase
 {
     use OpensearchTestTrait;
 
