@@ -14,6 +14,11 @@ class ArrayKeyStorage implements Storage
      */
     private array $storage = [];
 
+    public function setup(): void
+    {
+        $this->storage = [];
+    }
+
     public function destroy(): void
     {
         $this->storage = [];
@@ -56,10 +61,5 @@ class ArrayKeyStorage implements Storage
         }
 
         return $documents;
-    }
-
-    public function setup(): void
-    {
-        $this->storage = [];
     }
 }

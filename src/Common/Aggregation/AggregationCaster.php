@@ -15,36 +15,25 @@ class AggregationCaster
     {
         $type = SchemaUtil::type(collection: $collection, accessor: $aggregation->field);
 
-        switch ($type) {
-            case FieldType::INT:
-                // cast to float, because of avg aggregation
-                $caster = fn($value) => (float) $value;
-                break;
-            case FieldType::FLOAT:
-                $caster = fn($value) => round((float) $value, 6);
-                break;
-            case FieldType::BOOL:
-                $caster = function ($value) {
-                    return match (true) {
-                        $value === '1', $value === 'true' => true,
-                        $value === '0', $value === 'false' => false,
-                        default => (bool) $value
-                    };
+        $caster = match ($type) {
+            FieldType::INT => fn($value) => (float) $value,
+            FieldType::FLOAT => fn($value) => round((float) $value, 6),
+            FieldType::BOOL => function ($value) {
+                return match (true) {
+                    $value === '1', $value === 'true' => true,
+                    $value === '0', $value === 'false' => false,
+                    default => (bool) $value
                 };
-                break;
-            case FieldType::DATETIME:
-
-                $caster = function ($value) {
-                    return match (true) {
-                        is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s'),
-                        is_int($value) => (new \DateTimeImmutable('@' . $value))->format('Y-m-d H:i:s'),
-                        default => $value
-                    };
+            },
+            FieldType::DATETIME => function ($value) {
+                return match (true) {
+                    is_string($value) => (new \DateTimeImmutable($value))->format('Y-m-d H:i:s'),
+                    is_int($value) => (new \DateTimeImmutable('@' . $value))->format('Y-m-d H:i:s'),
+                    default => $value
                 };
-                break;
-            default:
-                $caster = fn($value) => $value;
-        }
+            },
+            default => fn($value) => $value,
+        };
 
         if ($aggregation instanceof Distinct) {
             assert(is_array($data), 'Distinct aggregation must return an array');

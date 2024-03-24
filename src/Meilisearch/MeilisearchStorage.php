@@ -42,11 +42,15 @@ use Shopware\Storage\Common\Filter\Type\Suffix;
 use Shopware\Storage\Common\Schema\Collection;
 use Shopware\Storage\Common\Schema\FieldType;
 use Shopware\Storage\Common\Schema\SchemaUtil;
+use Shopware\Storage\Common\Search\Group;
+use Shopware\Storage\Common\Search\Query;
+use Shopware\Storage\Common\Search\Search;
+use Shopware\Storage\Common\Search\SearchAware;
 use Shopware\Storage\Common\Storage;
 use Shopware\Storage\Common\StorageContext;
 use Shopware\StorageTests\Common\TestSchema;
 
-class MeilisearchStorage implements Storage, FilterAware, AggregationAware
+class MeilisearchStorage implements Storage, FilterAware, AggregationAware, SearchAware
 {
     public function __construct(
         private readonly AggregationCaster $caster,
@@ -54,6 +58,18 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         private readonly Client $client,
         private readonly Collection $collection
     ) {}
+
+    public function setup(): void
+    {
+        if (!$this->exists()) {
+            $this->client->createIndex(
+                uid: $this->collection->name,
+                options: ['primaryKey' => 'key']
+            );
+        }
+
+        $this->updateIndex();
+    }
 
     public function destroy(): void
     {
@@ -87,6 +103,49 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
     public function mget(array $keys, StorageContext $context): Documents
     {
         $result = $this->client->index($this->collection->name)->getDocument($keys);
+
+        $documents = [];
+        foreach ($result->getHits() as $hit) {
+            $documents[] = $this->hydrator->hydrate(
+                collection: $this->collection,
+                data: $hit,
+                context: $context
+            );
+        }
+
+        return new Result(
+            elements: $documents
+        );
+    }
+
+    public function search(Search $search, Criteria $criteria, StorageContext $context): Result
+    {
+        $params = [];
+
+        if ($criteria->paging instanceof Page) {
+            $params['page'] = $criteria->paging->page;
+            $params['hitsPerPage'] = $criteria->paging->limit;
+        }
+
+        $filters = $criteria->filters;
+        if ($criteria->primaries !== null) {
+            $filters[] = new Any(field: 'key', value: $criteria->primaries);
+        }
+
+        if (!empty($filters)) {
+            $params['filter'] = $this->parse($filters, $context);
+        }
+
+        $query = $this->collectTerms($search->group->queries);
+
+        $query = implode(' ', array_unique($query));
+
+        $params['q'] = $query;
+
+        $result = $this->index()->search(
+            query: null,
+            searchParams: $params
+        );
 
         $documents = [];
         foreach ($result->getHits() as $hit) {
@@ -329,18 +388,6 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         $this->index()->addDocuments($data);
-    }
-
-    public function setup(): void
-    {
-        if (!$this->exists()) {
-            $this->client->createIndex(
-                uid: $this->collection->name,
-                options: ['primaryKey' => 'key']
-            );
-        }
-
-        $this->updateIndex();
     }
 
     public function index(): Indexes
@@ -656,5 +703,30 @@ class MeilisearchStorage implements Storage, FilterAware, AggregationAware
         }
 
         $this->client->waitForTasks($ids);
+    }
+
+    /**
+     * @param array<Group|Query> $queries
+     * @return array<string>
+     */
+    private function collectTerms(array $queries): array
+    {
+        $terms = [];
+
+        foreach ($queries as $query) {
+            if ($query instanceof Group) {
+                $nested = $this->collectTerms($query->queries);
+
+                foreach($nested as $term) {
+                    $terms[] = $term;
+                }
+            }
+
+            if ($query instanceof Query) {
+                $terms[] = $query->term;
+            }
+        }
+
+        return $terms;
     }
 }

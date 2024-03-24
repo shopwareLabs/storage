@@ -55,17 +55,17 @@ class ArrayStorage implements Storage, FilterAware, AggregationAware
         private readonly Collection $collection
     ) {}
 
+    public function setup(): void
+    {
+        $this->storage = [];
+    }
+
     public function clear(): void
     {
         $this->storage = [];
     }
 
     public function destroy(): void
-    {
-        $this->storage = [];
-    }
-
-    public function setup(): void
     {
         $this->storage = [];
     }

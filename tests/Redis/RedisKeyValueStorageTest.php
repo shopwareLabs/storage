@@ -13,14 +13,6 @@ use Shopware\StorageTests\Common\TestSchema;
  */
 class RedisKeyValueStorageTest extends KeyValueStorageTestBase
 {
-    private function getClient(): \Redis
-    {
-        $client = new \Redis();
-        $client->connect('localhost');
-
-        return $client;
-    }
-
     public function getStorage(): Storage
     {
         return new RedisKeyStorage(
@@ -28,5 +20,12 @@ class RedisKeyValueStorageTest extends KeyValueStorageTestBase
             hydrator: new Hydrator(),
             client: $this->getClient()
         );
+    }
+    private function getClient(): \Redis
+    {
+        $client = new \Redis();
+        $client->connect('localhost');
+
+        return $client;
     }
 }

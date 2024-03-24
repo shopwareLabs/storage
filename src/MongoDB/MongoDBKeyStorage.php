@@ -19,6 +19,8 @@ class MongoDBKeyStorage implements Storage
         private readonly Client $client
     ) {}
 
+    public function setup(): void {}
+
     public function clear(): void
     {
         $this->collection()->deleteMany([]);
@@ -105,8 +107,6 @@ class MongoDBKeyStorage implements Storage
 
         $this->collection()->insertMany(array_values($items));
     }
-
-    public function setup(): void {}
 
     private function collection(): Collection
     {

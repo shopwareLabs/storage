@@ -71,6 +71,13 @@ class SchemaUtil
         return $schema->type;
     }
 
+    public static function searchable(Collection $collection, string $accessor): bool
+    {
+        $field = self::field(collection: $collection, accessor: $accessor);
+
+        return $field->searchable;
+    }
+
     private static function field(Collection $collection, string $accessor): Field
     {
         $property = self::property(accessor: $accessor);

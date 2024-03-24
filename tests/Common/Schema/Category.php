@@ -19,10 +19,10 @@ class Category
     use JsonSerializableTrait;
 
     public function __construct(
-        #[Field(type: FieldType::STRING)]
+        #[Field(type: FieldType::STRING, searchable: true)]
         public ?string $ean = null,
 
-        #[Field(type: FieldType::TEXT)]
+        #[Field(type: FieldType::TEXT, searchable: true)]
         public ?string $comment = null,
 
         #[Field(type: FieldType::INT)]
@@ -38,7 +38,7 @@ class Category
         public ?string $changed = null,
 
         /** @var array<string> */
-        #[ListField(innerType: FieldType::STRING)]
+        #[ListField(innerType: FieldType::STRING, searchable: true)]
         public ?array $keywords = null,
 
         /** @var array<int> */
@@ -53,10 +53,10 @@ class Category
         #[ListField(innerType: FieldType::DATETIME)]
         public ?array $timestamps = null,
 
-        #[Field(type: FieldType::STRING, translated: true)]
+        #[Field(type: FieldType::STRING, translated: true, searchable: true)]
         public ?TranslatedString $name = null,
 
-        #[Field(type: FieldType::TEXT, translated: true)]
+        #[Field(type: FieldType::TEXT, translated: true, searchable: true)]
         public ?TranslatedText $description = null,
 
         #[Field(type: FieldType::INT, translated: true)]

@@ -23,25 +23,6 @@ class MySQLKeyStorage implements Storage
         private readonly Collection $collection
     ) {}
 
-    private function table(): string
-    {
-        return '`' . $this->collection->name . '`';
-    }
-
-    public function destroy(): void
-    {
-        $this->connection->executeStatement(
-            sql: 'DROP TABLE IF EXISTS ' . $this->table()
-        );
-    }
-
-    public function clear(): void
-    {
-        $this->connection->executeStatement(
-            sql: 'DELETE FROM ' . $this->table()
-        );
-    }
-
     public function setup(): void
     {
         $table = new Table(name: $this->collection->name);
@@ -62,6 +43,20 @@ class MySQLKeyStorage implements Storage
             ->compareTables(fromTable: $current, toTable: $table);
 
         $manager->alterTable($diff);
+    }
+
+    public function destroy(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DROP TABLE IF EXISTS ' . $this->table()
+        );
+    }
+
+    public function clear(): void
+    {
+        $this->connection->executeStatement(
+            sql: 'DELETE FROM ' . $this->table()
+        );
     }
 
     public function remove(array $keys): void
@@ -135,5 +130,10 @@ class MySQLKeyStorage implements Storage
             data: $decoded,
             context: $context
         );
+    }
+
+    private function table(): string
+    {
+        return '`' . $this->collection->name . '`';
     }
 }

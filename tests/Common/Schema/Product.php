@@ -23,10 +23,13 @@ class Product extends Document
         #[Field(type: FieldType::STRING)]
         public string $key,
 
-        #[Field(type: FieldType::STRING)]
+        #[Field(type: FieldType::STRING, searchable: true)]
         public ?string $ean = null,
 
-        #[Field(type: FieldType::TEXT)]
+        #[Field(type: FieldType::STRING, searchable: true)]
+        public ?string $number = null,
+
+        #[Field(type: FieldType::TEXT, searchable: true)]
         public ?string $comment = null,
 
         #[Field(type: FieldType::INT)]
@@ -42,7 +45,7 @@ class Product extends Document
         public ?string $changed = null,
 
         /** @var array<string> */
-        #[ListField(innerType: FieldType::STRING)]
+        #[ListField(innerType: FieldType::STRING, searchable: true)]
         public ?array $keywords = null,
 
         /** @var array<int> */
@@ -57,10 +60,10 @@ class Product extends Document
         #[ListField(innerType: FieldType::DATETIME)]
         public ?array $timestamps = null,
 
-        #[Field(type: FieldType::STRING, translated: true)]
+        #[Field(type: FieldType::STRING, translated: true, searchable: true)]
         public ?TranslatedString $name = null,
 
-        #[Field(type: FieldType::TEXT, translated: true)]
+        #[Field(type: FieldType::TEXT, translated: true, searchable: true)]
         public ?TranslatedText $description = null,
 
         #[Field(type: FieldType::INT, translated: true)]
@@ -80,6 +83,6 @@ class Product extends Document
 
         /** @var array<Category> */
         #[ObjectListField(class: Category::class)]
-        public ?array $categories = null
+        public ?array $categories = null,
     ) {}
 }

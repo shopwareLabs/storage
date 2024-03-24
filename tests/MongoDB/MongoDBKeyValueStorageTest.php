@@ -18,15 +18,6 @@ class MongoDBKeyValueStorageTest extends KeyValueStorageTestBase
 {
     private ?Client $client = null;
 
-    private function getClient(): Client
-    {
-        if ($this->client === null) {
-            $this->client = new Client('mongodb://localhost:27017');
-        }
-
-        return $this->client;
-    }
-
     public function getStorage(): Storage
     {
         return new MongoDBKeyStorage(
@@ -35,5 +26,14 @@ class MongoDBKeyValueStorageTest extends KeyValueStorageTestBase
             hydrator: new Hydrator(),
             client: $this->getClient()
         );
+    }
+
+    private function getClient(): Client
+    {
+        if ($this->client === null) {
+            $this->client = new Client('mongodb://localhost:27017');
+        }
+
+        return $this->client;
     }
 }

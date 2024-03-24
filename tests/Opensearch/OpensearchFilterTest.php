@@ -10,7 +10,7 @@ use Shopware\StorageTests\Common\TestSchema;
 /**
  * @covers \Shopware\Storage\Opensearch\OpensearchStorage
  */
-class OpensearchStorageFilterTest extends FilterStorageTestBase
+class OpensearchFilterTest extends FilterStorageTestBase
 {
     use OpensearchTestTrait;
 

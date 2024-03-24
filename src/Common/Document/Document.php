@@ -19,22 +19,6 @@ abstract class Document implements \JsonSerializable
     ) {}
 
     /**
-     * @return array<string, mixed>
-     */
-    public function encode(): array
-    {
-        $data = json_decode(json_encode($this, self::JSON_OPTIONS), true);
-
-        if (!is_array($data)) {
-            throw new \RuntimeException(sprintf('Error: Failed to encode document class %s with key %s', static::class, $this->key));
-        }
-
-        $data['key'] = $this->key;
-
-        return $data;
-    }
-
-    /**
      * @param array<mixed> $arguments
      */
     public function __call(string $name, array $arguments): mixed
@@ -54,5 +38,21 @@ abstract class Document implements \JsonSerializable
         throw new \BadMethodCallException(
             sprintf('Error: Call to undefined method %s::%s()', static::class, $name)
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function encode(): array
+    {
+        $data = json_decode(json_encode($this, self::JSON_OPTIONS), true);
+
+        if (!is_array($data)) {
+            throw new \RuntimeException(sprintf('Error: Failed to encode document class %s with key %s', static::class, $this->key));
+        }
+
+        $data['key'] = $this->key;
+
+        return $data;
     }
 }
